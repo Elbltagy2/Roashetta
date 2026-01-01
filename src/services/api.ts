@@ -167,6 +167,33 @@ class ApiClient {
   async deletePatientRecord(id: string) {
     return this.request<void>(`/patient-records/${id}`, { method: 'DELETE' });
   }
+
+  // Expenses
+  async getExpenses(startDate?: string, endDate?: string) {
+    let url = '/expenses';
+    if (startDate && endDate) {
+      url += `?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return this.request<Expense[]>(url);
+  }
+
+  async createExpense(data: CreateExpenseData) {
+    return this.request<Expense>('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateExpense(id: string, data: UpdateExpenseData) {
+    return this.request<Expense>(`/expenses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteExpense(id: string) {
+    return this.request<void>(`/expenses/${id}`, { method: 'DELETE' });
+  }
 }
 
 // Types
@@ -298,6 +325,33 @@ export interface CreatePatientRecordData {
   fileType: string;
   fileUrl: string;
   fileSize: number;
+}
+
+export type ExpenseCategory = 'rent' | 'utilities' | 'supplies' | 'equipment' | 'maintenance' | 'other';
+
+export interface Expense {
+  id: string;
+  doctorId: string;
+  amount: number;
+  category: ExpenseCategory;
+  description: string;
+  expenseDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateExpenseData {
+  amount: number;
+  category: ExpenseCategory;
+  description?: string;
+  expenseDate: string;
+}
+
+export interface UpdateExpenseData {
+  amount?: number;
+  category?: ExpenseCategory;
+  description?: string;
+  expenseDate?: string;
 }
 
 export const api = new ApiClient();
