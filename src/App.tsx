@@ -15,6 +15,7 @@ import NewPatientPage from "./pages/NewPatientPage";
 import PatientDetailPage from "./pages/PatientDetailPage";
 import NewVisitPage from "./pages/NewVisitPage";
 import VisitDetailPage from "./pages/VisitDetailPage";
+import ExpensesPage from "./pages/ExpensesPage";
 import AssistantsPage from "./pages/AssistantsPage";
 import NotFound from "./pages/NotFound";
 
@@ -67,6 +68,7 @@ const AppRoutes = () => {
       <Route path="/patients/:id/visit/new" element={<ProtectedRoute><NewVisitPage /></ProtectedRoute>} />
       <Route path="/patients/:id/visit/:visitId" element={<ProtectedRoute><VisitDetailPage /></ProtectedRoute>} />
       <Route path="/prescriptions" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
+      <Route path="/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
       <Route path="/assistants" element={<ProtectedRoute><AssistantsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />

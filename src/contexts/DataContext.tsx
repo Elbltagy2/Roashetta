@@ -3,9 +3,13 @@ import api, {
   Patient as ApiPatient,
   Visit as ApiVisit,
   PatientRecord as ApiPatientRecord,
+  Expense as ApiExpense,
   CreatePatientData,
   CreateVisitData,
   CreatePatientRecordData,
+  CreateExpenseData,
+  UpdateExpenseData,
+  ExpenseCategory,
 } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -49,9 +53,19 @@ export interface Visit {
   vitals: Vital;
 }
 
+export interface Expense {
+  id: string;
+  amount: number;
+  category: ExpenseCategory;
+  description: string;
+  expenseDate: Date;
+  createdAt: Date;
+}
+
 interface DataContextType {
   patients: Patient[];
   visits: Visit[];
+  expenses: Expense[];
   isLoading: boolean;
   error: string | null;
   refreshPatients: () => Promise<void>;
@@ -65,6 +79,11 @@ interface DataContextType {
   addPatientRecord: (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => Promise<void>;
   deletePatientRecord: (patientId: string, recordId: string) => Promise<void>;
   loadPatientRecords: (patientId: string) => Promise<PatientRecord[]>;
+  // Expenses
+  refreshExpenses: () => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<Expense>;
+  updateExpense: (id: string, data: Partial<Omit<Expense, 'id' | 'createdAt'>>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -110,10 +129,21 @@ const convertApiRecord = (apiRecord: ApiPatientRecord): PatientRecord => ({
   uploadedAt: new Date(apiRecord.uploadedAt),
 });
 
+// Helper to convert API expense to local format
+const convertApiExpense = (apiExpense: ApiExpense): Expense => ({
+  id: apiExpense.id,
+  amount: apiExpense.amount,
+  category: apiExpense.category,
+  description: apiExpense.description,
+  expenseDate: new Date(apiExpense.expenseDate),
+  createdAt: new Date(apiExpense.createdAt),
+});
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,15 +164,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAuthenticated]);
 
-  // Load patients when authenticated
+  const refreshExpenses = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      const apiExpenses = await api.getExpenses();
+      const convertedExpenses = apiExpenses.map(convertApiExpense);
+      setExpenses(convertedExpenses);
+    } catch (err) {
+      console.error('Failed to load expenses:', err);
+    }
+  }, [isAuthenticated]);
+
+  // Load patients and expenses when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       refreshPatients();
+      refreshExpenses();
     } else {
       setPatients([]);
       setVisits([]);
+      setExpenses([]);
     }
-  }, [isAuthenticated, refreshPatients]);
+  }, [isAuthenticated, refreshPatients, refreshExpenses]);
 
   const addPatient = async (patientData: Omit<Patient, 'id' | 'createdAt' | 'records'>): Promise<Patient> => {
     const createData: CreatePatientData = {
@@ -265,11 +309,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  // Expense methods
+  const addExpense = async (expenseData: Omit<Expense, 'id' | 'createdAt'>): Promise<Expense> => {
+    const createData: CreateExpenseData = {
+      amount: expenseData.amount,
+      category: expenseData.category,
+      description: expenseData.description,
+      expenseDate: expenseData.expenseDate.toISOString().split('T')[0],
+    };
+
+    const apiExpense = await api.createExpense(createData);
+    const newExpense = convertApiExpense(apiExpense);
+    setExpenses(prev => [newExpense, ...prev]);
+    return newExpense;
+  };
+
+  const updateExpense = async (id: string, data: Partial<Omit<Expense, 'id' | 'createdAt'>>) => {
+    const updateData: UpdateExpenseData = {};
+    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.expenseDate !== undefined) updateData.expenseDate = data.expenseDate.toISOString().split('T')[0];
+
+    const apiExpense = await api.updateExpense(id, updateData);
+    const updatedExpense = convertApiExpense(apiExpense);
+    setExpenses(prev => prev.map(e => e.id === id ? updatedExpense : e));
+  };
+
+  const deleteExpense = async (id: string) => {
+    await api.deleteExpense(id);
+    setExpenses(prev => prev.filter(e => e.id !== id));
+  };
+
   return (
     <DataContext.Provider
       value={{
         patients,
         visits,
+        expenses,
         isLoading,
         error,
         refreshPatients,
@@ -283,6 +360,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addPatientRecord,
         deletePatientRecord,
         loadPatientRecords,
+        refreshExpenses,
+        addExpense,
+        updateExpense,
+        deleteExpense,
       }}
     >
       {children}

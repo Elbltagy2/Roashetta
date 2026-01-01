@@ -11,6 +11,7 @@ import {
   Globe,
   Stethoscope,
   UserCog,
+  Wallet,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { key: 'patients', icon: Users, path: '/patients' },
   { key: 'prescriptions', icon: FileText, path: '/prescriptions' },
+  { key: 'expenses', icon: Wallet, path: '/expenses' },
   { key: 'assistants', icon: UserCog, path: '/assistants', doctorOnly: true },
   { key: 'settings', icon: Settings, path: '/settings' },
 ];
