@@ -1,73 +1,101 @@
-# Welcome to your Lovable project
+# Roashetta - نظام إدارة العيادات الطبية
 
-## Project info
+Medical Clinic Management System with Egyptian-style prescription pad (روشتة)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- Patient management (add, edit, view patients)
+- Visit tracking with vitals (blood pressure, temperature, weight)
+- Handwriting canvas for medical notes:
+  - Chief Complaint (الشكوى)
+  - Diagnosis (التشخيص)
+  - Prescription (الروشتة)
+- Egyptian-style prescription pad matching Dr. Sherif Ali's design
+- PDF download for prescriptions
+- Patient records upload (images, PDFs)
+- RTL Arabic UI support
+- Assistant management for clinic staff
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+### Frontend
+- React 18 + TypeScript
+- Vite
+- Tailwind CSS
+- Shadcn UI
+- Framer Motion
+- html2pdf.js (PDF generation)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Backend
+- Node.js + Express
+- TypeScript
+- PostgreSQL
+- Clean Architecture pattern
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Frontend Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Install dependencies
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Backend Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+# Navigate to backend
+cd backend
 
-**Use GitHub Codespaces**
+# Install dependencies
+npm install
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Copy environment file
+cp .env.example .env
 
-## What technologies are used for this project?
+# Update .env with your PostgreSQL credentials
 
-This project is built with:
+# Run database migrations
+npm run migrate
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Start backend server
+npm run dev
+```
 
-## How can I deploy this project?
+## Environment Variables
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Backend (.env)
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/roashetta
+JWT_SECRET=your-secret-key
+PORT=3000
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Project Structure
 
-Yes, you can!
+```
+roashetta/
+├── src/                    # Frontend source
+│   ├── components/         # React components
+│   ├── contexts/           # React contexts
+│   ├── pages/              # Page components
+│   └── services/           # API client
+├── backend/                # Backend source
+│   └── src/
+│       ├── domain/         # Entities & repositories
+│       ├── application/    # Use cases
+│       ├── infrastructure/ # Database & implementations
+│       └── presentation/   # Controllers & routes
+└── public/                 # Static assets
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Private project for medical clinic management.
