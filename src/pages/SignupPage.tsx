@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, Building2, Phone, FileText, Stethoscope, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Building2, Phone, MapPin, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,10 +29,10 @@ const SignupPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    specialty: '',
+    specialization: '',
     clinicName: '',
+    clinicAddress: '',
     phone: '',
-    licenseNumber: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -153,8 +153,8 @@ const SignupPage: React.FC = () => {
                 <div className="space-y-2">
                   <Label htmlFor="specialty">{t('doctor.specialty')}</Label>
                   <Select
-                    value={formData.specialty}
-                    onValueChange={(value) => handleChange('specialty', value)}
+                    value={formData.specialization}
+                    onValueChange={(value) => handleChange('specialization', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={t('doctor.specialty')} />
@@ -203,17 +203,15 @@ const SignupPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="licenseNumber">{t('doctor.licenseNumber')}</Label>
+                  <Label htmlFor="clinicAddress">{language === 'ar' ? 'عنوان العيادة' : 'Clinic Address'}</Label>
                   <div className="relative">
-                    <FileText className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <MapPin className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
-                      id="licenseNumber"
-                      value={formData.licenseNumber}
-                      onChange={(e) => handleChange('licenseNumber', e.target.value)}
-                      placeholder="EG-12345"
+                      id="clinicAddress"
+                      value={formData.clinicAddress}
+                      onChange={(e) => handleChange('clinicAddress', e.target.value)}
+                      placeholder={language === 'ar' ? 'القاهرة، مصر' : 'Cairo, Egypt'}
                       className="ps-10"
-                      dir="ltr"
-                      required
                     />
                   </div>
                 </div>

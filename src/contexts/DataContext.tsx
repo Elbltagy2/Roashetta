@@ -1,4 +1,21 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api, {
+  Patient as ApiPatient,
+  Visit as ApiVisit,
+  PatientRecord as ApiPatientRecord,
+  CreatePatientData,
+  CreateVisitData,
+  CreatePatientRecordData,
+} from '../services/api';
+import { useAuth } from './AuthContext';
+
+export interface PatientRecord {
+  id: string;
+  name: string;
+  type: string;
+  dataUrl: string;
+  uploadedAt: Date;
+}
 
 export interface Patient {
   id: string;
@@ -9,6 +26,7 @@ export interface Patient {
   nationalId: string;
   medicalHistory: string;
   allergies: string[];
+  records: PatientRecord[];
   createdAt: Date;
 }
 
@@ -18,176 +36,232 @@ export interface Vital {
   weight: number;
 }
 
-export interface Medicine {
-  id: string;
-  name: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  instructions: string;
-}
-
-export interface Prescription {
-  id: string;
-  visitId: string;
-  medicines: Medicine[];
-  createdAt: Date;
-}
-
 export interface Visit {
   id: string;
   patientId: string;
   date: Date;
   chiefComplaint: string;
+  chiefComplaintDrawing: string | null;
   diagnosis: string;
+  diagnosisDrawing: string | null;
   notes: string;
+  notesDrawing: string | null;
   vitals: Vital;
-  prescription?: Prescription;
 }
 
 interface DataContextType {
   patients: Patient[];
   visits: Visit[];
-  addPatient: (patient: Omit<Patient, 'id' | 'createdAt'>) => Patient;
-  updatePatient: (id: string, data: Partial<Patient>) => void;
-  deletePatient: (id: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  refreshPatients: () => Promise<void>;
+  addPatient: (patient: Omit<Patient, 'id' | 'createdAt' | 'records'>) => Promise<Patient>;
+  updatePatient: (id: string, data: Partial<Patient>) => Promise<void>;
+  deletePatient: (id: string) => Promise<void>;
   getPatient: (id: string) => Patient | undefined;
-  addVisit: (visit: Omit<Visit, 'id'>) => Visit;
+  addVisit: (visit: Omit<Visit, 'id'>) => Promise<Visit>;
   getPatientVisits: (patientId: string) => Visit[];
-  addPrescription: (visitId: string, medicines: Omit<Medicine, 'id'>[]) => void;
+  loadPatientVisits: (patientId: string) => Promise<Visit[]>;
+  addPatientRecord: (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => Promise<void>;
+  deletePatientRecord: (patientId: string, recordId: string) => Promise<void>;
+  loadPatientRecords: (patientId: string) => Promise<PatientRecord[]>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Mock data
-const initialPatients: Patient[] = [
-  {
-    id: '1',
-    name: 'محمد أحمد علي',
-    phone: '01012345678',
-    age: 45,
-    gender: 'male',
-    nationalId: '28501011234567',
-    medicalHistory: 'ارتفاع ضغط الدم، السكري من النوع الثاني',
-    allergies: ['البنسلين', 'الأسبرين'],
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '2',
-    name: 'فاطمة حسن محمود',
-    phone: '01098765432',
-    age: 32,
-    gender: 'female',
-    nationalId: '29203021234567',
-    medicalHistory: 'لا يوجد',
-    allergies: [],
-    createdAt: new Date('2024-02-20'),
-  },
-  {
-    id: '3',
-    name: 'أحمد سمير عبدالله',
-    phone: '01155443322',
-    age: 28,
-    gender: 'male',
-    nationalId: '29605151234567',
-    medicalHistory: 'حساسية موسمية',
-    allergies: ['حبوب اللقاح'],
-    createdAt: new Date('2024-03-10'),
-  },
-];
+// Helper to convert API patient to local format
+const convertApiPatient = (apiPatient: ApiPatient, records: PatientRecord[] = []): Patient => ({
+  id: apiPatient.id,
+  name: apiPatient.name,
+  phone: apiPatient.phone,
+  age: apiPatient.age,
+  gender: apiPatient.gender,
+  nationalId: apiPatient.nationalId,
+  medicalHistory: apiPatient.medicalHistory,
+  allergies: apiPatient.allergies || [],
+  records,
+  createdAt: new Date(apiPatient.createdAt),
+});
 
-const initialVisits: Visit[] = [
-  {
-    id: '1',
-    patientId: '1',
-    date: new Date('2024-12-20'),
-    chiefComplaint: 'صداع مستمر منذ 3 أيام',
-    diagnosis: 'صداع توتري',
-    notes: 'ينصح بالراحة وتقليل التوتر',
-    vitals: {
-      bloodPressure: '140/90',
-      temperature: 37.2,
-      weight: 82,
-    },
-    prescription: {
-      id: '1',
-      visitId: '1',
-      medicines: [
-        {
-          id: '1',
-          name: 'باراسيتامول',
-          dosage: '500mg',
-          frequency: 'ثلاث مرات يومياً',
-          duration: '5 أيام',
-          instructions: 'بعد الأكل',
-        },
-      ],
-      createdAt: new Date('2024-12-20'),
-    },
+// Helper to convert API visit to local format
+const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
+  id: apiVisit.id,
+  patientId: apiVisit.patientId,
+  date: new Date(apiVisit.visitDate),
+  chiefComplaint: apiVisit.chiefComplaint || '',
+  chiefComplaintDrawing: apiVisit.chiefComplaintDrawing,
+  diagnosis: apiVisit.diagnosis || '',
+  diagnosisDrawing: apiVisit.diagnosisDrawing,
+  notes: apiVisit.notes || '',
+  notesDrawing: apiVisit.notesDrawing,
+  vitals: {
+    bloodPressure: apiVisit.vitals?.bloodPressure || '',
+    temperature: apiVisit.vitals?.temperature || 0,
+    weight: apiVisit.vitals?.weight || 0,
   },
-  {
-    id: '2',
-    patientId: '2',
-    date: new Date('2024-12-22'),
-    chiefComplaint: 'كحة وسخونية',
-    diagnosis: 'التهاب الحلق',
-    notes: 'إكثار من السوائل الدافئة',
-    vitals: {
-      bloodPressure: '120/80',
-      temperature: 38.5,
-      weight: 65,
-    },
-  },
-];
+});
+
+// Helper to convert API record to local format
+const convertApiRecord = (apiRecord: ApiPatientRecord): PatientRecord => ({
+  id: apiRecord.id,
+  name: apiRecord.name,
+  type: apiRecord.fileType,
+  dataUrl: apiRecord.fileUrl,
+  uploadedAt: new Date(apiRecord.uploadedAt),
+});
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
-  const [visits, setVisits] = useState<Visit[]>(initialVisits);
+  const { isAuthenticated } = useAuth();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const addPatient = (patientData: Omit<Patient, 'id' | 'createdAt'>): Patient => {
-    const newPatient: Patient = {
-      ...patientData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
+  const refreshPatients = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const apiPatients = await api.getPatients();
+      const convertedPatients = apiPatients.map(p => convertApiPatient(p));
+      setPatients(convertedPatients);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load patients');
+      console.error('Failed to load patients:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Load patients when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshPatients();
+    } else {
+      setPatients([]);
+      setVisits([]);
+    }
+  }, [isAuthenticated, refreshPatients]);
+
+  const addPatient = async (patientData: Omit<Patient, 'id' | 'createdAt' | 'records'>): Promise<Patient> => {
+    const createData: CreatePatientData = {
+      name: patientData.name,
+      phone: patientData.phone,
+      age: patientData.age,
+      gender: patientData.gender,
+      nationalId: patientData.nationalId,
+      medicalHistory: patientData.medicalHistory,
+      allergies: patientData.allergies,
     };
-    setPatients((prev) => [...prev, newPatient]);
+
+    const apiPatient = await api.createPatient(createData);
+    const newPatient = convertApiPatient(apiPatient);
+    setPatients(prev => [...prev, newPatient]);
     return newPatient;
   };
 
-  const updatePatient = (id: string, data: Partial<Patient>) => {
-    setPatients((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...data } : p))
+  const updatePatient = async (id: string, data: Partial<Patient>) => {
+    const updateData: Partial<CreatePatientData> = {};
+    if (data.name) updateData.name = data.name;
+    if (data.phone) updateData.phone = data.phone;
+    if (data.age) updateData.age = data.age;
+    if (data.gender) updateData.gender = data.gender;
+    if (data.nationalId) updateData.nationalId = data.nationalId;
+    if (data.medicalHistory) updateData.medicalHistory = data.medicalHistory;
+    if (data.allergies) updateData.allergies = data.allergies;
+
+    const apiPatient = await api.updatePatient(id, updateData);
+    setPatients(prev =>
+      prev.map(p => p.id === id ? { ...convertApiPatient(apiPatient), records: p.records } : p)
     );
   };
 
-  const deletePatient = (id: string) => {
-    setPatients((prev) => prev.filter((p) => p.id !== id));
-    setVisits((prev) => prev.filter((v) => v.patientId !== id));
+  const deletePatient = async (id: string) => {
+    await api.deletePatient(id);
+    setPatients(prev => prev.filter(p => p.id !== id));
+    setVisits(prev => prev.filter(v => v.patientId !== id));
   };
 
-  const getPatient = (id: string) => patients.find((p) => p.id === id);
+  const getPatient = (id: string) => patients.find(p => p.id === id);
 
-  const addVisit = (visitData: Omit<Visit, 'id'>): Visit => {
-    const newVisit: Visit = {
-      ...visitData,
-      id: Date.now().toString(),
+  const loadPatientVisits = async (patientId: string): Promise<Visit[]> => {
+    const apiVisits = await api.getVisitsByPatient(patientId);
+    const convertedVisits = apiVisits.map(convertApiVisit);
+
+    // Update local visits cache
+    setVisits(prev => {
+      const otherVisits = prev.filter(v => v.patientId !== patientId);
+      return [...otherVisits, ...convertedVisits];
+    });
+
+    return convertedVisits;
+  };
+
+  const addVisit = async (visitData: Omit<Visit, 'id'>): Promise<Visit> => {
+    const createData: CreateVisitData = {
+      patientId: visitData.patientId,
+      chiefComplaint: visitData.chiefComplaint,
+      chiefComplaintDrawing: visitData.chiefComplaintDrawing || undefined,
+      diagnosis: visitData.diagnosis,
+      diagnosisDrawing: visitData.diagnosisDrawing || undefined,
+      notes: visitData.notes,
+      notesDrawing: visitData.notesDrawing || undefined,
+      vitals: {
+        bloodPressure: visitData.vitals.bloodPressure,
+        temperature: visitData.vitals.temperature,
+        weight: visitData.vitals.weight,
+      },
     };
-    setVisits((prev) => [...prev, newVisit]);
+
+    const apiVisit = await api.createVisit(createData);
+    const newVisit = convertApiVisit(apiVisit);
+    setVisits(prev => [...prev, newVisit]);
     return newVisit;
   };
 
   const getPatientVisits = (patientId: string) =>
-    visits.filter((v) => v.patientId === patientId);
+    visits.filter(v => v.patientId === patientId);
 
-  const addPrescription = (visitId: string, medicines: Omit<Medicine, 'id'>[]) => {
-    const prescription: Prescription = {
-      id: Date.now().toString(),
-      visitId,
-      medicines: medicines.map((m, i) => ({ ...m, id: `${Date.now()}-${i}` })),
-      createdAt: new Date(),
+  const loadPatientRecords = async (patientId: string): Promise<PatientRecord[]> => {
+    const apiRecords = await api.getPatientRecords(patientId);
+    const records = apiRecords.map(convertApiRecord);
+
+    // Update patient's records in state
+    setPatients(prev =>
+      prev.map(p => p.id === patientId ? { ...p, records } : p)
+    );
+
+    return records;
+  };
+
+  const addPatientRecord = async (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => {
+    const createData: CreatePatientRecordData = {
+      patientId,
+      name: record.name,
+      fileType: record.type,
+      fileUrl: record.dataUrl,
+      fileSize: record.dataUrl.length,
     };
-    setVisits((prev) =>
-      prev.map((v) => (v.id === visitId ? { ...v, prescription } : v))
+
+    const apiRecord = await api.uploadPatientRecord(createData);
+    const newRecord = convertApiRecord(apiRecord);
+
+    setPatients(prev =>
+      prev.map(p =>
+        p.id === patientId ? { ...p, records: [...p.records, newRecord] } : p
+      )
+    );
+  };
+
+  const deletePatientRecord = async (patientId: string, recordId: string) => {
+    await api.deletePatientRecord(recordId);
+    setPatients(prev =>
+      prev.map(p =>
+        p.id === patientId
+          ? { ...p, records: p.records.filter(r => r.id !== recordId) }
+          : p
+      )
     );
   };
 
@@ -196,13 +270,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         patients,
         visits,
+        isLoading,
+        error,
+        refreshPatients,
         addPatient,
         updatePatient,
         deletePatient,
         getPatient,
         addVisit,
         getPatientVisits,
-        addPrescription,
+        loadPatientVisits,
+        addPatientRecord,
+        deletePatientRecord,
+        loadPatientRecords,
       }}
     >
       {children}

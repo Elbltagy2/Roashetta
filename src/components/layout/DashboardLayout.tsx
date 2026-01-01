@@ -8,9 +8,9 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
   Globe,
   Stethoscope,
+  UserCog,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,16 +22,24 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const navItems = [
+interface NavItem {
+  key: string;
+  icon: React.ElementType;
+  path: string;
+  doctorOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { key: 'patients', icon: Users, path: '/patients' },
   { key: 'prescriptions', icon: FileText, path: '/prescriptions' },
+  { key: 'assistants', icon: UserCog, path: '/assistants', doctorOnly: true },
   { key: 'settings', icon: Settings, path: '/settings' },
 ];
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { t, language, setLanguage, direction } = useLanguage();
-  const { doctor, logout } = useAuth();
+  const { user, logout, isDoctor } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -44,6 +52,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const toggleLanguage = () => {
     setLanguage(language === 'ar' ? 'en' : 'ar');
   };
+
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.filter(item => {
+    if (item.doctorOnly && !isDoctor) return false;
+    return true;
+  });
 
   const NavContent = () => (
     <div className="flex flex-col h-full">
@@ -58,7 +72,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               {language === 'ar' ? 'عيادتي' : 'My Clinic'}
             </h1>
             <p className="text-xs text-sidebar-foreground/70">
-              {doctor?.clinicName}
+              {user?.clinicName || (language === 'ar' ? 'مساعد' : 'Assistant')}
             </p>
           </div>
         </div>
@@ -66,7 +80,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = location.pathname.startsWith(item.path);
           return (
             <Link
@@ -87,11 +101,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         })}
       </nav>
 
-      {/* Doctor Info & Logout */}
+      {/* User Info & Logout */}
       <div className="p-4 border-t border-sidebar-border space-y-3">
         <div className="px-4 py-3">
-          <p className="font-semibold text-sidebar-foreground">{doctor?.name}</p>
-          <p className="text-sm text-sidebar-foreground/70">{doctor?.specialty}</p>
+          <p className="font-semibold text-sidebar-foreground">{user?.name}</p>
+          <p className="text-sm text-sidebar-foreground/70">
+            {isDoctor
+              ? (user?.specialization || (language === 'ar' ? 'طبيب' : 'Doctor'))
+              : (language === 'ar' ? 'مساعد' : 'Assistant')}
+          </p>
         </div>
         <Button
           variant="ghost"
@@ -108,7 +126,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   return (
     <div className={cn('min-h-screen bg-background', direction === 'rtl' && 'rtl')}>
       {/* Desktop Sidebar */}
-      <aside className="fixed top-0 bottom-0 hidden lg:block w-72 gradient-primary">
+      <aside className="fixed top-0 bottom-0 start-0 hidden lg:block w-72 gradient-primary">
         <NavContent />
       </aside>
 
@@ -138,7 +156,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       </header>
 
       {/* Main Content */}
-      <main className={cn('lg:me-72 min-h-screen', 'pt-16 lg:pt-0')}>
+      <main className={cn('lg:ms-72 min-h-screen', 'pt-16 lg:pt-0')}>
         {/* Top Bar */}
         <div className="hidden lg:flex h-16 px-8 items-center justify-between border-b border-border bg-card">
           <div>
@@ -169,3 +187,5 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
     </div>
   );
 };
+
+export default DashboardLayout;

@@ -206,12 +206,25 @@
 
 /* Print styles for prescriptions */
 @media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   body {
     background: white !important;
     color: black !important;
+    margin: 0;
+    padding: 0;
   }
 
-  .no-print {
+  .no-print,
+  .print\:hidden,
+  nav,
+  aside,
+  header,
+  footer,
+  button {
     display: none !important;
   }
 
@@ -220,7 +233,25 @@
   }
 
   .prescription-print {
-    @apply p-0 m-0;
+    padding: 0 !important;
+    margin: 0 !important;
     page-break-inside: avoid;
+  }
+
+  /* Egyptian Prescription Pad Print Styles */
+  @page {
+    size: A5;
+    margin: 10mm;
+  }
+
+  /* Hide everything except the prescription when printing */
+  body > * {
+    visibility: hidden;
+  }
+
+  /* Show only prescription content */
+  .print\:block,
+  [class*="prescription"] {
+    visibility: visible !important;
   }
 }

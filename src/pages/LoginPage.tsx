@@ -144,12 +144,12 @@ const LoginPage: React.FC = () => {
               </Link>
             </p>
 
-            {/* Demo hint */}
+            {/* Hint */}
             <div className="mt-8 p-4 bg-muted rounded-xl">
               <p className="text-sm text-muted-foreground text-center">
                 {language === 'ar'
-                  ? 'للتجربة: أدخل أي بريد وكلمة مرور'
-                  : 'Demo: Enter any email and password'}
+                  ? 'أدخل بيانات حسابك للدخول'
+                  : 'Enter your account credentials to login'}
               </p>
             </div>
           </motion.div>

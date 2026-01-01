@@ -15,12 +15,22 @@ import NewPatientPage from "./pages/NewPatientPage";
 import PatientDetailPage from "./pages/PatientDetailPage";
 import NewVisitPage from "./pages/NewVisitPage";
 import VisitDetailPage from "./pages/VisitDetailPage";
+import AssistantsPage from "./pages/AssistantsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -28,7 +38,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -48,6 +67,7 @@ const AppRoutes = () => {
       <Route path="/patients/:id/visit/new" element={<ProtectedRoute><NewVisitPage /></ProtectedRoute>} />
       <Route path="/patients/:id/visit/:visitId" element={<ProtectedRoute><VisitDetailPage /></ProtectedRoute>} />
       <Route path="/prescriptions" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
+      <Route path="/assistants" element={<ProtectedRoute><AssistantsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>

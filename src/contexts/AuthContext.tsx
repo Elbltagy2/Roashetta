@@ -1,83 +1,113 @@
-import React, { createContext, useContext, useState } from 'react';
-
-interface Doctor {
-  id: string;
-  email: string;
-  name: string;
-  specialty: string;
-  clinicName: string;
-  phone: string;
-  licenseNumber: string;
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api, { User, UserRole, AssistantPermissions } from '../services/api';
 
 interface AuthContextType {
-  doctor: Doctor | null;
+  user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  isDoctor: boolean;
+  isAssistant: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (data: Omit<Doctor, 'id'> & { password: string }) => Promise<boolean>;
+  signup: (data: SignupData) => Promise<boolean>;
   logout: () => void;
-  updateProfile: (data: Partial<Doctor>) => void;
+  updateProfile: (data: Partial<User>) => void;
+  hasPermission: (permission: keyof AssistantPermissions) => boolean;
+}
+
+interface SignupData {
+  email: string;
+  password: string;
+  name: string;
+  specialization?: string;
+  phone?: string;
+  clinicName?: string;
+  clinicAddress?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock doctor for demo
-const mockDoctor: Doctor = {
-  id: '1',
-  email: 'doctor@clinic.com',
-  name: 'د. أحمد محمد',
-  specialty: 'طب عام',
-  clinicName: 'عيادة الشفاء',
-  phone: '01012345678',
-  licenseNumber: 'EG-12345',
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const token = api.getToken();
+    const savedUser = localStorage.getItem('user');
+
+    if (token && savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        api.logout();
+        localStorage.removeItem('user');
+      }
+    }
+    setIsLoading(false);
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock login - in real app, this would call Supabase
-    if (email && password) {
-      setDoctor(mockDoctor);
+    try {
+      const result = await api.login(email, password);
+      setUser(result.user);
+      localStorage.setItem('user', JSON.stringify(result.user));
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   };
 
-  const signup = async (data: Omit<Doctor, 'id'> & { password: string }): Promise<boolean> => {
-    // Mock signup - in real app, this would call Supabase
-    const newDoctor: Doctor = {
-      id: Date.now().toString(),
-      email: data.email,
-      name: data.name,
-      specialty: data.specialty,
-      clinicName: data.clinicName,
-      phone: data.phone,
-      licenseNumber: data.licenseNumber,
-    };
-    setDoctor(newDoctor);
-    return true;
+  const signup = async (data: SignupData): Promise<boolean> => {
+    try {
+      await api.register(data);
+      // After registration, log them in
+      return await login(data.email, data.password);
+    } catch (error) {
+      console.error('Signup failed:', error);
+      return false;
+    }
   };
 
   const logout = () => {
-    setDoctor(null);
+    api.logout();
+    setUser(null);
+    localStorage.removeItem('user');
   };
 
-  const updateProfile = (data: Partial<Doctor>) => {
-    if (doctor) {
-      setDoctor({ ...doctor, ...data });
+  const updateProfile = (data: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
+
+  const hasPermission = (permission: keyof AssistantPermissions): boolean => {
+    // Doctors have all permissions
+    if (user?.role === 'doctor') {
+      return true;
+    }
+    // Check assistant permissions
+    return user?.permissions?.[permission] ?? false;
+  };
+
+  const isDoctor = user?.role === 'doctor';
+  const isAssistant = user?.role === 'assistant';
 
   return (
     <AuthContext.Provider
       value={{
-        doctor,
-        isAuthenticated: !!doctor,
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        isDoctor,
+        isAssistant,
         login,
         signup,
         logout,
         updateProfile,
+        hasPermission,
       }}
     >
       {children}
@@ -92,3 +122,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Re-export types for convenience
+export type { User, UserRole, AssistantPermissions };
