@@ -137,7 +137,7 @@ const ExpensesPage: React.FC = () => {
       amount: expense.amount.toString(),
       category: expense.category,
       description: expense.description,
-      expenseDate: format(expense.expenseDate, 'yyyy-MM-dd'),
+      expenseDate: format(new Date(expense.expenseDate), 'yyyy-MM-dd'),
     });
     setIsDialogOpen(true);
   };
