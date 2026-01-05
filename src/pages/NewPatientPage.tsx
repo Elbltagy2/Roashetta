@@ -38,7 +38,7 @@ const NewPatientPage: React.FC = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.phone || !formData.age || !formData.gender) {
@@ -54,7 +54,7 @@ const NewPatientPage: React.FC = () => {
       .map((a) => a.trim())
       .filter((a) => a.length > 0);
 
-    const newPatient = addPatient({
+    const newPatient = await addPatient({
       name: formData.name,
       phone: formData.phone,
       age: parseInt(formData.age),

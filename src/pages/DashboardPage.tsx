@@ -1,19 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Calendar, FileText, UserPlus, ClipboardPlus, TrendingUp } from 'lucide-react';
+import { Users, Calendar, FileText, UserPlus, TrendingUp, User, Phone, AlertTriangle, UserX, CheckCircle } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { PatientCard } from '@/components/patients/PatientCard';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
 const DashboardPage: React.FC = () => {
   const { t, language } = useLanguage();
-  const { patients, visits } = useData();
+  const { patients, visits, currentPatient, clearCurrentPatient } = useData();
   const navigate = useNavigate();
+  const [isFinishing, setIsFinishing] = useState(false);
+
+  const handleFinishPatient = async () => {
+    setIsFinishing(true);
+    try {
+      await clearCurrentPatient();
+    } catch (error) {
+      console.error('Failed to finish patient:', error);
+    } finally {
+      setIsFinishing(false);
+    }
+  };
 
   const today = new Date();
   const todayVisits = visits.filter(
@@ -46,6 +59,102 @@ const DashboardPage: React.FC = () => {
               : "Here's an overview of your clinic today"}
           </p>
         </div>
+
+        {/* Current Patient Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-card rounded-2xl card-shadow overflow-hidden"
+        >
+          <div className="px-6 py-4 bg-primary/5 border-b border-border flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
+              {language === 'ar' ? 'المريض الحالي' : 'Current Patient'}
+            </h2>
+            {currentPatient && (
+              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                {language === 'ar' ? 'نشط' : 'Active'}
+              </Badge>
+            )}
+          </div>
+
+          {currentPatient ? (
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <User className="w-8 h-8 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-xl text-foreground">{currentPatient.name}</h3>
+                  <p className="text-muted-foreground">
+                    {currentPatient.age} {t('patients.years')} • {t(`patients.${currentPatient.gender}`)}
+                  </p>
+                  <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                    <Phone className="w-4 h-4" />
+                    <span dir="ltr">{currentPatient.phone}</span>
+                  </div>
+                </div>
+              </div>
+
+              {currentPatient.allergies && currentPatient.allergies.length > 0 && (
+                <div className="mt-4 p-3 bg-destructive/10 rounded-xl flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium text-destructive">
+                    {t('patients.allergies')}: {currentPatient.allergies.join('، ')}
+                  </p>
+                </div>
+              )}
+
+              {currentPatient.medicalHistory && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-xl">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium">{t('patients.medicalHistory')}:</span> {currentPatient.medicalHistory}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6 flex gap-3">
+                <Button
+                  onClick={() => navigate(`/patients/${currentPatient.id}`)}
+                  className="flex-1 gap-2"
+                >
+                  <User className="w-4 h-4" />
+                  {language === 'ar' ? 'عرض الملف' : 'View Profile'}
+                </Button>
+                <Button
+                  onClick={() => navigate(`/patients/${currentPatient.id}/visit/new`)}
+                  variant="outline"
+                  className="flex-1 gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  {language === 'ar' ? 'زيارة جديدة' : 'New Visit'}
+                </Button>
+                <Button
+                  onClick={handleFinishPatient}
+                  variant="secondary"
+                  className="gap-2"
+                  disabled={isFinishing}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  {language === 'ar' ? 'إنهاء' : 'Finish'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <UserX className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
+              <p className="text-lg font-medium text-muted-foreground">
+                {language === 'ar' ? 'لم يتم تحديد مريض' : 'No patient selected'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === 'ar'
+                  ? 'يمكن للمساعد تحديد مريض من قائمة المرضى'
+                  : 'Assistant can select a patient from the patients list'}
+              </p>
+            </div>
+          )}
+        </motion.div>
 
         {/* Stats Grid */}
         <motion.div
