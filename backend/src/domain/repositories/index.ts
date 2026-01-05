@@ -4,3 +4,4 @@ export * from './IPrescriptionRepository';
 export * from './IPatientRecordRepository';
 export * from './IDoctorRepository';
 export * from './IExpenseRepository';
+export * from './ILabResultRepository';
