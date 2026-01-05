@@ -256,7 +256,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getPatient = (id: string) => patients.find(p => p.id === id);
 
-  const loadPatientVisits = async (patientId: string): Promise<Visit[]> => {
+  const loadPatientVisits = useCallback(async (patientId: string): Promise<Visit[]> => {
     const apiVisits = await api.getVisitsByPatient(patientId);
     const convertedVisits = apiVisits.map(convertApiVisit);
 
@@ -267,7 +267,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return convertedVisits;
-  };
+  }, []);
 
   const addVisit = async (visitData: Omit<Visit, 'id'>): Promise<Visit> => {
     const createData: CreateVisitData = {
@@ -294,7 +294,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getPatientVisits = (patientId: string) =>
     visits.filter(v => v.patientId === patientId);
 
-  const loadPatientRecords = async (patientId: string): Promise<PatientRecord[]> => {
+  const loadPatientRecords = useCallback(async (patientId: string): Promise<PatientRecord[]> => {
     const apiRecords = await api.getPatientRecords(patientId);
     const records = apiRecords.map(convertApiRecord);
 
@@ -304,7 +304,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return records;
-  };
+  }, []);
 
   const addPatientRecord = async (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => {
     const createData: CreatePatientRecordData = {
