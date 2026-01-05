@@ -211,6 +211,29 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Lab Results
+  async getLabResults(patientId: string) {
+    return this.request<LabResult[]>(`/lab-results/patient/${patientId}`);
+  }
+
+  async createLabResult(data: CreateLabResultData) {
+    return this.request<LabResult>('/lab-results', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateLabResult(id: string, data: UpdateLabResultData) {
+    return this.request<LabResult>(`/lab-results/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteLabResult(id: string) {
+    return this.request<void>(`/lab-results/${id}`, { method: 'DELETE' });
+  }
 }
 
 // Types
@@ -369,6 +392,47 @@ export interface UpdateExpenseData {
   category?: ExpenseCategory;
   description?: string;
   expenseDate?: string;
+}
+
+export type LabCategory = 'cbc' | 'sugar' | 'liver' | 'kidney' | 'lipids' | 'thyroid' | 'urine';
+
+export interface LabResult {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  category: LabCategory;
+  testName: string;
+  resultValue: string;
+  unit: string | null;
+  referenceRange: string | null;
+  isAbnormal: boolean;
+  testDate: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLabResultData {
+  patientId: string;
+  category: LabCategory;
+  testName: string;
+  resultValue: string;
+  unit?: string;
+  referenceRange?: string;
+  isAbnormal?: boolean;
+  testDate: string;
+  notes?: string;
+}
+
+export interface UpdateLabResultData {
+  category?: LabCategory;
+  testName?: string;
+  resultValue?: string;
+  unit?: string;
+  referenceRange?: string;
+  isAbnormal?: boolean;
+  testDate?: string;
+  notes?: string;
 }
 
 export const api = new ApiClient();

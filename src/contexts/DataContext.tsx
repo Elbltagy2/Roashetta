@@ -4,12 +4,16 @@ import api, {
   Visit as ApiVisit,
   PatientRecord as ApiPatientRecord,
   Expense as ApiExpense,
+  LabResult as ApiLabResult,
   CreatePatientData,
   CreateVisitData,
   CreatePatientRecordData,
   CreateExpenseData,
   UpdateExpenseData,
   ExpenseCategory,
+  LabCategory,
+  CreateLabResultData,
+  UpdateLabResultData,
 } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -62,6 +66,20 @@ export interface Expense {
   createdAt: Date;
 }
 
+export interface LabResult {
+  id: string;
+  patientId: string;
+  category: LabCategory;
+  testName: string;
+  resultValue: string;
+  unit: string | null;
+  referenceRange: string | null;
+  isAbnormal: boolean;
+  testDate: Date;
+  notes: string | null;
+  createdAt: Date;
+}
+
 interface DataContextType {
   patients: Patient[];
   visits: Visit[];
@@ -89,6 +107,12 @@ interface DataContextType {
   refreshCurrentPatient: () => Promise<void>;
   setCurrentPatient: (patientId: string) => Promise<void>;
   clearCurrentPatient: () => Promise<void>;
+  // Lab Results
+  loadLabResults: (patientId: string) => Promise<LabResult[]>;
+  addLabResult: (labResult: Omit<LabResult, 'id' | 'createdAt'>) => Promise<LabResult>;
+  updateLabResult: (id: string, data: Partial<Omit<LabResult, 'id' | 'patientId' | 'createdAt'>>) => Promise<void>;
+  deleteLabResult: (id: string) => Promise<void>;
+  getPatientLabResults: (patientId: string) => LabResult[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -144,12 +168,28 @@ const convertApiExpense = (apiExpense: ApiExpense): Expense => ({
   createdAt: new Date(apiExpense.createdAt),
 });
 
+// Helper to convert API lab result to local format
+const convertApiLabResult = (apiLabResult: ApiLabResult): LabResult => ({
+  id: apiLabResult.id,
+  patientId: apiLabResult.patientId,
+  category: apiLabResult.category,
+  testName: apiLabResult.testName,
+  resultValue: apiLabResult.resultValue,
+  unit: apiLabResult.unit,
+  referenceRange: apiLabResult.referenceRange,
+  isAbnormal: apiLabResult.isAbnormal,
+  testDate: new Date(apiLabResult.testDate),
+  notes: apiLabResult.notes,
+  createdAt: new Date(apiLabResult.createdAt),
+});
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [currentPatient, setCurrentPatientState] = useState<Patient | null>(null);
+  const [labResults, setLabResults] = useState<LabResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
@@ -212,6 +252,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setVisits([]);
       setExpenses([]);
       setCurrentPatientState(null);
+      setLabResults([]);
     }
   }, [isAuthenticated, refreshPatients, refreshExpenses, refreshCurrentPatient]);
 
@@ -381,6 +422,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentPatientState(null);
   };
 
+  // Lab Result methods
+  const loadLabResults = async (patientId: string): Promise<LabResult[]> => {
+    const apiLabResults = await api.getLabResults(patientId);
+    const convertedLabResults = apiLabResults.map(convertApiLabResult);
+
+    // Update local lab results cache
+    setLabResults(prev => {
+      const otherResults = prev.filter(r => r.patientId !== patientId);
+      return [...otherResults, ...convertedLabResults];
+    });
+
+    return convertedLabResults;
+  };
+
+  const addLabResult = async (labResultData: Omit<LabResult, 'id' | 'createdAt'>): Promise<LabResult> => {
+    const createData: CreateLabResultData = {
+      patientId: labResultData.patientId,
+      category: labResultData.category,
+      testName: labResultData.testName,
+      resultValue: labResultData.resultValue,
+      unit: labResultData.unit || undefined,
+      referenceRange: labResultData.referenceRange || undefined,
+      isAbnormal: labResultData.isAbnormal,
+      testDate: labResultData.testDate instanceof Date
+        ? labResultData.testDate.toISOString().split('T')[0]
+        : new Date(labResultData.testDate).toISOString().split('T')[0],
+      notes: labResultData.notes || undefined,
+    };
+
+    const apiLabResult = await api.createLabResult(createData);
+    const newLabResult = convertApiLabResult(apiLabResult);
+    setLabResults(prev => [newLabResult, ...prev]);
+    return newLabResult;
+  };
+
+  const updateLabResult = async (id: string, data: Partial<Omit<LabResult, 'id' | 'patientId' | 'createdAt'>>) => {
+    const updateData: UpdateLabResultData = {};
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.testName !== undefined) updateData.testName = data.testName;
+    if (data.resultValue !== undefined) updateData.resultValue = data.resultValue;
+    if (data.unit !== undefined) updateData.unit = data.unit || undefined;
+    if (data.referenceRange !== undefined) updateData.referenceRange = data.referenceRange || undefined;
+    if (data.isAbnormal !== undefined) updateData.isAbnormal = data.isAbnormal;
+    if (data.testDate !== undefined) {
+      updateData.testDate = data.testDate instanceof Date
+        ? data.testDate.toISOString().split('T')[0]
+        : new Date(data.testDate).toISOString().split('T')[0];
+    }
+    if (data.notes !== undefined) updateData.notes = data.notes || undefined;
+
+    const apiLabResult = await api.updateLabResult(id, updateData);
+    const updatedLabResult = convertApiLabResult(apiLabResult);
+    setLabResults(prev => prev.map(r => r.id === id ? updatedLabResult : r));
+  };
+
+  const deleteLabResult = async (id: string) => {
+    await api.deleteLabResult(id);
+    setLabResults(prev => prev.filter(r => r.id !== id));
+  };
+
+  const getPatientLabResults = (patientId: string) =>
+    labResults.filter(r => r.patientId === patientId);
+
   return (
     <DataContext.Provider
       value={{
@@ -408,6 +512,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshCurrentPatient,
         setCurrentPatient,
         clearCurrentPatient,
+        loadLabResults,
+        addLabResult,
+        updateLabResult,
+        deleteLabResult,
+        getPatientLabResults,
       }}
     >
       {children}
