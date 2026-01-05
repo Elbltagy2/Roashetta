@@ -4,32 +4,68 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 
 ## Features
 
-- Patient management (add, edit, view patients)
+### Patient Management
+- Add, edit, and view patient profiles
+- Search by name, phone, or national ID
+- Medical history and allergies tracking
+- Patient records upload (images, PDFs) with preview
+
+### Visit & Medical Records
 - Visit tracking with vitals (blood pressure, temperature, weight)
 - Handwriting canvas for medical notes:
   - Chief Complaint (الشكوى)
   - Diagnosis (التشخيص)
   - Prescription (الروشتة)
-- Egyptian-style prescription pad matching Dr. Sherif Ali's design
-- PDF download for prescriptions
-- Patient records upload (images, PDFs)
-- RTL Arabic UI support
-- Assistant management for clinic staff
+- Egyptian-style prescription pad design
+- PDF download and print functionality
+
+### Lab Results
+- Track laboratory test results by category:
+  - CBC, Sugar, Liver, Kidney, Lipids, Thyroid, Urine
+- Record test values, units, and reference ranges
+- Flag abnormal results
+- Filter results by category
+
+### Clinic Expenses
+- Track clinic operational expenses
+- Categories: Rent, Utilities, Supplies, Equipment, Maintenance, Other
+- Date range filtering with quick presets
+- Expense summaries and category breakdowns
+
+### Current Patient Queue
+- Real-time patient queue management for clinic workflow
+- Assistant selects current patient from patient list
+- Doctor/Assistant dashboard shows current patient details:
+  - Full patient info, allergies, medical history
+  - Quick access to patient profile and new visit
+- Confirmation dialog when replacing current patient
+- "Finish" button to clear current patient when done
+
+### Staff Management
+- Assistant accounts with granular permissions
+- Role-based access control (Doctor/Assistant)
+- 9 configurable permission types for assistants
+
+### Internationalization
+- Bilingual support (Arabic/English)
+- Full RTL Arabic UI support
 
 ## Tech Stack
 
 ### Frontend
 - React 18 + TypeScript
 - Vite
-- Tailwind CSS
-- Shadcn UI
-- Framer Motion
+- Tailwind CSS + Shadcn UI
+- Framer Motion (animations)
 - html2pdf.js (PDF generation)
+- date-fns (date handling)
 
 ### Backend
 - Node.js + Express
 - TypeScript
 - PostgreSQL
+- JWT authentication
+- Role-based access control
 - Clean Architecture pattern
 
 ## Getting Started
@@ -84,15 +120,21 @@ PORT=3000
 roashetta/
 ├── src/                    # Frontend source
 │   ├── components/         # React components
-│   ├── contexts/           # React contexts
+│   │   └── ui/             # Shadcn UI components
+│   ├── contexts/           # React contexts (Auth, Language)
 │   ├── pages/              # Page components
 │   └── services/           # API client
 ├── backend/                # Backend source
 │   └── src/
 │       ├── domain/         # Entities & repositories
-│       ├── application/    # Use cases
-│       ├── infrastructure/ # Database & implementations
+│       │   ├── entities/   # Patient, Visit, LabResult, Expense, etc.
+│       │   └── repositories/
+│       ├── application/    # Use cases (business logic)
+│       ├── infrastructure/ # Database implementations
 │       └── presentation/   # Controllers & routes
+│           ├── controllers/
+│           ├── routes/
+│           └── middleware/ # Auth & permissions
 └── public/                 # Static assets
 ```
 

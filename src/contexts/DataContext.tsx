@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api, {
   Patient as ApiPatient,
   Visit as ApiVisit,
@@ -66,6 +66,7 @@ interface DataContextType {
   patients: Patient[];
   visits: Visit[];
   expenses: Expense[];
+  currentPatient: Patient | null;
   isLoading: boolean;
   error: string | null;
   refreshPatients: () => Promise<void>;
@@ -84,6 +85,10 @@ interface DataContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<Expense>;
   updateExpense: (id: string, data: Partial<Omit<Expense, 'id' | 'createdAt'>>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
+  // Current Patient
+  refreshCurrentPatient: () => Promise<void>;
+  setCurrentPatient: (patientId: string) => Promise<void>;
+  clearCurrentPatient: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -144,8 +149,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [patients, setPatients] = useState<Patient[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [currentPatient, setCurrentPatientState] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasFetchedRef = useRef(false);
 
   const refreshPatients = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -176,17 +183,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isAuthenticated]);
 
-  // Load patients and expenses when authenticated
+  const refreshCurrentPatient = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      const response = await api.getCurrentPatient();
+      if (response.currentPatient) {
+        setCurrentPatientState(convertApiPatient(response.currentPatient));
+      } else {
+        setCurrentPatientState(null);
+      }
+    } catch (err) {
+      console.error('Failed to load current patient:', err);
+      setCurrentPatientState(null);
+    }
+  }, [isAuthenticated]);
+
+  // Load patients, expenses, and current patient when authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       refreshPatients();
       refreshExpenses();
-    } else {
+      refreshCurrentPatient();
+    } else if (!isAuthenticated) {
+      hasFetchedRef.current = false;
       setPatients([]);
       setVisits([]);
       setExpenses([]);
+      setCurrentPatientState(null);
     }
-  }, [isAuthenticated, refreshPatients, refreshExpenses]);
+  }, [isAuthenticated, refreshPatients, refreshExpenses, refreshCurrentPatient]);
 
   const addPatient = async (patientData: Omit<Patient, 'id' | 'createdAt' | 'records'>): Promise<Patient> => {
     const createData: CreatePatientData = {
@@ -229,7 +256,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getPatient = (id: string) => patients.find(p => p.id === id);
 
-  const loadPatientVisits = async (patientId: string): Promise<Visit[]> => {
+  const loadPatientVisits = useCallback(async (patientId: string): Promise<Visit[]> => {
     const apiVisits = await api.getVisitsByPatient(patientId);
     const convertedVisits = apiVisits.map(convertApiVisit);
 
@@ -240,7 +267,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return convertedVisits;
-  };
+  }, []);
 
   const addVisit = async (visitData: Omit<Visit, 'id'>): Promise<Visit> => {
     const createData: CreateVisitData = {
@@ -267,7 +294,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getPatientVisits = (patientId: string) =>
     visits.filter(v => v.patientId === patientId);
 
-  const loadPatientRecords = async (patientId: string): Promise<PatientRecord[]> => {
+  const loadPatientRecords = useCallback(async (patientId: string): Promise<PatientRecord[]> => {
     const apiRecords = await api.getPatientRecords(patientId);
     const records = apiRecords.map(convertApiRecord);
 
@@ -277,7 +304,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return records;
-  };
+  }, []);
 
   const addPatientRecord = async (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => {
     const createData: CreatePatientRecordData = {
@@ -341,12 +368,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setExpenses(prev => prev.filter(e => e.id !== id));
   };
 
+  // Current Patient methods
+  const setCurrentPatient = async (patientId: string) => {
+    const response = await api.setCurrentPatient(patientId);
+    if (response.currentPatient) {
+      setCurrentPatientState(convertApiPatient(response.currentPatient));
+    }
+  };
+
+  const clearCurrentPatient = async () => {
+    await api.clearCurrentPatient();
+    setCurrentPatientState(null);
+  };
+
   return (
     <DataContext.Provider
       value={{
         patients,
         visits,
         expenses,
+        currentPatient,
         isLoading,
         error,
         refreshPatients,
@@ -364,6 +405,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addExpense,
         updateExpense,
         deleteExpense,
+        refreshCurrentPatient,
+        setCurrentPatient,
+        clearCurrentPatient,
       }}
     >
       {children}

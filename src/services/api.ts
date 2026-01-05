@@ -194,6 +194,23 @@ class ApiClient {
   async deleteExpense(id: string) {
     return this.request<void>(`/expenses/${id}`, { method: 'DELETE' });
   }
+
+  // Current Patient
+  async getCurrentPatient() {
+    return this.request<{ currentPatient: Patient | null }>('/current-patient');
+  }
+
+  async setCurrentPatient(patientId: string) {
+    return this.request<{ currentPatient: Patient }>(`/current-patient/${patientId}`, {
+      method: 'POST',
+    });
+  }
+
+  async clearCurrentPatient() {
+    return this.request<{ currentPatient: null }>('/current-patient', {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Types
