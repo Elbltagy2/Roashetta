@@ -445,7 +445,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unit: labResultData.unit || undefined,
       referenceRange: labResultData.referenceRange || undefined,
       isAbnormal: labResultData.isAbnormal,
-      testDate: labResultData.testDate.toISOString().split('T')[0],
+      testDate: labResultData.testDate instanceof Date
+        ? labResultData.testDate.toISOString().split('T')[0]
+        : new Date(labResultData.testDate).toISOString().split('T')[0],
       notes: labResultData.notes || undefined,
     };
 
@@ -463,7 +465,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (data.unit !== undefined) updateData.unit = data.unit || undefined;
     if (data.referenceRange !== undefined) updateData.referenceRange = data.referenceRange || undefined;
     if (data.isAbnormal !== undefined) updateData.isAbnormal = data.isAbnormal;
-    if (data.testDate !== undefined) updateData.testDate = data.testDate.toISOString().split('T')[0];
+    if (data.testDate !== undefined) {
+      updateData.testDate = data.testDate instanceof Date
+        ? data.testDate.toISOString().split('T')[0]
+        : new Date(data.testDate).toISOString().split('T')[0];
+    }
     if (data.notes !== undefined) updateData.notes = data.notes || undefined;
 
     const apiLabResult = await api.updateLabResult(id, updateData);

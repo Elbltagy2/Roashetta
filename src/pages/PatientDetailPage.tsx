@@ -155,7 +155,9 @@ const PatientDetailPage: React.FC = () => {
       unit: result.unit || '',
       referenceRange: result.referenceRange || '',
       isAbnormal: result.isAbnormal,
-      testDate: result.testDate.toISOString().split('T')[0],
+      testDate: result.testDate instanceof Date
+        ? result.testDate.toISOString().split('T')[0]
+        : new Date(result.testDate).toISOString().split('T')[0],
       notes: result.notes || '',
     });
     setLabDialogOpen(true);
