@@ -1,7 +1,12 @@
 import { Response, NextFunction } from 'express';
+import { Server as SocketIOServer } from 'socket.io';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { pool } from '../../infrastructure/database/config';
 import { PatientRepository } from '../../infrastructure/repositories/PatientRepository';
+import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
+import { NotificationService } from '../../application/services/NotificationService';
+
+const notificationRepository = new NotificationRepository();
 
 export class CurrentPatientController {
   // Get the current patient for the doctor
@@ -40,6 +45,7 @@ export class CurrentPatientController {
 
   // Set a patient as the current patient
   async setCurrentPatient(req: AuthRequest, res: Response, next: NextFunction) {
+    console.log('[CurrentPatientController] setCurrentPatient called');
     try {
       const doctorId = req.doctorId!;
       const { patientId } = req.params;
@@ -61,6 +67,29 @@ export class CurrentPatientController {
         'UPDATE doctors SET current_patient_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
         [patientId, doctorId]
       );
+
+      // Emit notification to all connected clients in the doctor's room
+      const io = req.app.get('io') as SocketIOServer;
+      const notificationService = new NotificationService(notificationRepository, io);
+
+      try {
+        await notificationService.createAndEmit({
+          doctorId,
+          type: 'current_patient_changed',
+          title: 'Current Patient Changed',
+          message: `Current patient set to ${patient.name}`,
+          data: {
+            patientId: patient.id,
+            patientName: patient.name,
+            patient: patient,
+          },
+          createdById: req.user!.id,
+          createdByName: req.user!.email.split('@')[0],
+          createdByRole: req.user!.role,
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+      }
 
       res.json({ currentPatient: patient });
     } catch (error) {
