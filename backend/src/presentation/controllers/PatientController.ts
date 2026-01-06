@@ -65,7 +65,7 @@ export class PatientController {
         req.body,
         {
           id: req.user!.id,
-          name: req.user!.email.split('@')[0],
+          name: (req.user as any).name ?? req.user!.email ?? 'Unknown user',
           role: req.user!.role,
         }
       );
