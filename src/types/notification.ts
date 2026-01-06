@@ -8,7 +8,7 @@ export interface Notification {
     visitId?: string;
     patientId?: string;
     patientName?: string;
-    patient?: any;
+    patient?: unknown;
   };
   isRead: boolean;
   createdById: string;
