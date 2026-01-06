@@ -41,6 +41,18 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 - Confirmation dialog when replacing current patient
 - "Finish" button to clear current patient when done
 
+### Real-time Notifications
+- WebSocket-based real-time notification system
+- Notification types:
+  - New visit created
+  - Patient information updated
+  - Current patient changed
+- Notification bell with unread count badge
+- Mark notifications as read (individual or all)
+- Delete notifications (individual or all)
+- Toast notifications for instant alerts
+- Automatic refresh of current patient data when relevant updates occur
+
 ### Staff Management
 - Assistant accounts with granular permissions
 - Role-based access control (Doctor/Assistant)
@@ -59,6 +71,7 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 - Framer Motion (animations)
 - html2pdf.js (PDF generation)
 - date-fns (date handling)
+- Socket.IO Client (real-time updates)
 
 ### Backend
 - Node.js + Express
@@ -66,6 +79,7 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 - PostgreSQL
 - JWT authentication
 - Role-based access control
+- Socket.IO (real-time notifications)
 - Clean Architecture pattern
 
 ## Getting Started
