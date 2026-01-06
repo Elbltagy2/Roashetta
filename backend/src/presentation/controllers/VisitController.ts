@@ -29,7 +29,7 @@ export class VisitController {
         },
         {
           id: req.user!.id,
-          name: req.user!.email.split('@')[0], // Use email prefix as name fallback
+          name: req.user!.name,
           role: req.user!.role,
         }
       );
