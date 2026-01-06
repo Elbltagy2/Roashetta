@@ -7,6 +7,7 @@ import assistantRoutes from './assistantRoutes';
 import expenseRoutes from './expenseRoutes';
 import currentPatientRoutes from './currentPatientRoutes';
 import labResultRoutes from './labResultRoutes';
+import notificationRoutes from './notificationRoutes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/assistants', assistantRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/current-patient', currentPatientRoutes);
 router.use('/lab-results', labResultRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

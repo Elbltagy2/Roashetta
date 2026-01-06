@@ -1,3 +1,5 @@
+import { Notification } from '../types/notification';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 class ApiClient {
@@ -233,6 +235,31 @@ class ApiClient {
 
   async deleteLabResult(id: string) {
     return this.request<void>(`/lab-results/${id}`, { method: 'DELETE' });
+  }
+
+  // Notifications
+  async getNotifications() {
+    return this.request<Notification[]>('/notifications');
+  }
+
+  async getUnreadCount() {
+    return this.request<{ count: number }>('/notifications/unread');
+  }
+
+  async markNotificationAsRead(id: string) {
+    return this.request<void>(`/notifications/${id}/read`, { method: 'PUT' });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request<void>('/notifications/read-all', { method: 'PUT' });
+  }
+
+  async deleteNotification(id: string) {
+    return this.request<void>(`/notifications/${id}`, { method: 'DELETE' });
+  }
+
+  async deleteAllNotifications() {
+    return this.request<void>('/notifications', { method: 'DELETE' });
   }
 }
 

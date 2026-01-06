@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import { Server as SocketIOServer } from 'socket.io';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { CreatePatient } from '../../application/use-cases/patient/CreatePatient';
 import { GetPatients } from '../../application/use-cases/patient/GetPatients';
@@ -7,8 +8,11 @@ import { UpdatePatient } from '../../application/use-cases/patient/UpdatePatient
 import { DeletePatient } from '../../application/use-cases/patient/DeletePatient';
 import { SearchPatients } from '../../application/use-cases/patient/SearchPatients';
 import { PatientRepository } from '../../infrastructure/repositories/PatientRepository';
+import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
+import { NotificationService } from '../../application/services/NotificationService';
 
 const patientRepository = new PatientRepository();
+const notificationRepository = new NotificationRepository();
 
 export class PatientController {
   async create(req: AuthRequest, res: Response, next: NextFunction) {
@@ -48,9 +52,23 @@ export class PatientController {
   }
 
   async update(req: AuthRequest, res: Response, next: NextFunction) {
+    console.log('[PatientController] Update called for patient:', req.params.id);
     try {
-      const updatePatient = new UpdatePatient(patientRepository);
-      const patient = await updatePatient.execute(req.params.id, req.doctorId!, req.body);
+      // Get Socket.io instance from app
+      const io = req.app.get('io') as SocketIOServer;
+      const notificationService = new NotificationService(notificationRepository, io);
+
+      const updatePatient = new UpdatePatient(patientRepository, notificationService);
+      const patient = await updatePatient.execute(
+        req.params.id,
+        req.doctorId!,
+        req.body,
+        {
+          id: req.user!.id,
+          name: (req.user as any).name ?? req.user!.email ?? 'Unknown user',
+          role: req.user!.role,
+        }
+      );
 
       res.json(patient);
     } catch (error) {

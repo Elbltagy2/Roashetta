@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -152,9 +153,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           </span>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={toggleLanguage}>
-          <Globe className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Button variant="ghost" size="icon" onClick={toggleLanguage}>
+            <Globe className="w-5 h-5" />
+          </Button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -164,15 +168,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <div>
             {/* Breadcrumb could go here */}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleLanguage}
-            className="gap-2"
-          >
-            <Globe className="w-4 h-4" />
-            {language === 'ar' ? 'English' : 'العربية'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleLanguage}
+              className="gap-2"
+            >
+              <Globe className="w-4 h-4" />
+              {language === 'ar' ? 'English' : 'العربية'}
+            </Button>
+          </div>
         </div>
 
         {/* Page Content */}
