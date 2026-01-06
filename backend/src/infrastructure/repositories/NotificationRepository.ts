@@ -82,7 +82,7 @@ export class NotificationRepository implements INotificationRepository {
     return {
       id: row.id as string,
       doctorId: row.doctor_id as string,
-      type: row.type as 'visit_created' | 'patient_updated',
+      type: row.type as Notification['type'],
       title: row.title as string,
       message: row.message as string,
       data: typeof row.data === 'string' ? JSON.parse(row.data) : (row.data as Record<string, any>),
