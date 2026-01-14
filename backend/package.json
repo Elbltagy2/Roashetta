@@ -3,11 +3,21 @@
   "version": "1.0.0",
   "description": "Roashetta Medical Clinic Management System - Backend",
   "main": "dist/index.js",
+  "bin": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate": "ts-node src/infrastructure/database/migrations/run-migrations.ts"
+    "build:exe:win": "npx pkg . --targets node18-win-x64 --output release/RoashettaServer.exe",
+    "build:exe:mac": "npx pkg . --targets node18-macos-x64 --output release/RoashettaServer",
+    "build:exe:linux": "npx pkg . --targets node18-linux-x64 --output release/RoashettaServer"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*",
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
+    "outputPath": "release"
   },
   "dependencies": {
     "@types/socket.io": "^3.0.1",
@@ -17,8 +27,8 @@
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
     "socket.io": "^4.8.3",
+    "sql.js": "^1.10.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
@@ -27,8 +37,9 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.0",
-    "@types/pg": "^8.10.9",
+    "@types/sql.js": "^1.4.9",
     "@types/uuid": "^9.0.7",
+    "pkg": "^5.8.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.2"

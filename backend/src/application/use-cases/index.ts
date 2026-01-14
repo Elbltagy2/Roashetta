@@ -15,11 +15,6 @@ export * from './visit/CreateVisit';
 export * from './visit/GetVisitsByPatient';
 export * from './visit/GetVisitById';
 
-// Prescription
-export * from './prescription/CreatePrescription';
-export * from './prescription/GetPrescriptionByVisit';
-export * from './prescription/UpdatePrescription';
-
 // Patient Record
 export * from './patient-record/UploadPatientRecord';
 export * from './patient-record/GetPatientRecords';

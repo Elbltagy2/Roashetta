@@ -1,89 +1,98 @@
-import { pool } from '../database/config';
+import { db } from '../database/config';
 import { ILabResultRepository } from '../../domain/repositories/ILabResultRepository';
 import { LabResult, CreateLabResultInput, UpdateLabResultInput } from '../../domain/entities/LabResult';
+import { v4 as uuidv4 } from 'uuid';
 
 export class LabResultRepository implements ILabResultRepository {
-  async findById(id: string): Promise<LabResult | null> {
-    const result = await pool.query('SELECT * FROM lab_results WHERE id = $1', [id]);
-    return result.rows[0] ? this.mapToEntity(result.rows[0]) : null;
+  findById(id: string): Promise<LabResult | null> {
+    const row = db.prepare('SELECT * FROM lab_results WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+    return Promise.resolve(row ? this.mapToEntity(row) : null);
   }
 
-  async findByPatientId(patientId: string, doctorId: string): Promise<LabResult[]> {
-    const result = await pool.query(
+  findByPatientId(patientId: string, doctorId: string): Promise<LabResult[]> {
+    const rows = db.prepare(
       `SELECT * FROM lab_results
-       WHERE patient_id = $1 AND doctor_id = $2
-       ORDER BY test_date DESC, created_at DESC`,
-      [patientId, doctorId]
-    );
-    return result.rows.map(row => this.mapToEntity(row));
+       WHERE patient_id = ? AND doctor_id = ?
+       ORDER BY test_date DESC, created_at DESC`
+    ).all(patientId, doctorId) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  async findByDateRange(patientId: string, doctorId: string, startDate: Date, endDate: Date): Promise<LabResult[]> {
-    const result = await pool.query(
+  findByDateRange(patientId: string, doctorId: string, startDate: Date, endDate: Date): Promise<LabResult[]> {
+    const rows = db.prepare(
       `SELECT * FROM lab_results
-       WHERE patient_id = $1 AND doctor_id = $2 AND test_date >= $3 AND test_date <= $4
-       ORDER BY test_date DESC, created_at DESC`,
-      [patientId, doctorId, startDate, endDate]
-    );
-    return result.rows.map(row => this.mapToEntity(row));
+       WHERE patient_id = ? AND doctor_id = ? AND test_date >= ? AND test_date <= ?
+       ORDER BY test_date DESC, created_at DESC`
+    ).all(patientId, doctorId, startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  async create(data: CreateLabResultInput): Promise<LabResult> {
-    const result = await pool.query(
-      `INSERT INTO lab_results (patient_id, doctor_id, category, test_name, result_value, unit, reference_range, is_abnormal, test_date, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
-      [
-        data.patientId,
-        data.doctorId,
-        data.category,
-        data.testName,
-        data.resultValue,
-        data.unit || null,
-        data.referenceRange || null,
-        data.isAbnormal || false,
-        data.testDate,
-        data.notes || null
-      ]
+  create(data: CreateLabResultInput): Promise<LabResult> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    const testDate = data.testDate instanceof Date
+      ? data.testDate.toISOString().split('T')[0]
+      : data.testDate;
+
+    db.prepare(
+      `INSERT INTO lab_results (id, patient_id, doctor_id, category, test_name, result_value, unit, reference_range, is_abnormal, test_date, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      id,
+      data.patientId,
+      data.doctorId,
+      data.category,
+      data.testName,
+      data.resultValue,
+      data.unit || null,
+      data.referenceRange || null,
+      data.isAbnormal ? 1 : 0,
+      testDate,
+      data.notes || null,
+      now,
+      now
     );
-    return this.mapToEntity(result.rows[0]);
+
+    return this.findById(id) as Promise<LabResult>;
   }
 
-  async update(id: string, doctorId: string, data: UpdateLabResultInput): Promise<LabResult | null> {
+  update(id: string, doctorId: string, data: UpdateLabResultInput): Promise<LabResult | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
-    let paramIndex = 1;
 
     if (data.category !== undefined) {
-      fields.push(`category = $${paramIndex++}`);
+      fields.push('category = ?');
       values.push(data.category);
     }
     if (data.testName !== undefined) {
-      fields.push(`test_name = $${paramIndex++}`);
+      fields.push('test_name = ?');
       values.push(data.testName);
     }
     if (data.resultValue !== undefined) {
-      fields.push(`result_value = $${paramIndex++}`);
+      fields.push('result_value = ?');
       values.push(data.resultValue);
     }
     if (data.unit !== undefined) {
-      fields.push(`unit = $${paramIndex++}`);
+      fields.push('unit = ?');
       values.push(data.unit);
     }
     if (data.referenceRange !== undefined) {
-      fields.push(`reference_range = $${paramIndex++}`);
+      fields.push('reference_range = ?');
       values.push(data.referenceRange);
     }
     if (data.isAbnormal !== undefined) {
-      fields.push(`is_abnormal = $${paramIndex++}`);
-      values.push(data.isAbnormal);
+      fields.push('is_abnormal = ?');
+      values.push(data.isAbnormal ? 1 : 0);
     }
     if (data.testDate !== undefined) {
-      fields.push(`test_date = $${paramIndex++}`);
-      values.push(data.testDate);
+      fields.push('test_date = ?');
+      const testDate = data.testDate instanceof Date
+        ? data.testDate.toISOString().split('T')[0]
+        : data.testDate;
+      values.push(testDate);
     }
     if (data.notes !== undefined) {
-      fields.push(`notes = $${paramIndex++}`);
+      fields.push('notes = ?');
       values.push(data.notes);
     }
 
@@ -91,22 +100,21 @@ export class LabResultRepository implements ILabResultRepository {
       return this.findById(id);
     }
 
-    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    fields.push("updated_at = datetime('now')");
     values.push(id, doctorId);
 
-    const result = await pool.query(
-      `UPDATE lab_results SET ${fields.join(', ')} WHERE id = $${paramIndex++} AND doctor_id = $${paramIndex} RETURNING *`,
-      values
-    );
-    return result.rows[0] ? this.mapToEntity(result.rows[0]) : null;
+    const result = db.prepare(`UPDATE lab_results SET ${fields.join(', ')} WHERE id = ? AND doctor_id = ?`).run(...values);
+
+    if (result.changes === 0) {
+      return Promise.resolve(null);
+    }
+
+    return this.findById(id);
   }
 
-  async delete(id: string, doctorId: string): Promise<boolean> {
-    const result = await pool.query(
-      'DELETE FROM lab_results WHERE id = $1 AND doctor_id = $2',
-      [id, doctorId]
-    );
-    return (result.rowCount ?? 0) > 0;
+  delete(id: string, doctorId: string): Promise<boolean> {
+    const result = db.prepare('DELETE FROM lab_results WHERE id = ? AND doctor_id = ?').run(id, doctorId);
+    return Promise.resolve(result.changes > 0);
   }
 
   private mapToEntity(row: Record<string, unknown>): LabResult {
@@ -119,7 +127,7 @@ export class LabResultRepository implements ILabResultRepository {
       resultValue: row.result_value as string,
       unit: row.unit as string | null,
       referenceRange: row.reference_range as string | null,
-      isAbnormal: row.is_abnormal as boolean,
+      isAbnormal: Boolean(row.is_abnormal),
       testDate: new Date(row.test_date as string),
       notes: row.notes as string | null,
       createdAt: new Date(row.created_at as string),

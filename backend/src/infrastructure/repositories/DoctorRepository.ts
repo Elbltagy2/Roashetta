@@ -1,76 +1,70 @@
-import { pool } from '../database/config';
+import { db } from '../database/config';
 import { IDoctorRepository } from '../../domain/repositories/IDoctorRepository';
 import { Doctor, CreateDoctorInput, UpdateDoctorInput } from '../../domain/entities/Doctor';
+import { v4 as uuidv4 } from 'uuid';
 
 export class DoctorRepository implements IDoctorRepository {
-  async findById(id: string): Promise<Doctor | null> {
-    const result = await pool.query(
-      'SELECT * FROM doctors WHERE id = $1',
-      [id]
-    );
-    return result.rows[0] ? this.mapToEntity(result.rows[0]) : null;
+  findById(id: string): Promise<Doctor | null> {
+    const row = db.prepare('SELECT * FROM doctors WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+    return Promise.resolve(row ? this.mapToEntity(row) : null);
   }
 
-  async findByEmail(email: string): Promise<Doctor | null> {
-    const result = await pool.query(
-      'SELECT * FROM doctors WHERE email = $1',
-      [email]
-    );
-    return result.rows[0] ? this.mapToEntity(result.rows[0]) : null;
+  findByEmail(email: string): Promise<Doctor | null> {
+    const row = db.prepare('SELECT * FROM doctors WHERE email = ?').get(email) as Record<string, unknown> | undefined;
+    return Promise.resolve(row ? this.mapToEntity(row) : null);
   }
 
-  async create(data: CreateDoctorInput): Promise<Doctor> {
-    const result = await pool.query(
-      `INSERT INTO doctors (email, password_hash, name, specialization, phone, clinic_name, clinic_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [data.email, data.passwordHash, data.name, data.specialization, data.phone, data.clinicName, data.clinicAddress]
-    );
-    return this.mapToEntity(result.rows[0]);
+  create(data: CreateDoctorInput): Promise<Doctor> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    db.prepare(
+      `INSERT INTO doctors (id, email, password_hash, name, specialization, phone, clinic_name, clinic_address, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, data.email, data.passwordHash, data.name, data.specialization, data.phone, data.clinicName, data.clinicAddress, now, now);
+
+    return this.findById(id) as Promise<Doctor>;
   }
 
-  async update(id: string, data: UpdateDoctorInput): Promise<Doctor> {
+  update(id: string, data: UpdateDoctorInput): Promise<Doctor> {
     const fields: string[] = [];
     const values: unknown[] = [];
-    let paramIndex = 1;
 
     if (data.name !== undefined) {
-      fields.push(`name = $${paramIndex++}`);
+      fields.push('name = ?');
       values.push(data.name);
     }
     if (data.email !== undefined) {
-      fields.push(`email = $${paramIndex++}`);
+      fields.push('email = ?');
       values.push(data.email);
     }
     if (data.specialization !== undefined) {
-      fields.push(`specialization = $${paramIndex++}`);
+      fields.push('specialization = ?');
       values.push(data.specialization);
     }
     if (data.phone !== undefined) {
-      fields.push(`phone = $${paramIndex++}`);
+      fields.push('phone = ?');
       values.push(data.phone);
     }
     if (data.clinicName !== undefined) {
-      fields.push(`clinic_name = $${paramIndex++}`);
+      fields.push('clinic_name = ?');
       values.push(data.clinicName);
     }
     if (data.clinicAddress !== undefined) {
-      fields.push(`clinic_address = $${paramIndex++}`);
+      fields.push('clinic_address = ?');
       values.push(data.clinicAddress);
     }
 
-    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    fields.push("updated_at = datetime('now')");
     values.push(id);
 
-    const result = await pool.query(
-      `UPDATE doctors SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-      values
-    );
-    return this.mapToEntity(result.rows[0]);
+    db.prepare(`UPDATE doctors SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    return this.findById(id) as Promise<Doctor>;
   }
 
-  async delete(id: string): Promise<void> {
-    await pool.query('DELETE FROM doctors WHERE id = $1', [id]);
+  delete(id: string): Promise<void> {
+    db.prepare('DELETE FROM doctors WHERE id = ?').run(id);
+    return Promise.resolve();
   }
 
   private mapToEntity(row: Record<string, unknown>): Doctor {

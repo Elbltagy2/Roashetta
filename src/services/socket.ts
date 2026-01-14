@@ -7,9 +7,8 @@ class SocketService {
   connect(): Socket {
     const token = api.getToken();
 
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-    // Extract base URL without /api suffix
-    const baseUrl = apiUrl.replace(/\/api$/, '');
+    // In production use current origin, in development use localhost:3000
+    const baseUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:3000';
 
     this.socket = io(baseUrl, {
       auth: { token },

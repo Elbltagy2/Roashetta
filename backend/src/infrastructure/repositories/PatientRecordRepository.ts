@@ -1,33 +1,34 @@
-import { pool } from '../database/config';
+import { db } from '../database/config';
 import { IPatientRecordRepository } from '../../domain/repositories/IPatientRecordRepository';
 import { PatientRecord, CreatePatientRecordInput } from '../../domain/entities/PatientRecord';
+import { v4 as uuidv4 } from 'uuid';
 
 export class PatientRecordRepository implements IPatientRecordRepository {
-  async findById(id: string): Promise<PatientRecord | null> {
-    const result = await pool.query('SELECT * FROM patient_records WHERE id = $1', [id]);
-    return result.rows[0] ? this.mapToEntity(result.rows[0]) : null;
+  findById(id: string): Promise<PatientRecord | null> {
+    const row = db.prepare('SELECT * FROM patient_records WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+    return Promise.resolve(row ? this.mapToEntity(row) : null);
   }
 
-  async findByPatientId(patientId: string): Promise<PatientRecord[]> {
-    const result = await pool.query(
-      'SELECT * FROM patient_records WHERE patient_id = $1 ORDER BY uploaded_at DESC',
-      [patientId]
-    );
-    return result.rows.map(row => this.mapToEntity(row));
+  findByPatientId(patientId: string): Promise<PatientRecord[]> {
+    const rows = db.prepare('SELECT * FROM patient_records WHERE patient_id = ? ORDER BY uploaded_at DESC').all(patientId) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  async create(data: CreatePatientRecordInput): Promise<PatientRecord> {
-    const result = await pool.query(
-      `INSERT INTO patient_records (patient_id, name, file_type, file_url, file_size)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [data.patientId, data.name, data.fileType, data.fileUrl, data.fileSize]
-    );
-    return this.mapToEntity(result.rows[0]);
+  create(data: CreatePatientRecordInput): Promise<PatientRecord> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    db.prepare(
+      `INSERT INTO patient_records (id, patient_id, name, file_type, file_url, file_size, uploaded_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, data.patientId, data.name, data.fileType, data.fileUrl, data.fileSize, now);
+
+    return this.findById(id) as Promise<PatientRecord>;
   }
 
-  async delete(id: string): Promise<void> {
-    await pool.query('DELETE FROM patient_records WHERE id = $1', [id]);
+  delete(id: string): Promise<void> {
+    db.prepare('DELETE FROM patient_records WHERE id = ?').run(id);
+    return Promise.resolve();
   }
 
   private mapToEntity(row: Record<string, unknown>): PatientRecord {

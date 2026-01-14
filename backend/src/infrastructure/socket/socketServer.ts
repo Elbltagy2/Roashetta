@@ -12,7 +12,7 @@ interface JWTPayload {
 export const initializeSocketServer = (httpServer: HTTPServer): SocketIOServer => {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:5173'],
+      origin: '*', // Allow all origins for local network access
       credentials: true,
     },
   });

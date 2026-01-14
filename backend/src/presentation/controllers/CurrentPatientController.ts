@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { pool } from '../../infrastructure/database/config';
+import { db } from '../../infrastructure/database/config';
 import { PatientRepository } from '../../infrastructure/repositories/PatientRepository';
 import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
 import { NotificationService } from '../../application/services/NotificationService';
@@ -15,25 +15,23 @@ export class CurrentPatientController {
       const doctorId = req.doctorId!;
 
       // Get the current_patient_id from doctors table
-      const doctorResult = await pool.query(
-        'SELECT current_patient_id FROM doctors WHERE id = $1',
-        [doctorId]
-      );
+      const doctorResult = db.prepare(
+        'SELECT current_patient_id FROM doctors WHERE id = ?'
+      ).get(doctorId) as { current_patient_id: string | null } | undefined;
 
-      if (!doctorResult.rows[0] || !doctorResult.rows[0].current_patient_id) {
+      if (!doctorResult || !doctorResult.current_patient_id) {
         return res.json({ currentPatient: null });
       }
 
       // Get the full patient details
       const patientRepository = new PatientRepository();
-      const patient = await patientRepository.findById(doctorResult.rows[0].current_patient_id);
+      const patient = await patientRepository.findById(doctorResult.current_patient_id);
 
       if (!patient) {
         // Patient was deleted, clear the current_patient_id
-        await pool.query(
-          'UPDATE doctors SET current_patient_id = NULL WHERE id = $1',
-          [doctorId]
-        );
+        db.prepare(
+          'UPDATE doctors SET current_patient_id = NULL WHERE id = ?'
+        ).run(doctorId);
         return res.json({ currentPatient: null });
       }
 
@@ -63,10 +61,9 @@ export class CurrentPatientController {
       }
 
       // Update the current_patient_id in doctors table
-      await pool.query(
-        'UPDATE doctors SET current_patient_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        [patientId, doctorId]
-      );
+      db.prepare(
+        "UPDATE doctors SET current_patient_id = ?, updated_at = datetime('now') WHERE id = ?"
+      ).run(patientId, doctorId);
 
       // Emit notification to all connected clients in the doctor's room
       const io = req.app.get('io') as SocketIOServer;
@@ -102,10 +99,9 @@ export class CurrentPatientController {
     try {
       const doctorId = req.doctorId!;
 
-      await pool.query(
-        'UPDATE doctors SET current_patient_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
-        [doctorId]
-      );
+      db.prepare(
+        "UPDATE doctors SET current_patient_id = NULL, updated_at = datetime('now') WHERE id = ?"
+      ).run(doctorId);
 
       res.json({ currentPatient: null });
     } catch (error) {

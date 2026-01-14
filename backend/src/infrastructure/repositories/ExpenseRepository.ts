@@ -1,82 +1,84 @@
-import { pool } from '../database/config';
+import { db } from '../database/config';
 import { IExpenseRepository } from '../../domain/repositories/IExpenseRepository';
 import { Expense, CreateExpenseInput, UpdateExpenseInput } from '../../domain/entities/Expense';
+import { v4 as uuidv4 } from 'uuid';
 
 export class ExpenseRepository implements IExpenseRepository {
-  async findById(id: string): Promise<Expense | null> {
-    const result = await pool.query('SELECT * FROM expenses WHERE id = $1', [id]);
-    return result.rows[0] ? this.mapToEntity(result.rows[0]) : null;
+  findById(id: string): Promise<Expense | null> {
+    const row = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+    return Promise.resolve(row ? this.mapToEntity(row) : null);
   }
 
-  async findByDoctorId(doctorId: string): Promise<Expense[]> {
-    const result = await pool.query(
-      'SELECT * FROM expenses WHERE doctor_id = $1 ORDER BY expense_date DESC',
-      [doctorId]
-    );
-    return result.rows.map(row => this.mapToEntity(row));
+  findByDoctorId(doctorId: string): Promise<Expense[]> {
+    const rows = db.prepare('SELECT * FROM expenses WHERE doctor_id = ? ORDER BY expense_date DESC').all(doctorId) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  async findByDateRange(doctorId: string, startDate: Date, endDate: Date): Promise<Expense[]> {
-    const result = await pool.query(
+  findByDateRange(doctorId: string, startDate: Date, endDate: Date): Promise<Expense[]> {
+    const rows = db.prepare(
       `SELECT * FROM expenses
-       WHERE doctor_id = $1 AND expense_date >= $2 AND expense_date <= $3
-       ORDER BY expense_date DESC`,
-      [doctorId, startDate, endDate]
-    );
-    return result.rows.map(row => this.mapToEntity(row));
+       WHERE doctor_id = ? AND expense_date >= ? AND expense_date <= ?
+       ORDER BY expense_date DESC`
+    ).all(doctorId, startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  async create(data: CreateExpenseInput): Promise<Expense> {
-    const result = await pool.query(
-      `INSERT INTO expenses (doctor_id, amount, category, description, expense_date)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [data.doctorId, data.amount, data.category, data.description, data.expenseDate]
-    );
-    return this.mapToEntity(result.rows[0]);
+  create(data: CreateExpenseInput): Promise<Expense> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    const expenseDate = data.expenseDate instanceof Date
+      ? data.expenseDate.toISOString().split('T')[0]
+      : data.expenseDate;
+
+    db.prepare(
+      `INSERT INTO expenses (id, doctor_id, amount, category, description, expense_date, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, data.doctorId, data.amount, data.category, data.description, expenseDate, now, now);
+
+    return this.findById(id) as Promise<Expense>;
   }
 
-  async update(id: string, data: UpdateExpenseInput): Promise<Expense> {
+  update(id: string, data: UpdateExpenseInput): Promise<Expense> {
     const fields: string[] = [];
     const values: unknown[] = [];
-    let paramIndex = 1;
 
     if (data.amount !== undefined) {
-      fields.push(`amount = $${paramIndex++}`);
+      fields.push('amount = ?');
       values.push(data.amount);
     }
     if (data.category !== undefined) {
-      fields.push(`category = $${paramIndex++}`);
+      fields.push('category = ?');
       values.push(data.category);
     }
     if (data.description !== undefined) {
-      fields.push(`description = $${paramIndex++}`);
+      fields.push('description = ?');
       values.push(data.description);
     }
     if (data.expenseDate !== undefined) {
-      fields.push(`expense_date = $${paramIndex++}`);
-      values.push(data.expenseDate);
+      fields.push('expense_date = ?');
+      const expenseDate = data.expenseDate instanceof Date
+        ? data.expenseDate.toISOString().split('T')[0]
+        : data.expenseDate;
+      values.push(expenseDate);
     }
 
-    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    fields.push("updated_at = datetime('now')");
     values.push(id);
 
-    const result = await pool.query(
-      `UPDATE expenses SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-      values
-    );
-    return this.mapToEntity(result.rows[0]);
+    db.prepare(`UPDATE expenses SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+    return this.findById(id) as Promise<Expense>;
   }
 
-  async delete(id: string): Promise<void> {
-    await pool.query('DELETE FROM expenses WHERE id = $1', [id]);
+  delete(id: string): Promise<void> {
+    db.prepare('DELETE FROM expenses WHERE id = ?').run(id);
+    return Promise.resolve();
   }
 
   private mapToEntity(row: Record<string, unknown>): Expense {
     return {
       id: row.id as string,
       doctorId: row.doctor_id as string,
-      amount: parseFloat(row.amount as string),
+      amount: typeof row.amount === 'string' ? parseFloat(row.amount) : (row.amount as number),
       category: row.category as Expense['category'],
       description: row.description as string,
       expenseDate: new Date(row.expense_date as string),

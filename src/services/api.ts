@@ -1,6 +1,7 @@
 import { Notification } from '../types/notification';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Use relative URL in production (when served from same origin), absolute in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3000/api');
 
 class ApiClient {
   private token: string | null = null;

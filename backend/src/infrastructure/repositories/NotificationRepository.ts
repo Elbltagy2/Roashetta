@@ -1,81 +1,85 @@
-import { pool } from '../database/config';
+import { db } from '../database/config';
 import { INotificationRepository } from '../../domain/repositories/INotificationRepository';
 import { Notification, CreateNotificationInput } from '../../domain/entities/Notification';
+import { v4 as uuidv4 } from 'uuid';
 
 export class NotificationRepository implements INotificationRepository {
-  async create(input: CreateNotificationInput): Promise<Notification> {
-    const result = await pool.query(
+  create(input: CreateNotificationInput): Promise<Notification> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    db.prepare(
       `INSERT INTO notifications (
-        doctor_id, type, title, message, data,
-        created_by_id, created_by_name, created_by_role
+        id, doctor_id, type, title, message, data,
+        created_by_id, created_by_name, created_by_role, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *`,
-      [
-        input.doctorId,
-        input.type,
-        input.title,
-        input.message,
-        JSON.stringify(input.data),
-        input.createdById,
-        input.createdByName,
-        input.createdByRole,
-      ]
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      id,
+      input.doctorId,
+      input.type,
+      input.title,
+      input.message,
+      JSON.stringify(input.data),
+      input.createdById,
+      input.createdByName,
+      input.createdByRole,
+      now
     );
-    return this.mapToEntity(result.rows[0]);
+
+    return this.findById(id) as Promise<Notification>;
   }
 
-  async findByDoctorId(doctorId: string, limit: number = 50): Promise<Notification[]> {
-    const result = await pool.query(
+  findById(id: string): Promise<Notification | null> {
+    const row = db.prepare('SELECT * FROM notifications WHERE id = ?').get(id) as Record<string, unknown> | undefined;
+    return Promise.resolve(row ? this.mapToEntity(row) : null);
+  }
+
+  findByDoctorId(doctorId: string, limit: number = 50): Promise<Notification[]> {
+    const rows = db.prepare(
       `SELECT * FROM notifications
-       WHERE doctor_id = $1
+       WHERE doctor_id = ?
        ORDER BY created_at DESC
-       LIMIT $2`,
-      [doctorId, limit]
-    );
-    return result.rows.map(row => this.mapToEntity(row));
+       LIMIT ?`
+    ).all(doctorId, limit) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  async findUnreadCount(doctorId: string): Promise<number> {
-    const result = await pool.query(
+  findUnreadCount(doctorId: string): Promise<number> {
+    const row = db.prepare(
       `SELECT COUNT(*) as count
        FROM notifications
-       WHERE doctor_id = $1 AND is_read = false`,
-      [doctorId]
-    );
-    return parseInt(result.rows[0].count, 10);
+       WHERE doctor_id = ? AND is_read = 0`
+    ).get(doctorId) as { count: number };
+    return Promise.resolve(row.count);
   }
 
-  async markAsRead(id: string): Promise<void> {
-    await pool.query(
+  markAsRead(id: string): Promise<void> {
+    db.prepare(
       `UPDATE notifications
-       SET is_read = true, read_at = CURRENT_TIMESTAMP
-       WHERE id = $1`,
-      [id]
-    );
+       SET is_read = 1, read_at = datetime('now')
+       WHERE id = ?`
+    ).run(id);
+    return Promise.resolve();
   }
 
-  async markAllAsRead(doctorId: string): Promise<void> {
-    await pool.query(
+  markAllAsRead(doctorId: string): Promise<void> {
+    db.prepare(
       `UPDATE notifications
-       SET is_read = true, read_at = CURRENT_TIMESTAMP
-       WHERE doctor_id = $1 AND is_read = false`,
-      [doctorId]
-    );
+       SET is_read = 1, read_at = datetime('now')
+       WHERE doctor_id = ? AND is_read = 0`
+    ).run(doctorId);
+    return Promise.resolve();
   }
 
-  async delete(id: string): Promise<void> {
-    await pool.query(
-      `DELETE FROM notifications WHERE id = $1`,
-      [id]
-    );
+  delete(id: string): Promise<void> {
+    db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
+    return Promise.resolve();
   }
 
-  async deleteAll(doctorId: string): Promise<void> {
-    await pool.query(
-      `DELETE FROM notifications WHERE doctor_id = $1`,
-      [doctorId]
-    );
+  deleteAll(doctorId: string): Promise<void> {
+    db.prepare('DELETE FROM notifications WHERE doctor_id = ?').run(doctorId);
+    return Promise.resolve();
   }
 
   private mapToEntity(row: Record<string, unknown>): Notification {
@@ -85,8 +89,8 @@ export class NotificationRepository implements INotificationRepository {
       type: row.type as Notification['type'],
       title: row.title as string,
       message: row.message as string,
-      data: typeof row.data === 'string' ? JSON.parse(row.data) : (row.data as Record<string, any>),
-      isRead: row.is_read as boolean,
+      data: typeof row.data === 'string' ? JSON.parse(row.data) : (row.data as Record<string, unknown>),
+      isRead: Boolean(row.is_read),
       createdById: row.created_by_id as string,
       createdByName: row.created_by_name as string,
       createdByRole: row.created_by_role as 'doctor' | 'assistant',

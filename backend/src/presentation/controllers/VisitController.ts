@@ -29,7 +29,7 @@ export class VisitController {
         },
         {
           id: req.user!.id,
-          name: req.user!.name,
+          name: req.user!.name || req.user!.email,
           role: req.user!.role,
         }
       );

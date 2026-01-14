@@ -7,6 +7,7 @@ export type UserRole = 'doctor' | 'assistant';
 export interface AuthUser {
   id: string;
   email: string;
+  name?: string;
   role: UserRole;
   doctorId: string; // For doctors, this is their own ID. For assistants, this is their doctor's ID.
   permissions?: AssistantPermissions;
@@ -31,6 +32,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       id?: string;
       doctorId?: string;
       email: string;
+      name?: string;
       role?: UserRole;
       permissions?: AssistantPermissions;
     };
@@ -46,6 +48,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     req.user = {
       id: decoded.id || doctorId,
       email: decoded.email,
+      name: decoded.name,
       role,
       doctorId,
       permissions: decoded.permissions,
