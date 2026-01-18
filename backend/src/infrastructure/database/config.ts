@@ -182,6 +182,12 @@ function createTables() {
       notes TEXT,
       notes_drawing TEXT,
       drawing_data TEXT,
+      past_medical_history_drawing TEXT,
+      hpi_drawing TEXT,
+      drug_history_drawing TEXT,
+      family_history_drawing TEXT,
+      current_medication_drawing TEXT,
+      requested_lab_drawing TEXT,
       blood_pressure TEXT,
       temperature REAL,
       weight REAL,
@@ -189,6 +195,41 @@ function createTables() {
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
       FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Add new columns to visits table if they don't exist (for existing databases)
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN past_medical_history_drawing TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN hpi_drawing TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN drug_history_drawing TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN family_history_drawing TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN current_medication_drawing TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN requested_lab_drawing TEXT`);
+  } catch (e) { /* Column already exists */ }
+
+  // Create visit_attachments table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS visit_attachments (
+      id TEXT PRIMARY KEY,
+      visit_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      data_url TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      uploader_type TEXT NOT NULL CHECK (uploader_type IN ('doctor', 'assistant')),
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (visit_id) REFERENCES visits(id) ON DELETE CASCADE
     )
   `);
 
@@ -331,6 +372,7 @@ function createTables() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_lab_results_doctor_id ON lab_results(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_doctor_id ON notifications(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_visit_attachments_visit_id ON visit_attachments(visit_id)`);
 }
 
 // Create default doctor account for testing

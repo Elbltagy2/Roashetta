@@ -34,10 +34,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { key: 'patients', icon: Users, path: '/patients' },
-  { key: 'prescriptions', icon: FileText, path: '/prescriptions' },
   { key: 'expenses', icon: Wallet, path: '/expenses' },
   { key: 'assistants', icon: UserCog, path: '/assistants', doctorOnly: true },
-  { key: 'settings', icon: Settings, path: '/settings' },
 ];
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {

@@ -352,6 +352,14 @@ export interface Visit {
   diagnosisDrawing: string | null;
   notes: string;
   notesDrawing: string | null;
+  // Medical History Fields
+  pastMedicalHistoryDrawing: string | null;
+  hpiDrawing: string | null;
+  drugHistoryDrawing: string | null;
+  familyHistoryDrawing: string | null;
+  currentMedicationDrawing: string | null;
+  // Requested Lab
+  requestedLabDrawing: string | null;
   vitals: {
     bloodPressure: string;
     temperature: number;
@@ -369,6 +377,14 @@ export interface CreateVisitData {
   diagnosisDrawing?: string;
   notes?: string;
   notesDrawing?: string;
+  // Medical History Fields
+  pastMedicalHistoryDrawing?: string;
+  hpiDrawing?: string;
+  drugHistoryDrawing?: string;
+  familyHistoryDrawing?: string;
+  currentMedicationDrawing?: string;
+  // Requested Lab
+  requestedLabDrawing?: string;
   vitals?: {
     bloodPressure?: string;
     temperature?: number;

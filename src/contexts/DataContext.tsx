@@ -54,6 +54,14 @@ export interface Visit {
   diagnosisDrawing: string | null;
   notes: string;
   notesDrawing: string | null;
+  // Medical History Fields
+  pastMedicalHistoryDrawing: string | null;
+  hpiDrawing: string | null;
+  drugHistoryDrawing: string | null;
+  familyHistoryDrawing: string | null;
+  currentMedicationDrawing: string | null;
+  // Requested Lab
+  requestedLabDrawing: string | null;
   vitals: Vital;
 }
 
@@ -142,6 +150,12 @@ const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
   diagnosisDrawing: apiVisit.diagnosisDrawing,
   notes: apiVisit.notes || '',
   notesDrawing: apiVisit.notesDrawing,
+  pastMedicalHistoryDrawing: apiVisit.pastMedicalHistoryDrawing || null,
+  hpiDrawing: apiVisit.hpiDrawing || null,
+  drugHistoryDrawing: apiVisit.drugHistoryDrawing || null,
+  familyHistoryDrawing: apiVisit.familyHistoryDrawing || null,
+  currentMedicationDrawing: apiVisit.currentMedicationDrawing || null,
+  requestedLabDrawing: apiVisit.requestedLabDrawing || null,
   vitals: {
     bloodPressure: apiVisit.vitals?.bloodPressure || '',
     temperature: apiVisit.vitals?.temperature || 0,
@@ -319,6 +333,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       diagnosisDrawing: visitData.diagnosisDrawing || undefined,
       notes: visitData.notes,
       notesDrawing: visitData.notesDrawing || undefined,
+      // Medical History Fields
+      pastMedicalHistoryDrawing: visitData.pastMedicalHistoryDrawing || undefined,
+      hpiDrawing: visitData.hpiDrawing || undefined,
+      drugHistoryDrawing: visitData.drugHistoryDrawing || undefined,
+      familyHistoryDrawing: visitData.familyHistoryDrawing || undefined,
+      currentMedicationDrawing: visitData.currentMedicationDrawing || undefined,
+      // Requested Lab
+      requestedLabDrawing: visitData.requestedLabDrawing || undefined,
       vitals: {
         bloodPressure: visitData.vitals.bloodPressure,
         temperature: visitData.vitals.temperature,

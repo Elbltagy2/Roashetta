@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, Eraser, ChevronDown, ChevronUp } from 'lucide-react';
+import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SimpleDrawingCanvasProps {
@@ -12,6 +12,7 @@ interface SimpleDrawingCanvasProps {
   language?: 'ar' | 'en';
   placeholder?: string;
   showToolbar?: boolean;
+  penSize?: number;
 }
 
 export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
@@ -23,15 +24,20 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
   language = 'ar',
   placeholder,
   showToolbar = true,
+  penSize: externalPenSize = 2,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const penSizeRef = useRef(externalPenSize);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [penColor, setPenColor] = useState('#1a1a2e');
-  const [penSize, setPenSize] = useState(2);
-  const [isEraser, setIsEraser] = useState(false);
+  const penColor = '#1a1a2e'; // Fixed dark color
   const [canvasHeight, setCanvasHeight] = useState(minHeight);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Keep pen size ref updated
+  useEffect(() => {
+    penSizeRef.current = externalPenSize;
+  }, [externalPenSize]);
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -48,7 +54,6 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = penColor;
-    ctx.lineWidth = penSize;
 
     // Fill with white background
     ctx.fillStyle = '#ffffff';
@@ -62,7 +67,7 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
       };
       img.src = initialData;
     }
-  }, [initialData, penColor, penSize]);
+  }, [initialData, penColor]);
 
   useEffect(() => {
     initCanvas();
@@ -114,8 +119,8 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
     if (!ctx) return;
 
     const { x, y } = getCoordinates(e);
-    ctx.strokeStyle = isEraser ? '#ffffff' : penColor;
-    ctx.lineWidth = isEraser ? penSize * 4 : penSize;
+    ctx.strokeStyle = penColor;
+    ctx.lineWidth = penSizeRef.current;
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -188,97 +193,39 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
   return (
     <div className={cn('space-y-2', className)} ref={containerRef}>
       {showToolbar && (
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2">
-            {/* Pen sizes */}
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-              {[1, 2, 4].map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => setPenSize(size)}
-                  className={cn(
-                    'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
-                    penSize === size ? 'bg-primary text-primary-foreground' : 'hover:bg-muted-foreground/10'
-                  )}
-                >
-                  <div
-                    className="rounded-full bg-current"
-                    style={{ width: size * 2.5, height: size * 2.5 }}
-                  />
-                </button>
-              ))}
-            </div>
-
-            {/* Colors */}
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-              {['#1a1a2e', '#1e40af', '#dc2626'].map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => { setPenColor(color); setIsEraser(false); }}
-                  className={cn(
-                    'w-7 h-7 rounded-md flex items-center justify-center transition-all',
-                    penColor === color && !isEraser ? 'ring-2 ring-offset-1 ring-primary' : ''
-                  )}
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: color }}
-                  />
-                </button>
-              ))}
-            </div>
-
-            {/* Eraser */}
-            <button
-              type="button"
-              onClick={() => setIsEraser(!isEraser)}
-              className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center transition-all',
-                isEraser ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted-foreground/10'
-              )}
-              title={language === 'ar' ? 'ممحاة' : 'Eraser'}
-            >
-              <Eraser className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={shrinkCanvas}
-              disabled={canvasHeight <= minHeight}
-              className="h-8 w-8 p-0"
-              title={language === 'ar' ? 'تصغير' : 'Shrink'}
-            >
-              <ChevronUp className="w-4 h-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={expandCanvas}
-              disabled={canvasHeight >= maxHeight}
-              className="h-8 w-8 p-0"
-              title={language === 'ar' ? 'تكبير' : 'Expand'}
-            >
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={clearCanvas}
-              className="gap-1 h-8"
-            >
-              <RotateCcw className="w-3 h-3" />
-              {language === 'ar' ? 'مسح' : 'Clear'}
-            </Button>
-          </div>
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={shrinkCanvas}
+            disabled={canvasHeight <= minHeight}
+            className="h-8 w-8 p-0"
+            title={language === 'ar' ? 'تصغير' : 'Shrink'}
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={expandCanvas}
+            disabled={canvasHeight >= maxHeight}
+            className="h-8 w-8 p-0"
+            title={language === 'ar' ? 'تكبير' : 'Expand'}
+          >
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={clearCanvas}
+            className="gap-1 h-8"
+          >
+            <RotateCcw className="w-3 h-3" />
+            {language === 'ar' ? 'مسح' : 'Clear'}
+          </Button>
         </div>
       )}
 

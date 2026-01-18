@@ -27,9 +27,11 @@ export class VisitRepository implements IVisitRepository {
       `INSERT INTO visits (
         id, patient_id, doctor_id, chief_complaint, chief_complaint_drawing,
         diagnosis, diagnosis_drawing, notes, notes_drawing,
+        past_medical_history_drawing, hpi_drawing, drug_history_drawing,
+        family_history_drawing, current_medication_drawing, requested_lab_drawing,
         blood_pressure, temperature, weight, visit_date, created_at, updated_at
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.patientId,
@@ -40,6 +42,12 @@ export class VisitRepository implements IVisitRepository {
       data.diagnosisDrawing,
       data.notes,
       data.notesDrawing,
+      data.pastMedicalHistoryDrawing,
+      data.hpiDrawing,
+      data.drugHistoryDrawing,
+      data.familyHistoryDrawing,
+      data.currentMedicationDrawing,
+      data.requestedLabDrawing,
       data.vitals?.bloodPressure,
       data.vitals?.temperature,
       data.vitals?.weight,
@@ -78,6 +86,30 @@ export class VisitRepository implements IVisitRepository {
     if (data.notesDrawing !== undefined) {
       fields.push('notes_drawing = ?');
       values.push(data.notesDrawing);
+    }
+    if (data.pastMedicalHistoryDrawing !== undefined) {
+      fields.push('past_medical_history_drawing = ?');
+      values.push(data.pastMedicalHistoryDrawing);
+    }
+    if (data.hpiDrawing !== undefined) {
+      fields.push('hpi_drawing = ?');
+      values.push(data.hpiDrawing);
+    }
+    if (data.drugHistoryDrawing !== undefined) {
+      fields.push('drug_history_drawing = ?');
+      values.push(data.drugHistoryDrawing);
+    }
+    if (data.familyHistoryDrawing !== undefined) {
+      fields.push('family_history_drawing = ?');
+      values.push(data.familyHistoryDrawing);
+    }
+    if (data.currentMedicationDrawing !== undefined) {
+      fields.push('current_medication_drawing = ?');
+      values.push(data.currentMedicationDrawing);
+    }
+    if (data.requestedLabDrawing !== undefined) {
+      fields.push('requested_lab_drawing = ?');
+      values.push(data.requestedLabDrawing);
     }
     if (data.vitals?.bloodPressure !== undefined) {
       fields.push('blood_pressure = ?');
@@ -125,6 +157,12 @@ export class VisitRepository implements IVisitRepository {
       diagnosisDrawing: row.diagnosis_drawing as string | null,
       notes: row.notes as string,
       notesDrawing: row.notes_drawing as string | null,
+      pastMedicalHistoryDrawing: row.past_medical_history_drawing as string | null,
+      hpiDrawing: row.hpi_drawing as string | null,
+      drugHistoryDrawing: row.drug_history_drawing as string | null,
+      familyHistoryDrawing: row.family_history_drawing as string | null,
+      currentMedicationDrawing: row.current_medication_drawing as string | null,
+      requestedLabDrawing: row.requested_lab_drawing as string | null,
       vitals: {
         bloodPressure: row.blood_pressure as string,
         temperature: row.temperature as number,
