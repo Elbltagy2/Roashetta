@@ -142,19 +142,28 @@ const NewVisitPage: React.FC = () => {
     const content = ref.current.innerHTML;
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html>
+      <html dir="${direction}">
         <head>
           <title>${title}</title>
           <style>
-            body {
-              font-family: Arial, sans-serif;
+            * {
               margin: 0;
-              padding: 20px;
-              direction: ${direction};
+              padding: 0;
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            img { max-width: 100%; }
-            @media print {
-              body { margin: 0; }
+            @page {
+              size: A5;
+              margin: 0;
+            }
+            body {
+              font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+              background: white;
+            }
+            img {
+              max-width: 100%;
+              height: auto;
             }
           </style>
         </head>
@@ -162,7 +171,11 @@ const NewVisitPage: React.FC = () => {
       </html>
     `);
     printWindow.document.close();
-    printWindow.print();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

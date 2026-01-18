@@ -293,8 +293,12 @@ const VisitDetailPage: React.FC = () => {
   };
 
   const handlePrintPrescription = () => {
+    if (!prescriptionRef.current) return;
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const content = prescriptionRef.current.innerHTML;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -311,167 +315,19 @@ const VisitDetailPage: React.FC = () => {
           }
           @page {
             size: A5;
-            margin: 5mm;
-          }
-          html, body {
             margin: 0;
-            padding: 0;
-            height: 100%;
           }
           body {
             font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
             background: white;
           }
-          .prescription-wrapper {
-            display: table;
-            width: 100%;
-            height: 100vh;
-          }
-          .prescription-container {
-            display: table-row-group;
-            background: white;
-            border: none;
-          }
-          .prescription-footer-wrapper {
-            display: table-footer-group;
-          }
-          .prescription-header {
-            border-bottom: 1px solid #d1d5db;
-            padding: 16px;
-            padding-bottom: 12px;
-          }
-          .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .header-left {
-            text-align: left;
-          }
-          .header-right {
-            text-align: right;
-            direction: rtl;
-            line-height: 1.6;
-          }
-          .doctor-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
-          }
-          .credentials {
-            font-size: 11px;
-            color: #4b5563;
-          }
-          .patient-info {
-            margin-top: 16px;
-            padding-top: 12px;
-            font-size: 14px;
-            color: #374151;
-            text-align: left;
-            line-height: 1.6;
-          }
-          .patient-info > div {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          }
-          .prescription-body {
-            position: relative;
-            padding: 16px;
-            padding-left: 80px;
-          }
-          .rx-symbol {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            font-size: 48px;
-            color: #9ca3af;
-            font-family: 'Times New Roman', serif;
-          }
-          .prescription-body img {
-            width: 100%;
+          img {
+            max-width: 100%;
             height: auto;
-          }
-          .prescription-footer {
-            border-top: 1px solid #d1d5db;
-            padding: 12px;
-            background: #f9fafb;
-            font-size: 11px;
-            color: #4b5563;
-          }
-          .prescription-footer > div {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .prescription-footer .text-start {
-            text-align: left;
-          }
-          .prescription-footer .text-end {
-            text-align: right;
-          }
-          .font-semibold {
-            font-weight: 600;
-          }
-          .font-medium {
-            font-weight: 500;
           }
         </style>
       </head>
-      <body>
-        <div class="prescription-wrapper">
-          <div class="prescription-container">
-            <div class="prescription-header">
-              <div class="header-content">
-                <div class="header-left">
-                  <p class="doctor-name">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
-                </div>
-                <div class="header-right" dir="rtl">
-                  <p class="doctor-name">دكتـــور</p>
-                  <p class="doctor-name">شــريف علي رضــا</p>
-                  <p class="credentials">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
-                  <p class="credentials">لطب الباطنـــة والكـــلى</p>
-                  <p class="credentials">دكتوراه الأمـــراض الباطنيـــة</p>
-                  <p class="credentials">استشارى أمراض الباطنـــة العامة والكلى</p>
-                  <p class="credentials">وعضو الجمعية المصرية والأوربيـــة</p>
-                  <p class="credentials">لأمـــراض الكـــلى</p>
-                  <p class="credentials">بمستشفيات جـــامعـــة عين شمـــس</p>
-                </div>
-              </div>
-              <div class="patient-info">
-                <div>
-                  <span>الإســـم :</span>
-                  <span class="font-medium">${patient.name}</span>
-                </div>
-                <div>
-                  <span>التـــاريخ :</span>
-                  <span class="font-medium" dir="ltr">${format(visit.date, 'dd/MM/yyyy')}</span>
-                </div>
-              </div>
-            </div>
-            <div class="prescription-body">
-              <div class="rx-symbol">℞/</div>
-              <div style="padding: 16px; padding-left: 80px;">
-                <img src="${visit.notesDrawing}" alt="Prescription" style="width: 100%;" />
-              </div>
-            </div>
-          </div>
-          <div class="prescription-footer-wrapper">
-            <div class="prescription-footer">
-              <div>
-                <div class="text-start">
-                  <p class="font-semibold">مستشفى تبارك/النسائم</p>
-                  <p>16552 - 15452</p>
-                </div>
-                <div class="text-end">
-                  <p>١٨ عمارات خلف العبور - مصر الجديدة</p>
-                  <p>ت: 01554343147 - 0222602733</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </body>
+      <body>${content}</body>
       </html>
     `);
     printWindow.document.close();
@@ -483,10 +339,12 @@ const VisitDetailPage: React.FC = () => {
   };
 
   const handlePrintLabRequest = () => {
-    if (!visit.requestedLabDrawing) return;
+    if (!labRequestRef.current) return;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const content = labRequestRef.current.innerHTML;
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -503,167 +361,19 @@ const VisitDetailPage: React.FC = () => {
           }
           @page {
             size: A5;
-            margin: 5mm;
-          }
-          html, body {
             margin: 0;
-            padding: 0;
-            height: 100%;
           }
           body {
             font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
             background: white;
           }
-          .prescription-wrapper {
-            display: table;
-            width: 100%;
-            height: 100vh;
-          }
-          .prescription-container {
-            display: table-row-group;
-            background: white;
-            border: none;
-          }
-          .prescription-footer-wrapper {
-            display: table-footer-group;
-          }
-          .prescription-header {
-            border-bottom: 1px solid #d1d5db;
-            padding: 16px;
-            padding-bottom: 12px;
-          }
-          .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .header-left {
-            text-align: left;
-          }
-          .header-right {
-            text-align: right;
-            direction: rtl;
-            line-height: 1.6;
-          }
-          .doctor-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
-          }
-          .credentials {
-            font-size: 11px;
-            color: #4b5563;
-          }
-          .patient-info {
-            margin-top: 16px;
-            padding-top: 12px;
-            font-size: 14px;
-            color: #374151;
-            text-align: left;
-            line-height: 1.6;
-          }
-          .patient-info > div {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          }
-          .prescription-body {
-            position: relative;
-            padding: 16px;
-            padding-left: 80px;
-          }
-          .rx-symbol {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            font-size: 48px;
-            color: #9ca3af;
-            font-family: 'Times New Roman', serif;
-          }
-          .prescription-body img {
-            width: 100%;
+          img {
+            max-width: 100%;
             height: auto;
-          }
-          .prescription-footer {
-            border-top: 1px solid #d1d5db;
-            padding: 12px;
-            background: #f9fafb;
-            font-size: 11px;
-            color: #4b5563;
-          }
-          .prescription-footer > div {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .prescription-footer .text-start {
-            text-align: left;
-          }
-          .prescription-footer .text-end {
-            text-align: right;
-          }
-          .font-semibold {
-            font-weight: 600;
-          }
-          .font-medium {
-            font-weight: 500;
           }
         </style>
       </head>
-      <body>
-        <div class="prescription-wrapper">
-          <div class="prescription-container">
-            <div class="prescription-header">
-              <div class="header-content">
-                <div class="header-left">
-                  <p class="doctor-name">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
-                </div>
-                <div class="header-right" dir="rtl">
-                  <p class="doctor-name">دكتـــور</p>
-                  <p class="doctor-name">شــريف علي رضــا</p>
-                  <p class="credentials">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
-                  <p class="credentials">لطب الباطنـــة والكـــلى</p>
-                  <p class="credentials">دكتوراه الأمـــراض الباطنيـــة</p>
-                  <p class="credentials">استشارى أمراض الباطنـــة العامة والكلى</p>
-                  <p class="credentials">وعضو الجمعية المصرية والأوربيـــة</p>
-                  <p class="credentials">لأمـــراض الكـــلى</p>
-                  <p class="credentials">بمستشفيات جـــامعـــة عين شمـــس</p>
-                </div>
-              </div>
-              <div class="patient-info">
-                <div>
-                  <span>الإســـم :</span>
-                  <span class="font-medium">${patient.name}</span>
-                </div>
-                <div>
-                  <span>التـــاريخ :</span>
-                  <span class="font-medium" dir="ltr">${format(visit.date, 'dd/MM/yyyy')}</span>
-                </div>
-              </div>
-            </div>
-            <div class="prescription-body">
-              <div class="rx-symbol">℞/</div>
-              <div style="padding: 16px; padding-left: 80px;">
-                <img src="${visit.requestedLabDrawing}" alt="Lab Request" style="width: 100%;" />
-              </div>
-            </div>
-          </div>
-          <div class="prescription-footer-wrapper">
-            <div class="prescription-footer">
-              <div>
-                <div class="text-start">
-                  <p class="font-semibold">مستشفى تبارك/النسائم</p>
-                  <p>16552 - 15452</p>
-                </div>
-                <div class="text-end">
-                  <p>١٨ عمارات خلف العبور - مصر الجديدة</p>
-                  <p>ت: 01554343147 - 0222602733</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </body>
+      <body>${content}</body>
       </html>
     `);
     printWindow.document.close();
