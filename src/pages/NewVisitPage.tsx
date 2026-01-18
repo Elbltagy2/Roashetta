@@ -165,6 +165,57 @@ const NewVisitPage: React.FC = () => {
               max-width: 100%;
               height: auto;
             }
+            /* Template styles */
+            .bg-white { background-color: white; }
+            .rounded-xl { border-radius: 0.75rem; }
+            .border { border-width: 1px; }
+            .border-gray-300 { border-color: #d1d5db; }
+            .border-gray-200 { border-color: #e5e7eb; }
+            .overflow-hidden { overflow: hidden; }
+            .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+            .flex { display: flex; }
+            .flex-col { flex-direction: column; }
+            .flex-1 { flex: 1 1 0%; }
+            .flex-shrink-0 { flex-shrink: 0; }
+            .items-center { align-items: center; }
+            .items-start { align-items: flex-start; }
+            .justify-between { justify-content: space-between; }
+            .gap-1 { gap: 0.25rem; }
+            .border-b { border-bottom-width: 1px; }
+            .border-t { border-top-width: 1px; }
+            .p-2 { padding: 0.5rem; }
+            .p-3 { padding: 0.75rem; }
+            .p-4 { padding: 1rem; }
+            .pb-3 { padding-bottom: 0.75rem; }
+            .pt-3 { padding-top: 0.75rem; }
+            .ps-20 { padding-inline-start: 5rem; }
+            .mt-4 { margin-top: 1rem; }
+            .mt-auto { margin-top: auto; }
+            .text-start { text-align: start; }
+            .text-end { text-align: end; }
+            .text-base { font-size: 1rem; line-height: 1.5rem; }
+            .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+            .text-xs { font-size: 0.75rem; line-height: 1rem; }
+            .text-6xl { font-size: 3.75rem; line-height: 1; }
+            .font-bold { font-weight: 700; }
+            .font-semibold { font-weight: 600; }
+            .font-medium { font-weight: 500; }
+            .font-serif { font-family: 'Times New Roman', serif; }
+            .text-gray-800 { color: #1f2937; }
+            .text-gray-700 { color: #374151; }
+            .text-gray-600 { color: #4b5563; }
+            .text-gray-400 { color: #9ca3af; }
+            .bg-gray-50 { background-color: #f9fafb; }
+            .leading-relaxed { line-height: 1.625; }
+            .relative { position: relative; }
+            .absolute { position: absolute; }
+            .top-6 { top: 1.5rem; }
+            .start-6 { inset-inline-start: 1.5rem; }
+            .select-none { user-select: none; }
+            .pointer-events-none { pointer-events: none; }
+            .w-full { width: 100%; }
+            .h-full { height: 100%; }
+            .rounded-lg { border-radius: 0.5rem; }
           </style>
         </head>
         <body>${content}</body>
