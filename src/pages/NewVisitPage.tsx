@@ -133,13 +133,15 @@ const NewVisitPage: React.FC = () => {
     setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
-  const handlePrint = (ref: React.RefObject<HTMLDivElement>, title: string) => {
-    if (!ref.current) return;
+  const handlePrint = (drawingData: string | null, title: string) => {
+    if (!drawingData) return;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const content = ref.current.innerHTML;
+    const today = new Date();
+    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="${direction}">
@@ -161,64 +163,145 @@ const NewVisitPage: React.FC = () => {
               font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
               background: white;
             }
-            img {
-              max-width: 100%;
+            .prescription-container {
+              background: white;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+            }
+            .header {
+              border-bottom: 1px solid #d1d5db;
+              padding: 16px;
+              padding-bottom: 12px;
+            }
+            .header-content {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+            }
+            .header-left {
+              text-align: left;
+            }
+            .header-right {
+              text-align: right;
+              direction: rtl;
+              line-height: 1.6;
+            }
+            .doctor-name {
+              font-size: 16px;
+              font-weight: bold;
+              color: #1f2937;
+            }
+            .credentials {
+              font-size: 11px;
+              color: #4b5563;
+            }
+            .patient-info {
+              margin-top: 16px;
+              padding-top: 12px;
+              font-size: 14px;
+              color: #374151;
+              text-align: left;
+              line-height: 1.6;
+            }
+            .patient-info-row {
+              display: flex;
+              align-items: center;
+              gap: 4px;
+            }
+            .body-section {
+              position: relative;
+              flex: 1;
+              padding: 16px;
+              padding-left: 80px;
+            }
+            .rx-symbol {
+              position: absolute;
+              top: 24px;
+              left: 24px;
+              font-size: 48px;
+              color: #9ca3af;
+              font-family: 'Times New Roman', serif;
+            }
+            .drawing-image {
+              width: 100%;
               height: auto;
             }
-            /* Template styles */
-            .bg-white { background-color: white; }
-            .rounded-xl { border-radius: 0.75rem; }
-            .border { border-width: 1px; }
-            .border-gray-300 { border-color: #d1d5db; }
-            .border-gray-200 { border-color: #e5e7eb; }
-            .overflow-hidden { overflow: hidden; }
-            .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-            .flex { display: flex; }
-            .flex-col { flex-direction: column; }
-            .flex-1 { flex: 1 1 0%; }
-            .flex-shrink-0 { flex-shrink: 0; }
-            .items-center { align-items: center; }
-            .items-start { align-items: flex-start; }
-            .justify-between { justify-content: space-between; }
-            .gap-1 { gap: 0.25rem; }
-            .border-b { border-bottom-width: 1px; }
-            .border-t { border-top-width: 1px; }
-            .p-2 { padding: 0.5rem; }
-            .p-3 { padding: 0.75rem; }
-            .p-4 { padding: 1rem; }
-            .pb-3 { padding-bottom: 0.75rem; }
-            .pt-3 { padding-top: 0.75rem; }
-            .ps-20 { padding-inline-start: 5rem; }
-            .mt-4 { margin-top: 1rem; }
-            .mt-auto { margin-top: auto; }
-            .text-start { text-align: start; }
-            .text-end { text-align: end; }
-            .text-base { font-size: 1rem; line-height: 1.5rem; }
-            .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-            .text-xs { font-size: 0.75rem; line-height: 1rem; }
-            .text-6xl { font-size: 3.75rem; line-height: 1; }
-            .font-bold { font-weight: 700; }
-            .font-semibold { font-weight: 600; }
-            .font-medium { font-weight: 500; }
-            .font-serif { font-family: 'Times New Roman', serif; }
-            .text-gray-800 { color: #1f2937; }
-            .text-gray-700 { color: #374151; }
-            .text-gray-600 { color: #4b5563; }
-            .text-gray-400 { color: #9ca3af; }
-            .bg-gray-50 { background-color: #f9fafb; }
-            .leading-relaxed { line-height: 1.625; }
-            .relative { position: relative; }
-            .absolute { position: absolute; }
-            .top-6 { top: 1.5rem; }
-            .start-6 { inset-inline-start: 1.5rem; }
-            .select-none { user-select: none; }
-            .pointer-events-none { pointer-events: none; }
-            .w-full { width: 100%; }
-            .h-full { height: 100%; }
-            .rounded-lg { border-radius: 0.5rem; }
+            .footer {
+              border-top: 1px solid #d1d5db;
+              padding: 12px;
+              background: #f9fafb;
+              font-size: 11px;
+              color: #4b5563;
+              margin-top: auto;
+            }
+            .footer-content {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+            }
+            .footer-left {
+              text-align: left;
+            }
+            .footer-right {
+              text-align: right;
+            }
+            .font-semibold {
+              font-weight: 600;
+            }
+            .font-medium {
+              font-weight: 500;
+            }
           </style>
         </head>
-        <body>${content}</body>
+        <body>
+          <div class="prescription-container">
+            <div class="header">
+              <div class="header-content">
+                <div class="header-left">
+                  <p class="doctor-name">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
+                </div>
+                <div class="header-right">
+                  <p class="doctor-name">دكتـــور</p>
+                  <p class="doctor-name">شــريف علي رضــا</p>
+                  <p class="credentials">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
+                  <p class="credentials">لطب الباطنـــة والكـــلى</p>
+                  <p class="credentials">دكتوراه الأمـــراض الباطنيـــة</p>
+                  <p class="credentials">استشارى أمراض الباطنـــة العامة والكلى</p>
+                  <p class="credentials">وعضو الجمعية المصرية والأوربيـــة</p>
+                  <p class="credentials">لأمـــراض الكـــلى</p>
+                  <p class="credentials">بمستشفيات جـــامعـــة عين شمـــس</p>
+                </div>
+              </div>
+              <div class="patient-info">
+                <div class="patient-info-row">
+                  <span>الإســـم :</span>
+                  <span class="font-medium">${patient?.name || ''}</span>
+                </div>
+                <div class="patient-info-row">
+                  <span>التـــاريخ :</span>
+                  <span class="font-medium">${dateStr}</span>
+                </div>
+              </div>
+            </div>
+            <div class="body-section">
+              <div class="rx-symbol">℞/</div>
+              <img src="${drawingData}" alt="${title}" class="drawing-image" />
+            </div>
+            <div class="footer">
+              <div class="footer-content">
+                <div class="footer-left">
+                  <p class="font-semibold">مستشفى تبارك/النسائم</p>
+                  <p>16552 - 15452</p>
+                </div>
+                <div class="footer-right">
+                  <p>١٨ عمارات خلف العبور - مصر الجديدة</p>
+                  <p>ت: 01554343147 - 0222602733</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
       </html>
     `);
     printWindow.document.close();
@@ -686,7 +769,7 @@ const NewVisitPage: React.FC = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePrint(prescriptionRef, language === 'ar' ? 'الروشتة' : 'Prescription');
+                    handlePrint(notesDrawing, language === 'ar' ? 'الروشتة' : 'Prescription');
                   }}
                   className="gap-1 h-8"
                 >
@@ -730,7 +813,7 @@ const NewVisitPage: React.FC = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePrint(labRequestRef, language === 'ar' ? 'التحاليل المطلوبة' : 'Requested Lab');
+                    handlePrint(requestedLabDrawing, language === 'ar' ? 'التحاليل المطلوبة' : 'Requested Lab');
                   }}
                   className="gap-1 h-8"
                 >
