@@ -171,6 +171,22 @@ class ApiClient {
     return this.request<void>(`/patient-records/${id}`, { method: 'DELETE' });
   }
 
+  // Visit Attachments
+  async getVisitAttachments(visitId: string) {
+    return this.request<VisitAttachment[]>(`/visits/${visitId}/attachments`);
+  }
+
+  async uploadVisitAttachment(visitId: string, data: CreateVisitAttachmentData) {
+    return this.request<VisitAttachment>(`/visits/${visitId}/attachments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteVisitAttachment(id: string) {
+    return this.request<void>(`/visits/attachments/${id}`, { method: 'DELETE' });
+  }
+
   // Expenses
   async getExpenses(startDate?: string, endDate?: string) {
     let url = '/expenses';
@@ -262,6 +278,28 @@ class ApiClient {
   async deleteAllNotifications() {
     return this.request<void>('/notifications', { method: 'DELETE' });
   }
+
+  // Settings
+  async getSettings() {
+    return this.request<Settings>('/settings');
+  }
+
+  async updateSettings(data: UpdateSettingsData) {
+    return this.request<Settings>('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Analytics
+  async getAnalytics(startDate?: string, endDate?: string) {
+    let url = '/analytics';
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+    return this.request<AnalyticsData>(url);
+  }
 }
 
 // Types
@@ -341,11 +379,15 @@ export interface CreatePatientData {
   allergies: string[];
 }
 
+export type VisitType = 'new' | 'followup';
+
 export interface Visit {
   id: string;
   patientId: string;
   doctorId: string;
   visitDate: string;
+  visitType: VisitType;
+  price: number;
   chiefComplaint: string;
   chiefComplaintDrawing: string | null;
   diagnosis: string;
@@ -371,6 +413,8 @@ export interface Visit {
 
 export interface CreateVisitData {
   patientId: string;
+  visitType?: VisitType;
+  price?: number;
   chiefComplaint?: string;
   chiefComplaintDrawing?: string;
   diagnosis?: string;
@@ -409,6 +453,23 @@ export interface CreatePatientRecordData {
   fileType: string;
   fileUrl: string;
   fileSize: number;
+}
+
+export interface VisitAttachment {
+  id: string;
+  visitId: string;
+  name: string;
+  type: string;
+  dataUrl: string;
+  uploadedBy: string;
+  uploaderType: 'doctor' | 'assistant';
+  createdAt: string;
+}
+
+export interface CreateVisitAttachmentData {
+  name: string;
+  type: string;
+  dataUrl: string;
 }
 
 export type ExpenseCategory = 'rent' | 'utilities' | 'supplies' | 'equipment' | 'maintenance' | 'other';
@@ -477,6 +538,41 @@ export interface UpdateLabResultData {
   isAbnormal?: boolean;
   testDate?: string;
   notes?: string;
+}
+
+// Settings
+export interface Settings {
+  id?: string;
+  doctorId: string;
+  newVisitPrice: number;
+  followupVisitPrice: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateSettingsData {
+  newVisitPrice?: number;
+  followupVisitPrice?: number;
+}
+
+// Analytics
+export interface AnalyticsData {
+  totalVisits: number;
+  newVisits: number;
+  followupVisits: number;
+  totalRevenue: number;
+  newVisitRevenue: number;
+  followupVisitRevenue: number;
+  uniquePatients: number;
+  totalExpenses: number;
+  netProfit: number;
+  dailyBreakdown: {
+    date: string;
+    totalVisits: number;
+    newVisits: number;
+    followupVisits: number;
+    revenue: number;
+  }[];
 }
 
 export const api = new ApiClient();

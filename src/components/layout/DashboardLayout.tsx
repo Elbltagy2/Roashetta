@@ -12,6 +12,7 @@ import {
   Stethoscope,
   UserCog,
   Wallet,
+  BarChart3,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,7 +36,9 @@ const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { key: 'patients', icon: Users, path: '/patients' },
   { key: 'expenses', icon: Wallet, path: '/expenses' },
+  { key: 'analytics', icon: BarChart3, path: '/analytics', doctorOnly: true },
   { key: 'assistants', icon: UserCog, path: '/assistants', doctorOnly: true },
+  { key: 'settings', icon: Settings, path: '/settings', doctorOnly: true },
 ];
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {

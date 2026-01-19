@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData, LabResult } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 type LabCategory = 'cbc' | 'sugar' | 'liver' | 'kidney' | 'lipids' | 'thyroid' | 'urine';
 
@@ -85,6 +86,7 @@ const initialLabFormData: LabResultFormData = {
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, language, direction } = useLanguage();
+  const { isAssistant } = useAuth();
   const {
     getPatient,
     getPatientVisits,
@@ -296,13 +298,15 @@ const PatientDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              onClick={() => navigate(`/patients/${patient.id}/visit/new`)}
-              className="gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              {t('visits.newVisit')}
-            </Button>
+            {!isAssistant && (
+              <Button
+                onClick={() => navigate(`/patients/${patient.id}/visit/new`)}
+                className="gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                {t('visits.newVisit')}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -794,12 +798,14 @@ const PatientDetailPage: React.FC = () => {
               <p className="text-muted-foreground">
                 {language === 'ar' ? 'لا توجد زيارات سابقة' : 'No previous visits'}
               </p>
-              <Button
-                onClick={() => navigate(`/patients/${patient.id}/visit/new`)}
-                className="mt-4"
-              >
-                {t('visits.newVisit')}
-              </Button>
+              {!isAssistant && (
+                <Button
+                  onClick={() => navigate(`/patients/${patient.id}/visit/new`)}
+                  className="mt-4"
+                >
+                  {t('visits.newVisit')}
+                </Button>
+              )}
             </div>
           )}
         </motion.div>

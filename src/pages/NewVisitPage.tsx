@@ -1,5 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ar, enUS } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
@@ -20,7 +22,12 @@ import {
   Printer,
   ChevronDown,
   ClipboardList,
-  PenTool
+  PenTool,
+  Clock,
+  Calendar,
+  DollarSign,
+  UserPlus,
+  RefreshCw,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -31,6 +38,14 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import api, { VisitType, Settings } from '@/services/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Attachment {
   id: string;
@@ -44,7 +59,7 @@ type ActiveSection = 'medical-history' | 'medical-notes' | 'prescription' | 'lab
 const NewVisitPage: React.FC = () => {
   const { id: patientId } = useParams<{ id: string }>();
   const { t, language, direction } = useLanguage();
-  const { getPatient, addVisit } = useData();
+  const { getPatient, addVisit, uploadVisitAttachment, visits, loadPatientVisits } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +68,50 @@ const NewVisitPage: React.FC = () => {
 
   const patient = getPatient(patientId || '');
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
+  const dateLocale = language === 'ar' ? ar : enUS;
+
+  // Get previous visits for this patient, sorted by date descending
+  const previousVisits = visits
+    .filter((v) => v.patientId === patientId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Load patient visits on mount
+  useEffect(() => {
+    if (patientId) {
+      loadPatientVisits(patientId);
+    }
+  }, [patientId, loadPatientVisits]);
+
+  // Track if previous visits section is open
+  const [isPreviousVisitsOpen, setIsPreviousVisitsOpen] = useState(false);
+
+  // Visit type and price
+  const [visitType, setVisitType] = useState<VisitType>('new');
+  const [price, setPrice] = useState<string>('');
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await api.getSettings();
+        setSettings(data);
+        // Set initial price based on default visit type (new)
+        setPrice(data.newVisitPrice.toString());
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // Update price when visit type changes
+  useEffect(() => {
+    if (settings) {
+      const defaultPrice = visitType === 'new' ? settings.newVisitPrice : settings.followupVisitPrice;
+      setPrice(defaultPrice.toString());
+    }
+  }, [visitType, settings]);
 
   const [formData, setFormData] = useState({
     bloodPressure: '',
@@ -327,6 +386,8 @@ const NewVisitPage: React.FC = () => {
       const visit = await addVisit({
         patientId: patientId!,
         date: new Date(),
+        visitType: visitType,
+        price: parseFloat(price) || 0,
         chiefComplaint: '',
         chiefComplaintDrawing: chiefComplaintDrawing || null,
         diagnosis: '',
@@ -345,6 +406,19 @@ const NewVisitPage: React.FC = () => {
           weight: parseFloat(formData.weight) || 70,
         },
       });
+
+      // Upload attachments to the newly created visit
+      if (attachments.length > 0) {
+        await Promise.all(
+          attachments.map(attachment =>
+            uploadVisitAttachment(visit.id, {
+              name: attachment.name,
+              type: attachment.type,
+              dataUrl: attachment.dataUrl,
+            })
+          )
+        );
+      }
 
       toast({
         title: language === 'ar' ? 'تم حفظ الزيارة بنجاح' : 'Visit saved successfully',
@@ -568,6 +642,50 @@ const NewVisitPage: React.FC = () => {
         )}
 
         <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="space-y-6">
+          {/* Visit Type & Price Section */}
+          <div className="bg-card rounded-2xl card-shadow p-6 space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" />
+              {language === 'ar' ? 'نوع الكشف والسعر' : 'Visit Type & Price'}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'نوع الكشف' : 'Visit Type'}</Label>
+                <Select value={visitType} onValueChange={(value: VisitType) => setVisitType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="w-4 h-4 text-green-600" />
+                        {language === 'ar' ? 'كشف جديد' : 'New Visit'}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="followup">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 text-blue-600" />
+                        {language === 'ar' ? 'متابعة' : 'Follow-up'}
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'السعر (EGP)' : 'Price (EGP)'}</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Vitals Section (Always visible) */}
           <div className="bg-card rounded-2xl card-shadow p-6 space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -589,7 +707,81 @@ const NewVisitPage: React.FC = () => {
               </div>
             </div>
           </div>
-
+          {/* Previous Visits Section (Collapsible) */}
+          <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+            <SectionHeader
+              title={language === 'ar' ? 'الزيارات السابقة' : 'Previous Visits'}
+              icon={<Clock className="w-5 h-5" />}
+              isOpen={isPreviousVisitsOpen}
+              onClick={() => setIsPreviousVisitsOpen(!isPreviousVisitsOpen)}
+              extra={
+                <span className="text-sm text-muted-foreground">
+                  ({previousVisits.length})
+                </span>
+              }
+            />
+            <AnimatePresence initial={false}>
+              {isPreviousVisitsOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-2 border-t border-border">
+                    {previousVisits.length > 0 ? (
+                      <div className="space-y-3">
+                        {previousVisits.map((prevVisit) => (
+                          <button
+                            key={prevVisit.id}
+                            type="button"
+                            onClick={() => navigate(`/patients/${patientId}/visit/${prevVisit.id}`)}
+                            className="w-full text-start p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2 text-primary">
+                                <Calendar className="w-4 h-4" />
+                                <span className="font-medium">
+                                  {format(prevVisit.date, 'PPP', { locale: dateLocale })}
+                                </span>
+                              </div>
+                              <BackIcon className="w-4 h-4 text-muted-foreground rotate-180" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
+                              <div>
+                                <span className="text-xs">{t('visits.bloodPressure')}: </span>
+                                <span className="text-foreground">{prevVisit.vitals.bloodPressure || '-'}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs">{t('visits.temperature')}: </span>
+                                <span className="text-foreground">{prevVisit.vitals.temperature || '-'}°C</span>
+                              </div>
+                              <div>
+                                <span className="text-xs">{t('visits.weight')}: </span>
+                                <span className="text-foreground">{prevVisit.vitals.weight || '-'} kg</span>
+                              </div>
+                            </div>
+                            {prevVisit.chiefComplaint && (
+                              <p className="mt-2 text-sm text-muted-foreground truncate">
+                                <span className="text-xs">{t('visits.chiefComplaint')}: </span>
+                                {prevVisit.chiefComplaint}
+                              </p>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">
+                        {language === 'ar' ? 'لا توجد زيارات سابقة' : 'No previous visits'}
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          
           {/* SECTION 1: Medical History */}
           <div className="bg-card rounded-2xl card-shadow overflow-hidden">
             <SectionHeader

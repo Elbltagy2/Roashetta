@@ -5,6 +5,7 @@ import api, {
   PatientRecord as ApiPatientRecord,
   Expense as ApiExpense,
   LabResult as ApiLabResult,
+  VisitAttachment as ApiVisitAttachment,
   CreatePatientData,
   CreateVisitData,
   CreatePatientRecordData,
@@ -14,6 +15,8 @@ import api, {
   LabCategory,
   CreateLabResultData,
   UpdateLabResultData,
+  CreateVisitAttachmentData,
+  VisitType,
 } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -48,6 +51,8 @@ export interface Visit {
   id: string;
   patientId: string;
   date: Date;
+  visitType: VisitType;
+  price: number;
   chiefComplaint: string;
   chiefComplaintDrawing: string | null;
   diagnosis: string;
@@ -88,6 +93,17 @@ export interface LabResult {
   createdAt: Date;
 }
 
+export interface VisitAttachment {
+  id: string;
+  visitId: string;
+  name: string;
+  type: string;
+  dataUrl: string;
+  uploadedBy: string;
+  uploaderType: 'doctor' | 'assistant';
+  createdAt: Date;
+}
+
 interface DataContextType {
   patients: Patient[];
   visits: Visit[];
@@ -121,6 +137,11 @@ interface DataContextType {
   updateLabResult: (id: string, data: Partial<Omit<LabResult, 'id' | 'patientId' | 'createdAt'>>) => Promise<void>;
   deleteLabResult: (id: string) => Promise<void>;
   getPatientLabResults: (patientId: string) => LabResult[];
+  // Visit Attachments
+  loadVisitAttachments: (visitId: string) => Promise<VisitAttachment[]>;
+  uploadVisitAttachment: (visitId: string, attachment: Omit<VisitAttachment, 'id' | 'visitId' | 'uploadedBy' | 'uploaderType' | 'createdAt'>) => Promise<VisitAttachment>;
+  deleteVisitAttachment: (id: string) => Promise<void>;
+  getVisitAttachments: (visitId: string) => VisitAttachment[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -144,6 +165,8 @@ const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
   id: apiVisit.id,
   patientId: apiVisit.patientId,
   date: new Date(apiVisit.visitDate),
+  visitType: apiVisit.visitType || 'new',
+  price: apiVisit.price || 0,
   chiefComplaint: apiVisit.chiefComplaint || '',
   chiefComplaintDrawing: apiVisit.chiefComplaintDrawing,
   diagnosis: apiVisit.diagnosis || '',
@@ -197,6 +220,18 @@ const convertApiLabResult = (apiLabResult: ApiLabResult): LabResult => ({
   createdAt: new Date(apiLabResult.createdAt),
 });
 
+// Helper to convert API visit attachment to local format
+const convertApiVisitAttachment = (apiAttachment: ApiVisitAttachment): VisitAttachment => ({
+  id: apiAttachment.id,
+  visitId: apiAttachment.visitId,
+  name: apiAttachment.name,
+  type: apiAttachment.type,
+  dataUrl: apiAttachment.dataUrl,
+  uploadedBy: apiAttachment.uploadedBy,
+  uploaderType: apiAttachment.uploaderType,
+  createdAt: new Date(apiAttachment.createdAt),
+});
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -204,6 +239,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [currentPatient, setCurrentPatientState] = useState<Patient | null>(null);
   const [labResults, setLabResults] = useState<LabResult[]>([]);
+  const [visitAttachments, setVisitAttachments] = useState<VisitAttachment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
@@ -327,6 +363,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addVisit = async (visitData: Omit<Visit, 'id'>): Promise<Visit> => {
     const createData: CreateVisitData = {
       patientId: visitData.patientId,
+      visitType: visitData.visitType,
+      price: visitData.price,
       chiefComplaint: visitData.chiefComplaint,
       chiefComplaintDrawing: visitData.chiefComplaintDrawing || undefined,
       diagnosis: visitData.diagnosis,
@@ -507,6 +545,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getPatientLabResults = (patientId: string) =>
     labResults.filter(r => r.patientId === patientId);
 
+  // Visit Attachment methods
+  const loadVisitAttachments = useCallback(async (visitId: string): Promise<VisitAttachment[]> => {
+    const apiAttachments = await api.getVisitAttachments(visitId);
+    const convertedAttachments = apiAttachments.map(convertApiVisitAttachment);
+
+    // Update local attachments cache
+    setVisitAttachments(prev => {
+      const otherAttachments = prev.filter(a => a.visitId !== visitId);
+      return [...otherAttachments, ...convertedAttachments];
+    });
+
+    return convertedAttachments;
+  }, []);
+
+  const uploadVisitAttachment = async (
+    visitId: string,
+    attachment: Omit<VisitAttachment, 'id' | 'visitId' | 'uploadedBy' | 'uploaderType' | 'createdAt'>
+  ): Promise<VisitAttachment> => {
+    const createData: CreateVisitAttachmentData = {
+      name: attachment.name,
+      type: attachment.type,
+      dataUrl: attachment.dataUrl,
+    };
+
+    const apiAttachment = await api.uploadVisitAttachment(visitId, createData);
+    const newAttachment = convertApiVisitAttachment(apiAttachment);
+    setVisitAttachments(prev => [newAttachment, ...prev]);
+    return newAttachment;
+  };
+
+  const deleteVisitAttachment = async (id: string) => {
+    await api.deleteVisitAttachment(id);
+    setVisitAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const getVisitAttachments = useCallback((visitId: string) =>
+    visitAttachments.filter(a => a.visitId === visitId), [visitAttachments]);
+
   return (
     <DataContext.Provider
       value={{
@@ -539,6 +615,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateLabResult,
         deleteLabResult,
         getPatientLabResults,
+        loadVisitAttachments,
+        uploadVisitAttachment,
+        deleteVisitAttachment,
+        getVisitAttachments,
       }}
     >
       {children}

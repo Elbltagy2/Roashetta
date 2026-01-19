@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { staggerContainer, staggerItem } from '@/lib/animations';
 
 const DashboardPage: React.FC = () => {
   const { t, language } = useLanguage();
+  const { isAssistant } = useAuth();
   const { patients, visits, currentPatient, clearCurrentPatient } = useData();
   const navigate = useNavigate();
   const [isFinishing, setIsFinishing] = useState(false);
@@ -122,14 +124,16 @@ const DashboardPage: React.FC = () => {
                   <User className="w-4 h-4" />
                   {language === 'ar' ? 'عرض الملف' : 'View Profile'}
                 </Button>
-                <Button
-                  onClick={() => navigate(`/patients/${currentPatient.id}/visit/new`)}
-                  variant="outline"
-                  className="flex-1 gap-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  {language === 'ar' ? 'زيارة جديدة' : 'New Visit'}
-                </Button>
+                {!isAssistant && (
+                  <Button
+                    onClick={() => navigate(`/patients/${currentPatient.id}/visit/new`)}
+                    variant="outline"
+                    className="flex-1 gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {language === 'ar' ? 'زيارة جديدة' : 'New Visit'}
+                  </Button>
+                )}
                 <Button
                   onClick={handleFinishPatient}
                   variant="secondary"

@@ -217,6 +217,13 @@ function createTables() {
   try {
     db.exec(`ALTER TABLE visits ADD COLUMN requested_lab_drawing TEXT`);
   } catch (e) { /* Column already exists */ }
+  // Add visit_type and price columns for visit pricing feature
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN visit_type TEXT DEFAULT 'new'`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN price REAL DEFAULT 0`);
+  } catch (e) { /* Column already exists */ }
 
   // Create visit_attachments table
   db.exec(`
@@ -315,6 +322,19 @@ function createTables() {
     )
   `);
 
+  // Create settings table for storing doctor-specific configuration (visit prices, etc.)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY,
+      doctor_id TEXT UNIQUE NOT NULL,
+      new_visit_price REAL NOT NULL DEFAULT 0,
+      followup_visit_price REAL NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create lab_results table
   db.exec(`
     CREATE TABLE IF NOT EXISTS lab_results (
@@ -368,6 +388,7 @@ function createTables() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_assistants_email ON assistants(email)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_doctor_id ON expenses(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_settings_doctor_id ON settings(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_lab_results_patient_id ON lab_results(patient_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_lab_results_doctor_id ON lab_results(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_doctor_id ON notifications(doctor_id)`);

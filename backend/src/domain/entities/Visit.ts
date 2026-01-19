@@ -4,11 +4,15 @@ export interface Vitals {
   weight: number;
 }
 
+export type VisitType = 'new' | 'followup';
+
 export interface Visit {
   id: string;
   patientId: string;
   doctorId: string;
   visitDate: Date;
+  visitType: VisitType;
+  price: number;
   chiefComplaint: string;
   chiefComplaintDrawing: string | null;
   diagnosis: string;
