@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Phone, Calendar, CreditCard, FileText, AlertTriangle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { User, Phone, Calendar, FileText, AlertTriangle, ArrowRight, ArrowLeft, Hash } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,11 +25,11 @@ const NewPatientPage: React.FC = () => {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
+    fileNumber: '',
     name: '',
     phone: '',
     age: '',
     gender: '' as 'male' | 'female' | '',
-    nationalId: '',
     medicalHistory: '',
     allergies: '',
   });
@@ -55,11 +55,11 @@ const NewPatientPage: React.FC = () => {
       .filter((a) => a.length > 0);
 
     const newPatient = await addPatient({
+      fileNumber: formData.fileNumber,
       name: formData.name,
       phone: formData.phone,
       age: parseInt(formData.age),
       gender: formData.gender as 'male' | 'female',
-      nationalId: formData.nationalId,
       medicalHistory: formData.medicalHistory,
       allergies: allergiesArray,
     });
@@ -107,6 +107,21 @@ const NewPatientPage: React.FC = () => {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fileNumber">{t('patients.fileNumber')}</Label>
+                <div className="relative">
+                  <Hash className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="fileNumber"
+                    value={formData.fileNumber}
+                    onChange={(e) => handleChange('fileNumber', e.target.value)}
+                    placeholder={language === 'ar' ? 'رقم الملف' : 'File number'}
+                    className="ps-10"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
               <div className="md:col-span-2 space-y-2">
                 <Label htmlFor="name">{t('patients.name')} *</Label>
                 <Input
@@ -168,20 +183,6 @@ const NewPatientPage: React.FC = () => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="nationalId">{t('patients.nationalId')}</Label>
-                <div className="relative">
-                  <CreditCard className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="nationalId"
-                    value={formData.nationalId}
-                    onChange={(e) => handleChange('nationalId', e.target.value)}
-                    placeholder="28501011234567"
-                    className="ps-10"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 

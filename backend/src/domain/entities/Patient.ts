@@ -1,10 +1,10 @@
 export interface Patient {
   id: string;
+  fileNumber: string;
   name: string;
   phone: string;
   age: number;
   gender: 'male' | 'female';
-  nationalId: string;
   medicalHistory: string;
   allergies: string[];
   doctorId: string;

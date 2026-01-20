@@ -3,14 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Download, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData, VisitAttachment } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import html2pdf from 'html2pdf.js';
 
 type SectionName = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'attachments' | 'previous-visits';
 
@@ -200,130 +199,92 @@ const VisitDetailPage: React.FC = () => {
     </button>
   );
 
-  const handleDownloadPrescriptionPDF = () => {
-    // Create a temporary container for the PDF content
-    const container = document.createElement('div');
-    container.innerHTML = `
-      <div style="font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; background: white; width: 148mm; min-height: 210mm; display: flex; flex-direction: column;">
-        <div style="border-bottom: 1px solid #d1d5db; padding: 16px; padding-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="text-align: left;">
-              <p style="font-size: 14px; font-weight: bold; color: #1f2937; margin: 0;">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
+  const handlePrint = (drawingData: string | null, title: string) => {
+    if (!drawingData || !patient) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @page { size: A5; margin: 0; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; }
+            .prescription-container { width: 148mm; min-height: 210mm; display: flex; flex-direction: column; background: white; }
+            .header { border-bottom: 1px solid #d1d5db; padding: 16px; padding-bottom: 12px; }
+            .header-content { display: flex; justify-content: space-between; align-items: flex-start; }
+            .header-left { text-align: left; }
+            .header-right { text-align: right; direction: rtl; line-height: 1.6; }
+            .doctor-name { font-size: 14px; font-weight: bold; color: #1f2937; }
+            .credentials { font-size: 10px; color: #4b5563; }
+            .patient-info { margin-top: 16px; padding-top: 12px; font-size: 12px; color: #374151; text-align: left; line-height: 1.6; }
+            .patient-info span { font-weight: 500; }
+            .body { position: relative; flex: 1; padding: 16px; padding-left: 70px; }
+            .rx-symbol { position: absolute; top: 20px; left: 20px; font-size: 40px; color: #9ca3af; font-family: 'Times New Roman', serif; }
+            .body img { width: 100%; margin-top: 10px; }
+            .footer { border-top: 1px solid #d1d5db; padding: 12px; background: #f9fafb; margin-top: auto; }
+            .footer-content { display: flex; justify-content: space-between; align-items: flex-start; font-size: 10px; color: #4b5563; }
+            .footer-left { text-align: left; }
+            .footer-right { text-align: right; }
+            .footer p { margin: 0; }
+            .footer .hospital { font-weight: 600; }
+            @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          </style>
+        </head>
+        <body>
+          <div class="prescription-container">
+            <div class="header">
+              <div class="header-content">
+                <div class="header-left">
+                  <p class="doctor-name">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
+                </div>
+                <div class="header-right">
+                  <p class="doctor-name">دكتـــور</p>
+                  <p class="doctor-name">شــريف علي رضــا</p>
+                  <p class="credentials">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
+                  <p class="credentials">لطب الباطنـــة والكـــلى</p>
+                  <p class="credentials">دكتوراه الأمـــراض الباطنيـــة</p>
+                  <p class="credentials">استشارى أمراض الباطنـــة العامة والكلى</p>
+                  <p class="credentials">وعضو الجمعية المصرية والأوربيـــة</p>
+                  <p class="credentials">لأمـــراض الكـــلى</p>
+                  <p class="credentials">بمستشفيات جـــامعـــة عين شمـــس</p>
+                </div>
+              </div>
+              <div class="patient-info">
+                <div>الإســـم : <span>${patient.name}</span></div>
+                <div>التـــاريخ : <span>${visit ? format(visit.date, 'dd/MM/yyyy') : ''}</span></div>
+              </div>
             </div>
-            <div style="text-align: right; direction: rtl; line-height: 1.6;">
-              <p style="font-size: 14px; font-weight: bold; color: #1f2937; margin: 0;">دكتـــور</p>
-              <p style="font-size: 14px; font-weight: bold; color: #1f2937; margin: 0;">شــريف علي رضــا</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">لطب الباطنـــة والكـــلى</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">دكتوراه الأمـــراض الباطنيـــة</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">استشارى أمراض الباطنـــة العامة والكلى</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">وعضو الجمعية المصرية والأوربيـــة</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">لأمـــراض الكـــلى</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">بمستشفيات جـــامعـــة عين شمـــس</p>
+            <div class="body">
+              <div class="rx-symbol">℞/</div>
+              <img src="${drawingData}" />
+            </div>
+            <div class="footer">
+              <div class="footer-content">
+                <div class="footer-left">
+                  <p class="hospital">مستشفى تبارك/النسائم</p>
+                  <p>16552 - 15452</p>
+                </div>
+                <div class="footer-right">
+                  <p>١٨ عمارات خلف العبور - مصر الجديدة</p>
+                  <p>ت: 01554343147 - 0222602733</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div style="margin-top: 16px; padding-top: 12px; font-size: 12px; color: #374151; text-align: left; line-height: 1.6;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span>الإســـم :</span>
-              <span style="font-weight: 500;">${patient.name}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span>التـــاريخ :</span>
-              <span style="font-weight: 500;">${format(visit.date, 'dd/MM/yyyy')}</span>
-            </div>
-          </div>
-        </div>
-        <div style="position: relative; flex: 1; padding: 16px; padding-left: 70px;">
-          <div style="position: absolute; top: 20px; left: 20px; font-size: 40px; color: #9ca3af; font-family: 'Times New Roman', serif;">℞/</div>
-          <img src="${visit.notesDrawing}" style="width: 100%; margin-top: 10px;" />
-        </div>
-        <div style="border-top: 1px solid #d1d5db; padding: 12px; background: #f9fafb; margin-top: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 10px; color: #4b5563;">
-            <div style="text-align: left;">
-              <p style="font-weight: 600; margin: 0;">مستشفى تبارك/النسائم</p>
-              <p style="margin: 0;">16552 - 15452</p>
-            </div>
-            <div style="text-align: right;">
-              <p style="margin: 0;">١٨ عمارات خلف العبور - مصر الجديدة</p>
-              <p style="margin: 0;">ت: 01554343147 - 0222602733</p>
-            </div>
-          </div>
-        </div>
-      </div>
+          <script>
+            window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };
+          </script>
+        </body>
+      </html>
     `;
 
-    const opt = {
-      margin: 0,
-      filename: `prescription-${patient.name}-${format(visit.date, 'yyyy-MM-dd')}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm' as const, format: 'a5' as const, orientation: 'portrait' as const }
-    };
-
-    html2pdf().set(opt).from(container).save();
-  };
-
-  const handleDownloadLabPDF = () => {
-    // Create a temporary container for the PDF content
-    const container = document.createElement('div');
-    container.innerHTML = `
-      <div style="font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; background: white; width: 148mm; min-height: 210mm; display: flex; flex-direction: column;">
-        <div style="border-bottom: 1px solid #d1d5db; padding: 16px; padding-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="text-align: left;">
-              <p style="font-size: 14px; font-weight: bold; color: #1f2937; margin: 0;">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
-            </div>
-            <div style="text-align: right; direction: rtl; line-height: 1.6;">
-              <p style="font-size: 14px; font-weight: bold; color: #1f2937; margin: 0;">دكتـــور</p>
-              <p style="font-size: 14px; font-weight: bold; color: #1f2937; margin: 0;">شــريف علي رضــا</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">لطب الباطنـــة والكـــلى</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">دكتوراه الأمـــراض الباطنيـــة</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">استشارى أمراض الباطنـــة العامة والكلى</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">وعضو الجمعية المصرية والأوربيـــة</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">لأمـــراض الكـــلى</p>
-              <p style="font-size: 10px; color: #4b5563; margin: 0;">بمستشفيات جـــامعـــة عين شمـــس</p>
-            </div>
-          </div>
-          <div style="margin-top: 16px; padding-top: 12px; font-size: 12px; color: #374151; text-align: left; line-height: 1.6;">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span>الإســـم :</span>
-              <span style="font-weight: 500;">${patient.name}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span>التـــاريخ :</span>
-              <span style="font-weight: 500;">${format(visit.date, 'dd/MM/yyyy')}</span>
-            </div>
-          </div>
-        </div>
-        <div style="position: relative; flex: 1; padding: 16px; padding-left: 70px;">
-          <div style="position: absolute; top: 20px; left: 20px; font-size: 40px; color: #9ca3af; font-family: 'Times New Roman', serif;">℞/</div>
-          <img src="${visit.requestedLabDrawing}" style="width: 100%; margin-top: 10px;" />
-        </div>
-        <div style="border-top: 1px solid #d1d5db; padding: 12px; background: #f9fafb; margin-top: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 10px; color: #4b5563;">
-            <div style="text-align: left;">
-              <p style="font-weight: 600; margin: 0;">مستشفى تبارك/النسائم</p>
-              <p style="margin: 0;">16552 - 15452</p>
-            </div>
-            <div style="text-align: right;">
-              <p style="margin: 0;">١٨ عمارات خلف العبور - مصر الجديدة</p>
-              <p style="margin: 0;">ت: 01554343147 - 0222602733</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const opt = {
-      margin: 0,
-      filename: `lab-request-${patient.name}-${format(visit.date, 'yyyy-MM-dd')}.pdf`,
-      image: { type: 'jpeg' as const, quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm' as const, format: 'a5' as const, orientation: 'portrait' as const }
-    };
-
-    html2pdf().set(opt).from(container).save();
+    printWindow.document.write(printContent);
+    printWindow.document.close();
   };
 
   if (!patient || !visit) {
@@ -576,11 +537,11 @@ const VisitDetailPage: React.FC = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadPrescriptionPDF();
+                    handlePrint(visit.notesDrawing, language === 'ar' ? 'الروشتة' : 'Prescription');
                   }}
                   className="gap-1 h-8"
                 >
-                  <Download className="w-4 h-4" />
+                  <Printer className="w-4 h-4" />
                 </Button>
               )
             }
@@ -597,13 +558,6 @@ const VisitDetailPage: React.FC = () => {
                 <div className="p-6 pt-2 border-t border-border">
                   {visit.notesDrawing ? (
                     <div>
-                      <div className="flex items-center justify-end mb-2">
-                        <Button variant="outline" size="sm" onClick={handleDownloadPrescriptionPDF} className="gap-1 h-7 text-xs">
-                          <Download className="w-3 h-3" />
-                          PDF
-                        </Button>
-                      </div>
-                      <div>
                         <div className="prescription-container bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm flex flex-col" style={{ minHeight: '600px' }}>
                           <div className="prescription-header border-b border-gray-300 p-4 pb-3 flex-shrink-0">
                             <div className="header-content flex justify-between items-start">
@@ -654,7 +608,6 @@ const VisitDetailPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-4">
@@ -682,11 +635,11 @@ const VisitDetailPage: React.FC = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDownloadLabPDF();
+                    handlePrint(visit.requestedLabDrawing, language === 'ar' ? 'التحاليل المطلوبة' : 'Requested Lab');
                   }}
                   className="gap-1 h-8"
                 >
-                  <Download className="w-4 h-4" />
+                  <Printer className="w-4 h-4" />
                 </Button>
               )
             }

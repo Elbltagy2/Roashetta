@@ -22,66 +22,13 @@ import {
   Image,
   File,
   X,
-  FlaskConical,
-  Edit2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useData, LabResult } from '@/contexts/DataContext';
+import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
-
-type LabCategory = 'cbc' | 'sugar' | 'liver' | 'kidney' | 'lipids' | 'thyroid' | 'urine';
-
-const LAB_CATEGORIES: { key: LabCategory; ar: string; en: string }[] = [
-  { key: 'cbc', ar: 'صورة دم كاملة', en: 'CBC' },
-  { key: 'sugar', ar: 'تحليل السكر', en: 'Sugar' },
-  { key: 'liver', ar: 'وظائف الكبد', en: 'Liver' },
-  { key: 'kidney', ar: 'وظائف الكلى', en: 'Kidney' },
-  { key: 'lipids', ar: 'دهون الدم', en: 'Lipids' },
-  { key: 'thyroid', ar: 'الغدة الدرقية', en: 'Thyroid' },
-  { key: 'urine', ar: 'تحليل البول', en: 'Urine' },
-];
-
-interface LabResultFormData {
-  category: LabCategory;
-  testName: string;
-  resultValue: string;
-  unit: string;
-  referenceRange: string;
-  isAbnormal: boolean;
-  testDate: string;
-  notes: string;
-}
-
-const initialLabFormData: LabResultFormData = {
-  category: 'cbc',
-  testName: '',
-  resultValue: '',
-  unit: '',
-  referenceRange: '',
-  isAbnormal: false,
-  testDate: new Date().toISOString().split('T')[0],
-  notes: '',
-};
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -93,26 +40,13 @@ const PatientDetailPage: React.FC = () => {
     loadPatientVisits,
     addPatientRecord,
     deletePatientRecord,
-    loadLabResults,
-    addLabResult,
-    updateLabResult,
-    deleteLabResult,
-    getPatientLabResults,
   } = useData();
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
 
-  // Lab Results state
-  const [labDialogOpen, setLabDialogOpen] = useState(false);
-  const [labFormData, setLabFormData] = useState<LabResultFormData>(initialLabFormData);
-  const [editingLabResult, setEditingLabResult] = useState<LabResult | null>(null);
-  const [labCategoryFilter, setLabCategoryFilter] = useState<LabCategory | 'all'>('all');
-  const [labLoading, setLabLoading] = useState(false);
-
   const patient = getPatient(id || '');
   const visits = getPatientVisits(id || '');
-  const labResults = getPatientLabResults(id || '');
 
   // Load visits from API when patient ID changes
   useEffect(() => {
@@ -120,105 +54,6 @@ const PatientDetailPage: React.FC = () => {
       loadPatientVisits(id);
     }
   }, [id, loadPatientVisits]);
-
-  // Load lab results when patient ID changes
-  useEffect(() => {
-    if (id) {
-      setLabLoading(true);
-      loadLabResults(id).finally(() => setLabLoading(false));
-    }
-  }, [id, loadLabResults]);
-
-  // Get category label
-  const getCategoryLabel = (key: LabCategory) => {
-    const cat = LAB_CATEGORIES.find((c) => c.key === key);
-    return cat ? (language === 'ar' ? cat.ar : cat.en) : key;
-  };
-
-  // Filter lab results
-  const filteredLabResults = labCategoryFilter === 'all'
-    ? labResults
-    : labResults.filter((r) => r.category === labCategoryFilter);
-
-  // Open dialog for adding
-  const handleAddLabResult = () => {
-    setEditingLabResult(null);
-    setLabFormData(initialLabFormData);
-    setLabDialogOpen(true);
-  };
-
-  // Open dialog for editing
-  const handleEditLabResult = (result: LabResult) => {
-    setEditingLabResult(result);
-    setLabFormData({
-      category: result.category as LabCategory,
-      testName: result.testName,
-      resultValue: result.resultValue,
-      unit: result.unit || '',
-      referenceRange: result.referenceRange || '',
-      isAbnormal: result.isAbnormal,
-      testDate: result.testDate instanceof Date
-        ? result.testDate.toISOString().split('T')[0]
-        : new Date(result.testDate).toISOString().split('T')[0],
-      notes: result.notes || '',
-    });
-    setLabDialogOpen(true);
-  };
-
-  // Save lab result
-  const handleSaveLabResult = async () => {
-    if (!patient || !labFormData.testName || !labFormData.resultValue) return;
-
-    setLabLoading(true);
-    try {
-      const testDateObj = new Date(labFormData.testDate);
-      if (editingLabResult) {
-        await updateLabResult(editingLabResult.id, {
-          category: labFormData.category,
-          testName: labFormData.testName,
-          resultValue: labFormData.resultValue,
-          unit: labFormData.unit || null,
-          referenceRange: labFormData.referenceRange || null,
-          isAbnormal: labFormData.isAbnormal,
-          testDate: testDateObj,
-          notes: labFormData.notes || null,
-        });
-      } else {
-        await addLabResult({
-          patientId: patient.id,
-          category: labFormData.category,
-          testName: labFormData.testName,
-          resultValue: labFormData.resultValue,
-          unit: labFormData.unit || null,
-          referenceRange: labFormData.referenceRange || null,
-          isAbnormal: labFormData.isAbnormal,
-          testDate: testDateObj,
-          notes: labFormData.notes || null,
-        });
-      }
-      setLabDialogOpen(false);
-      setLabFormData(initialLabFormData);
-      setEditingLabResult(null);
-    } catch (error) {
-      console.error('Error saving lab result:', error);
-    } finally {
-      setLabLoading(false);
-    }
-  };
-
-  // Delete lab result
-  const handleDeleteLabResult = async (resultId: string) => {
-    if (!confirm(language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
-
-    setLabLoading(true);
-    try {
-      await deleteLabResult(resultId);
-    } catch (error) {
-      console.error('Error deleting lab result:', error);
-    } finally {
-      setLabLoading(false);
-    }
-  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -324,9 +159,9 @@ const PatientDetailPage: React.FC = () => {
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('patients.nationalId')}</span>
+                <span className="text-muted-foreground">{t('patients.fileNumber')}</span>
                 <span className="font-medium text-foreground" dir="ltr">
-                  {patient.nationalId || '-'}
+                  {patient.fileNumber || '-'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -496,238 +331,6 @@ const PatientDetailPage: React.FC = () => {
             )}
           </div>
         )}
-
-        {/* Lab Results Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.17 }}
-          className="bg-card rounded-2xl card-shadow p-6"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <FlaskConical className="w-5 h-5 text-primary" />
-              {language === 'ar' ? 'نتائج التحاليل' : 'Lab Results'}
-            </h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddLabResult}
-              className="gap-2"
-              disabled={labLoading}
-            >
-              <Plus className="w-4 h-4" />
-              {language === 'ar' ? 'إضافة تحليل' : 'Add Result'}
-            </Button>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              variant={labCategoryFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setLabCategoryFilter('all')}
-            >
-              {language === 'ar' ? 'الكل' : 'All'}
-            </Button>
-            {LAB_CATEGORIES.map((cat) => (
-              <Button
-                key={cat.key}
-                variant={labCategoryFilter === cat.key ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setLabCategoryFilter(cat.key)}
-              >
-                {language === 'ar' ? cat.ar : cat.en}
-              </Button>
-            ))}
-          </div>
-
-          {/* Lab Results List */}
-          {filteredLabResults.length > 0 ? (
-            <div className="space-y-3">
-              {filteredLabResults
-                .sort((a, b) => b.testDate.getTime() - a.testDate.getTime())
-                .map((result) => (
-                  <div
-                    key={result.id}
-                    className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {getCategoryLabel(result.category as LabCategory)}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {format(result.testDate, 'PP', { locale: dateLocale })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{result.testName}</span>
-                        <span className={`font-bold ${result.isAbnormal ? 'text-destructive' : 'text-foreground'}`}>
-                          {result.resultValue}
-                          {result.unit && <span className="text-muted-foreground font-normal ms-1">{result.unit}</span>}
-                        </span>
-                        {result.isAbnormal && (
-                          <AlertTriangle className="w-4 h-4 text-destructive" />
-                        )}
-                      </div>
-                      {result.referenceRange && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {language === 'ar' ? 'المعدل الطبيعي: ' : 'Reference: '}{result.referenceRange}
-                        </p>
-                      )}
-                      {result.notes && (
-                        <p className="text-xs text-muted-foreground mt-1">{result.notes}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditLabResult(result)}
-                        disabled={labLoading}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteLabResult(result.id)}
-                        disabled={labLoading}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <FlaskConical className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>{language === 'ar' ? 'لا توجد تحاليل - اضغط إضافة لإدخال نتائج' : 'No lab results - Click add to enter results'}</p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Lab Result Dialog */}
-        <Dialog open={labDialogOpen} onOpenChange={setLabDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingLabResult
-                  ? (language === 'ar' ? 'تعديل نتيجة تحليل' : 'Edit Lab Result')
-                  : (language === 'ar' ? 'إضافة نتيجة تحليل' : 'Add Lab Result')}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              {/* Category */}
-              <div className="space-y-2">
-                <Label>{language === 'ar' ? 'الفئة' : 'Category'}</Label>
-                <Select
-                  value={labFormData.category}
-                  onValueChange={(value: LabCategory) => setLabFormData({ ...labFormData, category: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LAB_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.key} value={cat.key}>
-                        {language === 'ar' ? cat.ar : cat.en}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Test Name */}
-              <div className="space-y-2">
-                <Label>{language === 'ar' ? 'اسم التحليل' : 'Test Name'}</Label>
-                <Input
-                  value={labFormData.testName}
-                  onChange={(e) => setLabFormData({ ...labFormData, testName: e.target.value })}
-                  placeholder={language === 'ar' ? 'مثال: Hemoglobin' : 'e.g., Hemoglobin'}
-                />
-              </div>
-
-              {/* Result Value and Unit */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{language === 'ar' ? 'النتيجة' : 'Result'}</Label>
-                  <Input
-                    value={labFormData.resultValue}
-                    onChange={(e) => setLabFormData({ ...labFormData, resultValue: e.target.value })}
-                    placeholder={language === 'ar' ? 'مثال: 12.5' : 'e.g., 12.5'}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{language === 'ar' ? 'الوحدة' : 'Unit'}</Label>
-                  <Input
-                    value={labFormData.unit}
-                    onChange={(e) => setLabFormData({ ...labFormData, unit: e.target.value })}
-                    placeholder={language === 'ar' ? 'مثال: g/dL' : 'e.g., g/dL'}
-                  />
-                </div>
-              </div>
-
-              {/* Reference Range */}
-              <div className="space-y-2">
-                <Label>{language === 'ar' ? 'المعدل الطبيعي' : 'Reference Range'}</Label>
-                <Input
-                  value={labFormData.referenceRange}
-                  onChange={(e) => setLabFormData({ ...labFormData, referenceRange: e.target.value })}
-                  placeholder={language === 'ar' ? 'مثال: 12-16 g/dL' : 'e.g., 12-16 g/dL'}
-                />
-              </div>
-
-              {/* Test Date */}
-              <div className="space-y-2">
-                <Label>{language === 'ar' ? 'تاريخ التحليل' : 'Test Date'}</Label>
-                <Input
-                  type="date"
-                  value={labFormData.testDate}
-                  onChange={(e) => setLabFormData({ ...labFormData, testDate: e.target.value })}
-                />
-              </div>
-
-              {/* Is Abnormal */}
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="isAbnormal"
-                  checked={labFormData.isAbnormal}
-                  onCheckedChange={(checked) => setLabFormData({ ...labFormData, isAbnormal: !!checked })}
-                />
-                <Label htmlFor="isAbnormal" className="cursor-pointer">
-                  {language === 'ar' ? 'نتيجة غير طبيعية' : 'Abnormal Result'}
-                </Label>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label>{language === 'ar' ? 'ملاحظات' : 'Notes'}</Label>
-                <Input
-                  value={labFormData.notes}
-                  onChange={(e) => setLabFormData({ ...labFormData, notes: e.target.value })}
-                  placeholder={language === 'ar' ? 'ملاحظات إضافية...' : 'Additional notes...'}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setLabDialogOpen(false)}>
-                {language === 'ar' ? 'إلغاء' : 'Cancel'}
-              </Button>
-              <Button
-                onClick={handleSaveLabResult}
-                disabled={labLoading || !labFormData.testName || !labFormData.resultValue}
-              >
-                {labLoading
-                  ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                  : (language === 'ar' ? 'حفظ' : 'Save')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Visits History */}
         <motion.div

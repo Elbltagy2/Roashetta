@@ -14,20 +14,15 @@ export class PatientRepository implements IPatientRepository {
     return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
-  findByNationalId(nationalId: string): Promise<Patient | null> {
-    const row = db.prepare('SELECT * FROM patients WHERE national_id = ?').get(nationalId) as Record<string, unknown> | undefined;
-    return Promise.resolve(row ? this.mapToEntity(row) : null);
-  }
-
   create(data: CreatePatientInput): Promise<Patient> {
     const id = uuidv4();
     const now = new Date().toISOString();
     const allergiesJson = data.allergies ? JSON.stringify(data.allergies) : null;
 
     db.prepare(
-      `INSERT INTO patients (id, doctor_id, name, phone, age, gender, national_id, medical_history, allergies, created_at, updated_at)
+      `INSERT INTO patients (id, doctor_id, file_number, name, phone, age, gender, medical_history, allergies, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(id, data.doctorId, data.name, data.phone, data.age, data.gender, data.nationalId, data.medicalHistory, allergiesJson, now, now);
+    ).run(id, data.doctorId, data.fileNumber || '', data.name, data.phone, data.age, data.gender, data.medicalHistory, allergiesJson, now, now);
 
     return this.findById(id) as Promise<Patient>;
   }
@@ -36,6 +31,10 @@ export class PatientRepository implements IPatientRepository {
     const fields: string[] = [];
     const values: unknown[] = [];
 
+    if (data.fileNumber !== undefined) {
+      fields.push('file_number = ?');
+      values.push(data.fileNumber);
+    }
     if (data.name !== undefined) {
       fields.push('name = ?');
       values.push(data.name);
@@ -51,10 +50,6 @@ export class PatientRepository implements IPatientRepository {
     if (data.gender !== undefined) {
       fields.push('gender = ?');
       values.push(data.gender);
-    }
-    if (data.nationalId !== undefined) {
-      fields.push('national_id = ?');
-      values.push(data.nationalId);
     }
     if (data.medicalHistory !== undefined) {
       fields.push('medical_history = ?');
@@ -81,7 +76,7 @@ export class PatientRepository implements IPatientRepository {
     const searchPattern = `%${query}%`;
     const rows = db.prepare(
       `SELECT * FROM patients
-       WHERE doctor_id = ? AND (name LIKE ? OR phone LIKE ? OR national_id LIKE ?)
+       WHERE doctor_id = ? AND (file_number LIKE ? OR name LIKE ? OR phone LIKE ?)
        ORDER BY name`
     ).all(doctorId, searchPattern, searchPattern, searchPattern) as Record<string, unknown>[];
     return Promise.resolve(rows.map(row => this.mapToEntity(row)));
@@ -99,12 +94,12 @@ export class PatientRepository implements IPatientRepository {
 
     return {
       id: row.id as string,
+      fileNumber: (row.file_number as string) || '',
       doctorId: row.doctor_id as string,
       name: row.name as string,
       phone: row.phone as string,
       age: row.age as number,
       gender: row.gender as 'male' | 'female',
-      nationalId: row.national_id as string,
       medicalHistory: row.medical_history as string,
       allergies,
       createdAt: new Date(row.created_at as string),

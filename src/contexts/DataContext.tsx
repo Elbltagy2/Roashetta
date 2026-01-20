@@ -30,11 +30,11 @@ export interface PatientRecord {
 
 export interface Patient {
   id: string;
+  fileNumber?: string;
   name: string;
   phone: string;
   age: number;
   gender: 'male' | 'female';
-  nationalId: string;
   medicalHistory: string;
   allergies: string[];
   records: PatientRecord[];
@@ -149,11 +149,11 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 // Helper to convert API patient to local format
 const convertApiPatient = (apiPatient: ApiPatient, records: PatientRecord[] = []): Patient => ({
   id: apiPatient.id,
+  fileNumber: apiPatient.fileNumber || '',
   name: apiPatient.name,
   phone: apiPatient.phone,
   age: apiPatient.age,
   gender: apiPatient.gender,
-  nationalId: apiPatient.nationalId,
   medicalHistory: apiPatient.medicalHistory,
   allergies: apiPatient.allergies || [],
   records,
@@ -308,11 +308,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addPatient = async (patientData: Omit<Patient, 'id' | 'createdAt' | 'records'>): Promise<Patient> => {
     const createData: CreatePatientData = {
+      fileNumber: patientData.fileNumber,
       name: patientData.name,
       phone: patientData.phone,
       age: patientData.age,
       gender: patientData.gender,
-      nationalId: patientData.nationalId,
       medicalHistory: patientData.medicalHistory,
       allergies: patientData.allergies,
     };
@@ -325,11 +325,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updatePatient = async (id: string, data: Partial<Patient>) => {
     const updateData: Partial<CreatePatientData> = {};
+    if (data.fileNumber) updateData.fileNumber = data.fileNumber;
     if (data.name) updateData.name = data.name;
     if (data.phone) updateData.phone = data.phone;
     if (data.age) updateData.age = data.age;
     if (data.gender) updateData.gender = data.gender;
-    if (data.nationalId) updateData.nationalId = data.nationalId;
     if (data.medicalHistory) updateData.medicalHistory = data.medicalHistory;
     if (data.allergies) updateData.allergies = data.allergies;
 

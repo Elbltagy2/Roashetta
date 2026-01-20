@@ -6,25 +6,22 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 
 ### Patient Management
 - Add, edit, and view patient profiles
-- Search by name, phone, or national ID
+- Optional file number field for paper-based record tracking
+- Search by name, phone, or file number
 - Medical history and allergies tracking
 - Patient records upload (images, PDFs) with preview
 
 ### Visit & Medical Records
 - Visit tracking with vitals (blood pressure, temperature, weight)
+- Visit type classification (new/follow-up) with pricing
 - Handwriting canvas for medical notes:
   - Chief Complaint (الشكوى)
   - Diagnosis (التشخيص)
   - Prescription (الروشتة)
+  - Lab Requests (التحاليل المطلوبة)
 - Egyptian-style prescription pad design
-- PDF download and print functionality
-
-### Lab Results
-- Track laboratory test results by category:
-  - CBC, Sugar, Liver, Kidney, Lipids, Thyroid, Urine
-- Record test values, units, and reference ranges
-- Flag abnormal results
-- Filter results by category
+- Print functionality for prescriptions and lab requests
+- Visit attachments upload (images, PDFs)
 
 ### Clinic Expenses
 - Track clinic operational expenses
@@ -69,14 +66,13 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 - Vite
 - Tailwind CSS + Shadcn UI
 - Framer Motion (animations)
-- html2pdf.js (PDF generation)
 - date-fns (date handling)
 - Socket.IO Client (real-time updates)
 
 ### Backend
 - Node.js + Express
 - TypeScript
-- PostgreSQL
+- SQLite (better-sqlite3)
 - JWT authentication
 - Role-based access control
 - Socket.IO (real-time notifications)
@@ -86,7 +82,6 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
 
 ### Frontend Setup
 
@@ -110,12 +105,7 @@ npm install
 # Copy environment file
 cp .env.example .env
 
-# Update .env with your PostgreSQL credentials
-
-# Run database migrations
-npm run migrate
-
-# Start backend server
+# Start backend server (SQLite database is auto-created)
 npm run dev
 ```
 
@@ -123,7 +113,6 @@ npm run dev
 
 ### Backend (.env)
 ```
-DATABASE_URL=postgresql://user:password@localhost:5432/roashetta
 JWT_SECRET=your-secret-key
 PORT=3000
 ```
@@ -141,7 +130,7 @@ roashetta/
 ├── backend/                # Backend source
 │   └── src/
 │       ├── domain/         # Entities & repositories
-│       │   ├── entities/   # Patient, Visit, LabResult, Expense, etc.
+│       │   ├── entities/   # Patient, Visit, Expense, etc.
 │       │   └── repositories/
 │       ├── application/    # Use cases (business logic)
 │       ├── infrastructure/ # Database implementations

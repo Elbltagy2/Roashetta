@@ -30,8 +30,8 @@ const PatientsPage: React.FC = () => {
       const matchesSearch =
         patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         patient.phone.includes(searchQuery) ||
-        patient.nationalId.includes(searchQuery);
-      
+        (patient.fileNumber && patient.fileNumber.toLowerCase().includes(searchQuery.toLowerCase()));
+
       const matchesGender =
         genderFilter === 'all' || patient.gender === genderFilter;
 

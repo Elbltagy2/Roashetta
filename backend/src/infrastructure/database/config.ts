@@ -225,6 +225,11 @@ function createTables() {
     db.exec(`ALTER TABLE visits ADD COLUMN price REAL DEFAULT 0`);
   } catch (e) { /* Column already exists */ }
 
+  // Add file_number column to patients table
+  try {
+    db.exec(`ALTER TABLE patients ADD COLUMN file_number TEXT DEFAULT ''`);
+  } catch (e) { /* Column already exists */ }
+
   // Create visit_attachments table
   db.exec(`
     CREATE TABLE IF NOT EXISTS visit_attachments (

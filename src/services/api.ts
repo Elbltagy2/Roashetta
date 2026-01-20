@@ -358,11 +358,11 @@ export interface UpdateAssistantData {
 export interface Patient {
   id: string;
   doctorId: string;
+  fileNumber: string;
   name: string;
   phone: string;
   age: number;
   gender: 'male' | 'female';
-  nationalId: string;
   medicalHistory: string;
   allergies: string[];
   createdAt: string;
@@ -370,11 +370,11 @@ export interface Patient {
 }
 
 export interface CreatePatientData {
+  fileNumber?: string;
   name: string;
   phone: string;
   age: number;
   gender: 'male' | 'female';
-  nationalId: string;
   medicalHistory: string;
   allergies: string[];
 }

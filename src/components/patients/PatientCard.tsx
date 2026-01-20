@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, User, Calendar, UserCheck } from 'lucide-react';
+import { Phone, User, Calendar, UserCheck, Hash } from 'lucide-react';
 import { Patient, useData } from '@/contexts/DataContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,6 +101,12 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
               <Phone className="w-4 h-4" />
               <span dir="ltr">{patient.phone}</span>
             </div>
+            {patient.fileNumber && (
+              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                <Hash className="w-4 h-4" />
+                <span dir="ltr">{patient.fileNumber}</span>
+              </div>
+            )}
           </div>
         </div>
 
