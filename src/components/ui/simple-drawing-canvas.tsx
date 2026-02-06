@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,7 @@ interface SimpleDrawingCanvasProps {
   penSize?: number;
 }
 
-export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
+export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = React.memo(({
   onSave,
   initialData,
   className,
@@ -29,19 +29,28 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const penSizeRef = useRef(externalPenSize);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const penColor = '#1a1a2e'; // Fixed dark color
+  const isDrawingRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializedRef = useRef(false);
+  const initialDataRef = useRef(initialData);
+  const hasLoadedDataRef = useRef(false);
+  const hasUserDrawnRef = useRef(false);
+  const onSaveRef = useRef(onSave);
+  const lastXRef = useRef(0);
+  const lastYRef = useRef(0);
+  const penColor = '#1a1a2e';
+
+  onSaveRef.current = onSave;
   const [canvasHeight, setCanvasHeight] = useState(minHeight);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Keep pen size ref updated
   useEffect(() => {
     penSizeRef.current = externalPenSize;
   }, [externalPenSize]);
 
-  const initCanvas = useCallback(() => {
+  const setupCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || isInitializedRef.current) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -54,97 +63,201 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = penColor;
-
-    // Fill with white background
+    ctx.lineWidth = penSizeRef.current;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Load initial data if provided
-    if (initialData) {
+    const dataToLoad = initialDataRef.current;
+    if (dataToLoad) {
       const img = new Image();
       img.onload = () => {
         ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        hasLoadedDataRef.current = true;
       };
-      img.src = initialData;
+      img.src = dataToLoad;
     }
-  }, [initialData, penColor]);
+
+    isInitializedRef.current = true;
+  };
 
   useEffect(() => {
-    initCanvas();
-  }, [canvasHeight]);
-
-  useEffect(() => {
-    // Initial setup
-    const timer = setTimeout(initCanvas, 100);
+    const timer = setTimeout(setupCanvas, 100);
     return () => clearTimeout(timer);
-  }, [initCanvas]);
+  }, []);
 
-  const getCoordinates = (e: React.TouchEvent | React.MouseEvent) => {
+  useEffect(() => {
+    if (!initialData || !isInitializedRef.current || hasLoadedDataRef.current) return;
+    if (hasUserDrawnRef.current) return;
+
     const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) return;
 
     const rect = canvas.getBoundingClientRect();
+    const img = new Image();
+    img.onload = () => {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      hasLoadedDataRef.current = true;
+    };
+    img.src = initialData;
+  }, [initialData]);
 
-    if ('touches' in e) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
+  useEffect(() => {
+    if (!isInitializedRef.current) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const currentImage = canvas.toDataURL('image/png');
+    const oldWidth = canvas.width;
+    const oldHeight = canvas.height;
+
+    const rect = canvas.getBoundingClientRect();
+    const newWidth = rect.width * window.devicePixelRatio;
+    const newHeight = rect.height * window.devicePixelRatio;
+
+    if (Math.abs(newWidth - oldWidth) < 1 && Math.abs(newHeight - oldHeight) < 1) {
+      return;
     }
 
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-  };
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-  const startDrawing = (e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
-    setIsDrawing(true);
-    const { x, y } = getCoordinates(e);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-
-  const draw = (e: React.TouchEvent | React.MouseEvent) => {
-    e.preventDefault();
-    if (!isDrawing) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
-    const { x, y } = getCoordinates(e);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = penColor;
-    ctx.lineWidth = penSizeRef.current;
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  };
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-    saveCanvas();
-  };
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, rect.width, rect.height);
+    };
+    img.src = currentImage;
+  }, [canvasHeight]);
+
+  // Use Pointer Events for better tablet/stylus support
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const getPos = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      isDrawingRef.current = true;
+      hasUserDrawnRef.current = true;
+
+      const { x, y } = getPos(e);
+      lastXRef.current = x;
+      lastYRef.current = y;
+
+      // Draw dot at start
+      ctx.beginPath();
+      ctx.fillStyle = penColor;
+      ctx.arc(x, y, penSizeRef.current / 2, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDrawingRef.current) return;
+      e.preventDefault();
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const { x, y } = getPos(e);
+
+      ctx.beginPath();
+      ctx.strokeStyle = penColor;
+      ctx.lineWidth = penSizeRef.current;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.moveTo(lastXRef.current, lastYRef.current);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      lastXRef.current = x;
+      lastYRef.current = y;
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (!isDrawingRef.current) return;
+      canvas.releasePointerCapture(e.pointerId);
+      isDrawingRef.current = false;
+      saveCanvas();
+    };
+
+    const handlePointerLeave = () => {
+      if (!isDrawingRef.current) return;
+      isDrawingRef.current = false;
+      saveCanvas();
+    };
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerup', handlePointerUp);
+    canvas.addEventListener('pointerleave', handlePointerLeave);
+    canvas.addEventListener('pointercancel', handlePointerUp);
+
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('pointerleave', handlePointerLeave);
+      canvas.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, []);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) return;
 
+    const rect = canvas.getBoundingClientRect();
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    saveCanvas();
+    ctx.fillRect(0, 0, rect.width * window.devicePixelRatio, rect.height * window.devicePixelRatio);
+
+    if (onSaveRef.current) {
+      onSaveRef.current(canvas.toDataURL('image/jpeg', 0.8));
+    }
   };
 
   const saveCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !onSave) return;
-    onSave(canvas.toDataURL('image/png'));
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      const canvas = canvasRef.current;
+      if (!canvas || !onSaveRef.current) return;
+      onSaveRef.current(canvas.toDataURL('image/jpeg', 0.8));
+    }, 300);
   };
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const expandCanvas = () => {
     setCanvasHeight(prev => Math.min(prev + 100, maxHeight));
@@ -154,7 +267,6 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
     setCanvasHeight(prev => Math.max(prev - 100, minHeight));
   };
 
-  // Handle resize drag
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     setIsResizing(true);
@@ -229,30 +341,29 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
         </div>
       )}
 
-      {/* Canvas Container */}
       <div className="relative bg-white border-2 border-gray-200 rounded-xl overflow-hidden">
-        {/* Placeholder text */}
         {placeholder && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
             <span className="text-gray-200 text-lg select-none">{placeholder}</span>
           </div>
         )}
 
-        {/* Canvas */}
+        {/* Erase button on canvas */}
+        <button
+          type="button"
+          onClick={clearCanvas}
+          className="absolute top-2 right-2 z-20 p-1.5 bg-white/80 hover:bg-white rounded-full shadow-sm border border-gray-200 transition-colors"
+          title={language === 'ar' ? 'مسح' : 'Clear'}
+        >
+          <RotateCcw className="w-4 h-4 text-gray-600" />
+        </button>
+
         <canvas
           ref={canvasRef}
-          style={{ height: `${canvasHeight}px`, width: '100%' }}
-          className="touch-none cursor-crosshair relative z-10 bg-transparent"
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
+          style={{ height: `${canvasHeight}px`, width: '100%', touchAction: 'none' }}
+          className="cursor-crosshair relative z-10 bg-transparent"
         />
 
-        {/* Resize handle */}
         <div
           className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-gray-100 to-transparent cursor-ns-resize flex items-center justify-center hover:from-gray-200 transition-colors"
           onMouseDown={handleResizeStart}
@@ -263,4 +374,4 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = ({
       </div>
     </div>
   );
-};
+});

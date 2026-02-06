@@ -44,33 +44,40 @@ export class VisitRepository implements IVisitRepository {
       `INSERT INTO visits (
         id, patient_id, doctor_id, visit_type, price,
         chief_complaint, chief_complaint_drawing,
-        diagnosis, diagnosis_drawing, notes, notes_drawing,
+        diagnosis, diagnosis_drawing, notes, notes_drawing, notes_drawing_2, notes_drawing_3,
         past_medical_history_drawing, hpi_drawing, drug_history_drawing,
-        family_history_drawing, current_medication_drawing, requested_lab_drawing,
+        family_history_drawing, current_medication_drawing,
+        radiology_drawing, radiology_drawing_2, radiology_drawing_3,
+        lab_test_request,
         blood_pressure, temperature, weight, visit_date, created_at, updated_at
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.patientId,
       data.doctorId,
       data.visitType || 'new',
-      data.price || 0,
-      data.chiefComplaint,
-      data.chiefComplaintDrawing,
-      data.diagnosis,
-      data.diagnosisDrawing,
-      data.notes,
-      data.notesDrawing,
-      data.pastMedicalHistoryDrawing,
-      data.hpiDrawing,
-      data.drugHistoryDrawing,
-      data.familyHistoryDrawing,
-      data.currentMedicationDrawing,
-      data.requestedLabDrawing,
-      data.vitals?.bloodPressure,
-      data.vitals?.temperature,
-      data.vitals?.weight,
+      data.price ?? 0,
+      data.chiefComplaint ?? null,
+      data.chiefComplaintDrawing ?? null,
+      data.diagnosis ?? null,
+      data.diagnosisDrawing ?? null,
+      data.notes ?? null,
+      data.notesDrawing ?? null,
+      data.notesDrawing2 ?? null,
+      data.notesDrawing3 ?? null,
+      data.pastMedicalHistoryDrawing ?? null,
+      data.hpiDrawing ?? null,
+      data.drugHistoryDrawing ?? null,
+      data.familyHistoryDrawing ?? null,
+      data.currentMedicationDrawing ?? null,
+      data.radiologyDrawing ?? null,
+      data.radiologyDrawing2 ?? null,
+      data.radiologyDrawing3 ?? null,
+      data.labTestRequest ?? null,
+      data.vitals?.bloodPressure ?? null,
+      data.vitals?.temperature ?? null,
+      data.vitals?.weight ?? null,
       now,
       now,
       now
@@ -115,6 +122,14 @@ export class VisitRepository implements IVisitRepository {
       fields.push('notes_drawing = ?');
       values.push(data.notesDrawing);
     }
+    if (data.notesDrawing2 !== undefined) {
+      fields.push('notes_drawing_2 = ?');
+      values.push(data.notesDrawing2);
+    }
+    if (data.notesDrawing3 !== undefined) {
+      fields.push('notes_drawing_3 = ?');
+      values.push(data.notesDrawing3);
+    }
     if (data.pastMedicalHistoryDrawing !== undefined) {
       fields.push('past_medical_history_drawing = ?');
       values.push(data.pastMedicalHistoryDrawing);
@@ -135,9 +150,21 @@ export class VisitRepository implements IVisitRepository {
       fields.push('current_medication_drawing = ?');
       values.push(data.currentMedicationDrawing);
     }
-    if (data.requestedLabDrawing !== undefined) {
-      fields.push('requested_lab_drawing = ?');
-      values.push(data.requestedLabDrawing);
+    if (data.radiologyDrawing !== undefined) {
+      fields.push('radiology_drawing = ?');
+      values.push(data.radiologyDrawing);
+    }
+    if (data.radiologyDrawing2 !== undefined) {
+      fields.push('radiology_drawing_2 = ?');
+      values.push(data.radiologyDrawing2);
+    }
+    if (data.radiologyDrawing3 !== undefined) {
+      fields.push('radiology_drawing_3 = ?');
+      values.push(data.radiologyDrawing3);
+    }
+    if (data.labTestRequest !== undefined) {
+      fields.push('lab_test_request = ?');
+      values.push(data.labTestRequest);
     }
     if (data.vitals?.bloodPressure !== undefined) {
       fields.push('blood_pressure = ?');
@@ -239,12 +266,17 @@ export class VisitRepository implements IVisitRepository {
       diagnosisDrawing: row.diagnosis_drawing as string | null,
       notes: row.notes as string,
       notesDrawing: row.notes_drawing as string | null,
+      notesDrawing2: row.notes_drawing_2 as string | null,
+      notesDrawing3: row.notes_drawing_3 as string | null,
       pastMedicalHistoryDrawing: row.past_medical_history_drawing as string | null,
       hpiDrawing: row.hpi_drawing as string | null,
       drugHistoryDrawing: row.drug_history_drawing as string | null,
       familyHistoryDrawing: row.family_history_drawing as string | null,
       currentMedicationDrawing: row.current_medication_drawing as string | null,
-      requestedLabDrawing: row.requested_lab_drawing as string | null,
+      radiologyDrawing: row.radiology_drawing as string | null,
+      radiologyDrawing2: row.radiology_drawing_2 as string | null,
+      radiologyDrawing3: row.radiology_drawing_3 as string | null,
+      labTestRequest: row.lab_test_request as string | null,
       vitals: {
         bloodPressure: row.blood_pressure as string,
         temperature: row.temperature as number,

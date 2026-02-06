@@ -38,22 +38,31 @@ const PatientDetailPage: React.FC = () => {
     getPatient,
     getPatientVisits,
     loadPatientVisits,
+    loadPatientRecords,
     addPatientRecord,
     deletePatientRecord,
+    loadPreviousInvestigations,
+    addPreviousInvestigation,
+    deletePreviousInvestigation,
+    getPreviousInvestigations,
   } = useData();
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const investigationFileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
 
   const patient = getPatient(id || '');
   const visits = getPatientVisits(id || '');
+  const previousInvestigations = getPreviousInvestigations(id || '');
 
-  // Load visits from API when patient ID changes
+  // Load visits, records, and investigations from API when patient ID changes
   useEffect(() => {
     if (id) {
       loadPatientVisits(id);
+      loadPatientRecords(id);
+      loadPreviousInvestigations(id);
     }
-  }, [id, loadPatientVisits]);
+  }, [id, loadPatientVisits, loadPatientRecords, loadPreviousInvestigations]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -82,6 +91,33 @@ const PatientDetailPage: React.FC = () => {
     if (patient) {
       deletePatientRecord(patient.id, recordId);
     }
+  };
+
+  const handleInvestigationFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !patient) return;
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        addPreviousInvestigation(patient.id, {
+          name: file.name,
+          type: file.type,
+          dataUrl,
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input
+    if (investigationFileInputRef.current) {
+      investigationFileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteInvestigation = (investigationId: string) => {
+    deletePreviousInvestigation(investigationId);
   };
 
   const isImageFile = (type: string) => type.startsWith('image/');
@@ -298,6 +334,85 @@ const PatientDetailPage: React.FC = () => {
             <div className="text-center py-8 text-muted-foreground">
               <Upload className="w-10 h-10 mx-auto mb-2 opacity-50" />
               <p>{language === 'ar' ? 'لا توجد سجلات - اضغط رفع لإضافة ملفات' : 'No records - Click upload to add files'}</p>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Previous Investigations */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.17 }}
+          className="bg-card rounded-2xl card-shadow p-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <File className="w-5 h-5 text-primary" />
+              {language === 'ar' ? 'الفحوصات السابقة' : 'Previous Investigations'}
+            </h2>
+            <div>
+              <input
+                ref={investigationFileInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                onChange={handleInvestigationFileUpload}
+                className="hidden"
+                id="investigation-file-upload"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => investigationFileInputRef.current?.click()}
+                className="gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                {language === 'ar' ? 'رفع ملف' : 'Upload'}
+              </Button>
+            </div>
+          </div>
+
+          {previousInvestigations && previousInvestigations.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {previousInvestigations.map((investigation) => (
+                <div
+                  key={investigation.id}
+                  className="relative group rounded-xl overflow-hidden border border-border bg-muted/30"
+                >
+                  {isImageFile(investigation.type) ? (
+                    <img
+                      src={investigation.dataUrl}
+                      alt={investigation.name}
+                      className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => setSelectedFile({ url: investigation.dataUrl, type: 'image' })}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-32 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
+                      onClick={() => setSelectedFile({ url: investigation.dataUrl, type: 'pdf' })}
+                    >
+                      <File className="w-10 h-10 text-muted-foreground mb-2" />
+                      <span className="text-xs text-muted-foreground text-center px-2 truncate max-w-full">
+                        {investigation.name}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => handleDeleteInvestigation(investigation.id)}
+                    className="absolute top-2 end-2 w-7 h-7 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <div className="p-2">
+                    <p className="text-xs text-muted-foreground truncate">{investigation.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Upload className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p>{language === 'ar' ? 'لا توجد فحوصات سابقة - اضغط رفع لإضافة ملفات' : 'No previous investigations - Click upload to add files'}</p>
             </div>
           )}
         </motion.div>

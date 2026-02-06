@@ -9,6 +9,7 @@ import routes from './presentation/routes';
 import { errorHandler } from './presentation/middleware/errorHandler';
 import { initializeSocketServer } from './infrastructure/socket/socketServer';
 import { initializeDatabase, closeDatabase } from './infrastructure/database/config';
+import { validateLicenseKey } from './utils/license';
 
 dotenv.config();
 
@@ -48,13 +49,35 @@ app.use('/api', routes);
 
 // Serve frontend static files (for production .exe)
 const frontendPath = path.join(__dirname, '..', 'public');
-app.use(express.static(frontendPath));
 
-// All non-API routes serve the React app
+// Static assets (JS, CSS with hash) - cache for 1 year
+app.use('/assets', express.static(path.join(frontendPath, 'assets'), {
+  maxAge: '1y',
+  immutable: true,
+}));
+
+// Other static files - no cache
+app.use(express.static(frontendPath, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filePath) => {
+    // Don't cache HTML files
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  },
+}));
+
+// All non-API routes serve the React app (with no-cache headers)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
@@ -86,9 +109,44 @@ function openBrowser(url: string) {
   });
 }
 
+// License info to display
+let licenseInfo: { clinicName: string; expiryDate: string; maxDoctors: number } | null = null;
+
 // Start server
 async function startServer() {
   try {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    // Check license key (skip in development mode)
+    if (!isDevelopment) {
+      const licenseKey = process.env.LICENSE_KEY;
+      if (!licenseKey) {
+        console.error('\n========================================');
+        console.error('  ❌ LICENSE ERROR');
+        console.error('========================================');
+        console.error('\n  No license key found!');
+        console.error('  Please add LICENSE_KEY to your .env file\n');
+        console.error('  Contact support to obtain a license key.');
+        console.error('\n========================================\n');
+        process.exit(1);
+      }
+
+      const licenseResult = validateLicenseKey(licenseKey);
+      if (!licenseResult.valid) {
+        console.error('\n========================================');
+        console.error('  ❌ LICENSE ERROR');
+        console.error('========================================');
+        console.error(`\n  ${licenseResult.error}\n`);
+        console.error('  Please contact support for assistance.');
+        console.error('\n========================================\n');
+        process.exit(1);
+      }
+
+      licenseInfo = licenseResult.data!;
+    } else {
+      console.log('\n⚠️  Development mode - License check skipped\n');
+    }
+
     // Initialize SQLite database (async for sql.js)
     await initializeDatabase();
 
@@ -100,6 +158,11 @@ async function startServer() {
       console.log('\n========================================');
       console.log('  🏥 Roashetta Server Started');
       console.log('========================================\n');
+      if (licenseInfo) {
+        console.log(`🏢 Licensed to: ${licenseInfo.clinicName}`);
+        console.log(`📅 License expires: ${licenseInfo.expiryDate === 'lifetime' ? 'Never (Lifetime)' : licenseInfo.expiryDate}`);
+        console.log(`👥 Max doctors: ${licenseInfo.maxDoctors === -1 ? 'Unlimited' : licenseInfo.maxDoctors}\n`);
+      }
       console.log(`💾 Database: roashetta.db`);
       console.log(`🔌 Socket.io: Enabled\n`);
       console.log('📍 Access URLs:');

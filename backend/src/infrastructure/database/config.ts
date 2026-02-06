@@ -187,7 +187,7 @@ function createTables() {
       drug_history_drawing TEXT,
       family_history_drawing TEXT,
       current_medication_drawing TEXT,
-      requested_lab_drawing TEXT,
+      radiology_drawing TEXT,
       blood_pressure TEXT,
       temperature REAL,
       weight REAL,
@@ -215,14 +215,36 @@ function createTables() {
     db.exec(`ALTER TABLE visits ADD COLUMN current_medication_drawing TEXT`);
   } catch (e) { /* Column already exists */ }
   try {
-    db.exec(`ALTER TABLE visits ADD COLUMN requested_lab_drawing TEXT`);
+    db.exec(`ALTER TABLE visits ADD COLUMN radiology_drawing TEXT`);
   } catch (e) { /* Column already exists */ }
+  // Migrate data from old requested_lab_drawing to new radiology_drawing
+  try {
+    db.exec(`UPDATE visits SET radiology_drawing = requested_lab_drawing WHERE radiology_drawing IS NULL AND requested_lab_drawing IS NOT NULL`);
+  } catch (e) { /* Migration already done or column doesn't exist */ }
   // Add visit_type and price columns for visit pricing feature
   try {
     db.exec(`ALTER TABLE visits ADD COLUMN visit_type TEXT DEFAULT 'new'`);
   } catch (e) { /* Column already exists */ }
   try {
     db.exec(`ALTER TABLE visits ADD COLUMN price REAL DEFAULT 0`);
+  } catch (e) { /* Column already exists */ }
+  // Add prescription pages 2 and 3
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN notes_drawing_2 TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN notes_drawing_3 TEXT`);
+  } catch (e) { /* Column already exists */ }
+  // Add radiology pages 2 and 3
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN radiology_drawing_2 TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN radiology_drawing_3 TEXT`);
+  } catch (e) { /* Column already exists */ }
+  // Add lab test request JSON field
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN lab_test_request TEXT`);
   } catch (e) { /* Column already exists */ }
 
   // Add file_number column to patients table
@@ -276,6 +298,20 @@ function createTables() {
   // Create patient_records table
   db.exec(`
     CREATE TABLE IF NOT EXISTS patient_records (
+      id TEXT PRIMARY KEY,
+      patient_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      file_size INTEGER,
+      uploaded_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create previous_investigations table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS previous_investigations (
       id TEXT PRIMARY KEY,
       patient_id TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -389,6 +425,7 @@ function createTables() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_visits_doctor_id ON visits(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_visits_date ON visits(visit_date)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_patient_records_patient_id ON patient_records(patient_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_previous_investigations_patient_id ON previous_investigations(patient_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_assistants_doctor_id ON assistants(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_assistants_email ON assistants(email)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_doctor_id ON expenses(doctor_id)`);

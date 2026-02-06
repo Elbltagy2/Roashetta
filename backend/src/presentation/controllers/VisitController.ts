@@ -61,4 +61,80 @@ export class VisitController {
       next(error);
     }
   }
+
+  async updatePrice(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { price } = req.body;
+
+      if (price === undefined || typeof price !== 'number') {
+        res.status(400).json({ error: 'Price is required and must be a number' });
+        return;
+      }
+
+      // Verify the visit belongs to this doctor
+      const existingVisit = await visitRepository.findById(id);
+      if (!existingVisit) {
+        res.status(404).json({ error: 'Visit not found' });
+        return;
+      }
+
+      if (existingVisit.doctorId !== req.doctorId) {
+        res.status(403).json({ error: 'Not authorized to update this visit' });
+        return;
+      }
+
+      const updatedVisit = await visitRepository.update(id, { price });
+      res.json(updatedVisit);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async update(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      // Verify the visit belongs to this doctor
+      const existingVisit = await visitRepository.findById(id);
+      if (!existingVisit) {
+        res.status(404).json({ error: 'Visit not found' });
+        return;
+      }
+
+      if (existingVisit.doctorId !== req.doctorId) {
+        res.status(403).json({ error: 'Not authorized to update this visit' });
+        return;
+      }
+
+      // Extract updateable fields from request body
+      const updateData = {
+        visitType: req.body.visitType,
+        price: req.body.price,
+        chiefComplaint: req.body.chiefComplaint,
+        chiefComplaintDrawing: req.body.chiefComplaintDrawing,
+        diagnosis: req.body.diagnosis,
+        diagnosisDrawing: req.body.diagnosisDrawing,
+        notes: req.body.notes,
+        notesDrawing: req.body.notesDrawing,
+        notesDrawing2: req.body.notesDrawing2,
+        notesDrawing3: req.body.notesDrawing3,
+        pastMedicalHistoryDrawing: req.body.pastMedicalHistoryDrawing,
+        hpiDrawing: req.body.hpiDrawing,
+        drugHistoryDrawing: req.body.drugHistoryDrawing,
+        familyHistoryDrawing: req.body.familyHistoryDrawing,
+        currentMedicationDrawing: req.body.currentMedicationDrawing,
+        radiologyDrawing: req.body.radiologyDrawing,
+        radiologyDrawing2: req.body.radiologyDrawing2,
+        radiologyDrawing3: req.body.radiologyDrawing3,
+        labTestRequest: req.body.labTestRequest,
+        vitals: req.body.vitals,
+      };
+
+      const updatedVisit = await visitRepository.update(id, updateData);
+      res.json(updatedVisit);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

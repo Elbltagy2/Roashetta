@@ -30,6 +30,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Handle auth errors (token expired)
+  const handleAuthError = React.useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('user');
+    // Redirect to login page
+    window.location.href = '/login';
+  }, []);
+
+  useEffect(() => {
+    // Subscribe to auth errors from API client
+    api.setAuthErrorHandler(handleAuthError);
+
+    // Cleanup on unmount
+    return () => {
+      api.setAuthErrorHandler(null);
+    };
+  }, [handleAuthError]);
+
   useEffect(() => {
     // Check if user is already logged in
     const token = api.getToken();

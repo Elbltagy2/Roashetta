@@ -17,9 +17,15 @@ export class AnalyticsController {
       const start = startDate
         ? new Date(startDate as string)
         : new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = endDate
-        ? new Date(endDate as string)
-        : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+      // For end date, set time to end of day (23:59:59.999) to include all visits on that day
+      let end: Date;
+      if (endDate) {
+        const endDateParsed = new Date(endDate as string);
+        end = new Date(endDateParsed.getFullYear(), endDateParsed.getMonth(), endDateParsed.getDate(), 23, 59, 59, 999);
+      } else {
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      }
 
       // Get visit analytics
       const visitAnalytics = await visitRepository.getAnalytics(doctorId, start, end);

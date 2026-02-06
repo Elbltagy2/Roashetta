@@ -19,3 +19,8 @@ export * from './visit/GetVisitById';
 export * from './patient-record/UploadPatientRecord';
 export * from './patient-record/GetPatientRecords';
 export * from './patient-record/DeletePatientRecord';
+
+// Previous Investigation
+export * from './previous-investigation/UploadPreviousInvestigation';
+export * from './previous-investigation/GetPreviousInvestigations';
+export * from './previous-investigation/DeletePreviousInvestigation';

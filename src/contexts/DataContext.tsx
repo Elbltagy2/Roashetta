@@ -3,12 +3,15 @@ import api, {
   Patient as ApiPatient,
   Visit as ApiVisit,
   PatientRecord as ApiPatientRecord,
+  PreviousInvestigation as ApiPreviousInvestigation,
   Expense as ApiExpense,
   LabResult as ApiLabResult,
   VisitAttachment as ApiVisitAttachment,
   CreatePatientData,
   CreateVisitData,
+  UpdateVisitData,
   CreatePatientRecordData,
+  CreatePreviousInvestigationData,
   CreateExpenseData,
   UpdateExpenseData,
   ExpenseCategory,
@@ -59,14 +62,20 @@ export interface Visit {
   diagnosisDrawing: string | null;
   notes: string;
   notesDrawing: string | null;
+  notesDrawing2: string | null;
+  notesDrawing3: string | null;
   // Medical History Fields
   pastMedicalHistoryDrawing: string | null;
   hpiDrawing: string | null;
   drugHistoryDrawing: string | null;
   familyHistoryDrawing: string | null;
   currentMedicationDrawing: string | null;
-  // Requested Lab
-  requestedLabDrawing: string | null;
+  // Radiology (3 pages)
+  radiologyDrawing: string | null;
+  radiologyDrawing2: string | null;
+  radiologyDrawing3: string | null;
+  // Lab Test Request (JSON string)
+  labTestRequest: string | null;
   vitals: Vital;
 }
 
@@ -104,6 +113,15 @@ export interface VisitAttachment {
   createdAt: Date;
 }
 
+export interface PreviousInvestigation {
+  id: string;
+  patientId: string;
+  name: string;
+  type: string;
+  dataUrl: string;
+  uploadedAt: Date;
+}
+
 interface DataContextType {
   patients: Patient[];
   visits: Visit[];
@@ -117,6 +135,8 @@ interface DataContextType {
   deletePatient: (id: string) => Promise<void>;
   getPatient: (id: string) => Patient | undefined;
   addVisit: (visit: Omit<Visit, 'id'>) => Promise<Visit>;
+  updateVisit: (visitId: string, visit: Partial<Omit<Visit, 'id' | 'patientId'>>) => Promise<Visit>;
+  updateVisitPrice: (visitId: string, price: number) => Promise<void>;
   getPatientVisits: (patientId: string) => Visit[];
   loadPatientVisits: (patientId: string) => Promise<Visit[]>;
   addPatientRecord: (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => Promise<void>;
@@ -142,6 +162,11 @@ interface DataContextType {
   uploadVisitAttachment: (visitId: string, attachment: Omit<VisitAttachment, 'id' | 'visitId' | 'uploadedBy' | 'uploaderType' | 'createdAt'>) => Promise<VisitAttachment>;
   deleteVisitAttachment: (id: string) => Promise<void>;
   getVisitAttachments: (visitId: string) => VisitAttachment[];
+  // Previous Investigations
+  loadPreviousInvestigations: (patientId: string) => Promise<PreviousInvestigation[]>;
+  addPreviousInvestigation: (patientId: string, investigation: Omit<PreviousInvestigation, 'id' | 'patientId' | 'uploadedAt'>) => Promise<PreviousInvestigation>;
+  deletePreviousInvestigation: (id: string) => Promise<void>;
+  getPreviousInvestigations: (patientId: string) => PreviousInvestigation[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -173,12 +198,17 @@ const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
   diagnosisDrawing: apiVisit.diagnosisDrawing,
   notes: apiVisit.notes || '',
   notesDrawing: apiVisit.notesDrawing,
+  notesDrawing2: apiVisit.notesDrawing2 || null,
+  notesDrawing3: apiVisit.notesDrawing3 || null,
   pastMedicalHistoryDrawing: apiVisit.pastMedicalHistoryDrawing || null,
   hpiDrawing: apiVisit.hpiDrawing || null,
   drugHistoryDrawing: apiVisit.drugHistoryDrawing || null,
   familyHistoryDrawing: apiVisit.familyHistoryDrawing || null,
   currentMedicationDrawing: apiVisit.currentMedicationDrawing || null,
-  requestedLabDrawing: apiVisit.requestedLabDrawing || null,
+  radiologyDrawing: apiVisit.radiologyDrawing || null,
+  radiologyDrawing2: apiVisit.radiologyDrawing2 || null,
+  radiologyDrawing3: apiVisit.radiologyDrawing3 || null,
+  labTestRequest: apiVisit.labTestRequest || null,
   vitals: {
     bloodPressure: apiVisit.vitals?.bloodPressure || '',
     temperature: apiVisit.vitals?.temperature || 0,
@@ -232,6 +262,16 @@ const convertApiVisitAttachment = (apiAttachment: ApiVisitAttachment): VisitAtta
   createdAt: new Date(apiAttachment.createdAt),
 });
 
+// Helper to convert API previous investigation to local format
+const convertApiPreviousInvestigation = (apiInvestigation: ApiPreviousInvestigation): PreviousInvestigation => ({
+  id: apiInvestigation.id,
+  patientId: apiInvestigation.patientId,
+  name: apiInvestigation.name,
+  type: apiInvestigation.fileType,
+  dataUrl: apiInvestigation.fileUrl,
+  uploadedAt: new Date(apiInvestigation.uploadedAt),
+});
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -240,6 +280,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentPatient, setCurrentPatientState] = useState<Patient | null>(null);
   const [labResults, setLabResults] = useState<LabResult[]>([]);
   const [visitAttachments, setVisitAttachments] = useState<VisitAttachment[]>([]);
+  const [previousInvestigations, setPreviousInvestigations] = useState<PreviousInvestigation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
@@ -303,6 +344,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setExpenses([]);
       setCurrentPatientState(null);
       setLabResults([]);
+      setPreviousInvestigations([]);
     }
   }, [isAuthenticated, refreshPatients, refreshExpenses, refreshCurrentPatient]);
 
@@ -371,14 +413,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       diagnosisDrawing: visitData.diagnosisDrawing || undefined,
       notes: visitData.notes,
       notesDrawing: visitData.notesDrawing || undefined,
+      notesDrawing2: visitData.notesDrawing2 || undefined,
+      notesDrawing3: visitData.notesDrawing3 || undefined,
       // Medical History Fields
       pastMedicalHistoryDrawing: visitData.pastMedicalHistoryDrawing || undefined,
       hpiDrawing: visitData.hpiDrawing || undefined,
       drugHistoryDrawing: visitData.drugHistoryDrawing || undefined,
       familyHistoryDrawing: visitData.familyHistoryDrawing || undefined,
       currentMedicationDrawing: visitData.currentMedicationDrawing || undefined,
-      // Requested Lab
-      requestedLabDrawing: visitData.requestedLabDrawing || undefined,
+      // Radiology (3 pages)
+      radiologyDrawing: visitData.radiologyDrawing || undefined,
+      radiologyDrawing2: visitData.radiologyDrawing2 || undefined,
+      radiologyDrawing3: visitData.radiologyDrawing3 || undefined,
+      // Lab Test Request
+      labTestRequest: visitData.labTestRequest || undefined,
       vitals: {
         bloodPressure: visitData.vitals.bloodPressure,
         temperature: visitData.vitals.temperature,
@@ -394,6 +442,42 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getPatientVisits = (patientId: string) =>
     visits.filter(v => v.patientId === patientId);
+
+  const updateVisit = async (visitId: string, visitData: Partial<Omit<Visit, 'id' | 'patientId'>>): Promise<Visit> => {
+    const updateData: UpdateVisitData = {
+      visitType: visitData.visitType,
+      price: visitData.price,
+      chiefComplaint: visitData.chiefComplaint,
+      chiefComplaintDrawing: visitData.chiefComplaintDrawing,
+      diagnosis: visitData.diagnosis,
+      diagnosisDrawing: visitData.diagnosisDrawing,
+      notes: visitData.notes,
+      notesDrawing: visitData.notesDrawing,
+      notesDrawing2: visitData.notesDrawing2,
+      notesDrawing3: visitData.notesDrawing3,
+      pastMedicalHistoryDrawing: visitData.pastMedicalHistoryDrawing,
+      hpiDrawing: visitData.hpiDrawing,
+      drugHistoryDrawing: visitData.drugHistoryDrawing,
+      familyHistoryDrawing: visitData.familyHistoryDrawing,
+      currentMedicationDrawing: visitData.currentMedicationDrawing,
+      radiologyDrawing: visitData.radiologyDrawing,
+      radiologyDrawing2: visitData.radiologyDrawing2,
+      radiologyDrawing3: visitData.radiologyDrawing3,
+      labTestRequest: visitData.labTestRequest,
+      vitals: visitData.vitals,
+    };
+
+    const apiVisit = await api.updateVisit(visitId, updateData);
+    const updatedVisit = convertApiVisit(apiVisit);
+    setVisits(prev => prev.map(v => v.id === visitId ? updatedVisit : v));
+    return updatedVisit;
+  };
+
+  const updateVisitPrice = async (visitId: string, price: number) => {
+    const apiVisit = await api.updateVisitPrice(visitId, price);
+    const updatedVisit = convertApiVisit(apiVisit);
+    setVisits(prev => prev.map(v => v.id === visitId ? updatedVisit : v));
+  };
 
   const loadPatientRecords = useCallback(async (patientId: string): Promise<PatientRecord[]> => {
     const apiRecords = await api.getPatientRecords(patientId);
@@ -583,6 +667,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getVisitAttachments = useCallback((visitId: string) =>
     visitAttachments.filter(a => a.visitId === visitId), [visitAttachments]);
 
+  // Previous Investigation methods
+  const loadPreviousInvestigations = useCallback(async (patientId: string): Promise<PreviousInvestigation[]> => {
+    const apiInvestigations = await api.getPreviousInvestigations(patientId);
+    const convertedInvestigations = apiInvestigations.map(convertApiPreviousInvestigation);
+
+    // Update local previous investigations cache
+    setPreviousInvestigations(prev => {
+      const otherInvestigations = prev.filter(i => i.patientId !== patientId);
+      return [...otherInvestigations, ...convertedInvestigations];
+    });
+
+    return convertedInvestigations;
+  }, []);
+
+  const addPreviousInvestigation = async (
+    patientId: string,
+    investigation: Omit<PreviousInvestigation, 'id' | 'patientId' | 'uploadedAt'>
+  ): Promise<PreviousInvestigation> => {
+    const createData: CreatePreviousInvestigationData = {
+      patientId,
+      name: investigation.name,
+      fileType: investigation.type,
+      fileUrl: investigation.dataUrl,
+      fileSize: investigation.dataUrl.length,
+    };
+
+    const apiInvestigation = await api.uploadPreviousInvestigation(createData);
+    const newInvestigation = convertApiPreviousInvestigation(apiInvestigation);
+    setPreviousInvestigations(prev => [newInvestigation, ...prev]);
+    return newInvestigation;
+  };
+
+  const deletePreviousInvestigation = async (id: string) => {
+    await api.deletePreviousInvestigation(id);
+    setPreviousInvestigations(prev => prev.filter(i => i.id !== id));
+  };
+
+  const getPreviousInvestigations = useCallback((patientId: string) =>
+    previousInvestigations.filter(i => i.patientId === patientId), [previousInvestigations]);
+
   return (
     <DataContext.Provider
       value={{
@@ -598,6 +722,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deletePatient,
         getPatient,
         addVisit,
+        updateVisit,
+        updateVisitPrice,
         getPatientVisits,
         loadPatientVisits,
         addPatientRecord,
@@ -619,6 +745,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uploadVisitAttachment,
         deleteVisitAttachment,
         getVisitAttachments,
+        loadPreviousInvestigations,
+        addPreviousInvestigation,
+        deletePreviousInvestigation,
+        getPreviousInvestigations,
       }}
     >
       {children}

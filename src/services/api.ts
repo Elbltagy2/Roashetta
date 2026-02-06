@@ -3,11 +3,20 @@ import { Notification } from '../types/notification';
 // Use relative URL in production (when served from same origin), absolute in development
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3000/api');
 
+// Event for unauthorized (token expired) - components can listen to this
+type AuthErrorCallback = () => void;
+
 class ApiClient {
   private token: string | null = null;
+  private onAuthError: AuthErrorCallback | null = null;
 
   constructor() {
     this.token = localStorage.getItem('token');
+  }
+
+  // Set callback for when token expires (401 response)
+  setAuthErrorHandler(callback: AuthErrorCallback | null) {
+    this.onAuthError = callback;
   }
 
   setToken(token: string | null) {
@@ -42,6 +51,16 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      // Handle 401 Unauthorized (token expired or invalid)
+      if (response.status === 401) {
+        // Clear token and notify listeners
+        this.setToken(null);
+        if (this.onAuthError) {
+          this.onAuthError();
+        }
+        throw new Error('Session expired. Please login again.');
+      }
+
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
       throw new Error(error.error || 'Request failed');
     }
@@ -155,6 +174,20 @@ class ApiClient {
     });
   }
 
+  async updateVisitPrice(visitId: string, price: number) {
+    return this.request<Visit>(`/visits/${visitId}/price`, {
+      method: 'PUT',
+      body: JSON.stringify({ price }),
+    });
+  }
+
+  async updateVisit(visitId: string, data: UpdateVisitData) {
+    return this.request<Visit>(`/visits/${visitId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Patient Records
   async getPatientRecords(patientId: string) {
     return this.request<PatientRecord[]>(`/patient-records/patient/${patientId}`);
@@ -169,6 +202,22 @@ class ApiClient {
 
   async deletePatientRecord(id: string) {
     return this.request<void>(`/patient-records/${id}`, { method: 'DELETE' });
+  }
+
+  // Previous Investigations
+  async getPreviousInvestigations(patientId: string) {
+    return this.request<PreviousInvestigation[]>(`/previous-investigations/patient/${patientId}`);
+  }
+
+  async uploadPreviousInvestigation(data: CreatePreviousInvestigationData) {
+    return this.request<PreviousInvestigation>('/previous-investigations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePreviousInvestigation(id: string) {
+    return this.request<void>(`/previous-investigations/${id}`, { method: 'DELETE' });
   }
 
   // Visit Attachments
@@ -394,14 +443,20 @@ export interface Visit {
   diagnosisDrawing: string | null;
   notes: string;
   notesDrawing: string | null;
+  notesDrawing2: string | null;
+  notesDrawing3: string | null;
   // Medical History Fields
   pastMedicalHistoryDrawing: string | null;
   hpiDrawing: string | null;
   drugHistoryDrawing: string | null;
   familyHistoryDrawing: string | null;
   currentMedicationDrawing: string | null;
-  // Requested Lab
-  requestedLabDrawing: string | null;
+  // Radiology (3 pages)
+  radiologyDrawing: string | null;
+  radiologyDrawing2: string | null;
+  radiologyDrawing3: string | null;
+  // Lab Test Request (JSON string)
+  labTestRequest: string | null;
   vitals: {
     bloodPressure: string;
     temperature: number;
@@ -421,14 +476,20 @@ export interface CreateVisitData {
   diagnosisDrawing?: string;
   notes?: string;
   notesDrawing?: string;
+  notesDrawing2?: string;
+  notesDrawing3?: string;
   // Medical History Fields
   pastMedicalHistoryDrawing?: string;
   hpiDrawing?: string;
   drugHistoryDrawing?: string;
   familyHistoryDrawing?: string;
   currentMedicationDrawing?: string;
-  // Requested Lab
-  requestedLabDrawing?: string;
+  // Radiology (3 pages)
+  radiologyDrawing?: string;
+  radiologyDrawing2?: string;
+  radiologyDrawing3?: string;
+  // Lab Test Request (JSON string)
+  labTestRequest?: string;
   vitals?: {
     bloodPressure?: string;
     temperature?: number;
@@ -436,6 +497,32 @@ export interface CreateVisitData {
   };
 }
 
+export interface UpdateVisitData {
+  visitType?: VisitType;
+  price?: number;
+  chiefComplaint?: string;
+  chiefComplaintDrawing?: string | null;
+  diagnosis?: string;
+  diagnosisDrawing?: string | null;
+  notes?: string;
+  notesDrawing?: string | null;
+  notesDrawing2?: string | null;
+  notesDrawing3?: string | null;
+  pastMedicalHistoryDrawing?: string | null;
+  hpiDrawing?: string | null;
+  drugHistoryDrawing?: string | null;
+  familyHistoryDrawing?: string | null;
+  currentMedicationDrawing?: string | null;
+  radiologyDrawing?: string | null;
+  radiologyDrawing2?: string | null;
+  radiologyDrawing3?: string | null;
+  labTestRequest?: string | null;
+  vitals?: {
+    bloodPressure?: string;
+    temperature?: number;
+    weight?: number;
+  };
+}
 
 export interface PatientRecord {
   id: string;
@@ -448,6 +535,24 @@ export interface PatientRecord {
 }
 
 export interface CreatePatientRecordData {
+  patientId: string;
+  name: string;
+  fileType: string;
+  fileUrl: string;
+  fileSize: number;
+}
+
+export interface PreviousInvestigation {
+  id: string;
+  patientId: string;
+  name: string;
+  fileType: string;
+  fileUrl: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+export interface CreatePreviousInvestigationData {
   patientId: string;
   name: string;
   fileType: string;

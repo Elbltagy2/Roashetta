@@ -34,6 +34,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SimpleDrawingCanvas } from '@/components/ui/simple-drawing-canvas';
+import LabTestRequestForm from '@/components/visit/LabTestRequestForm';
+import { LAB_TEST_CATEGORIES } from '@/data/labTests';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useToast } from '@/hooks/use-toast';
@@ -54,15 +56,18 @@ interface Attachment {
   dataUrl: string;
 }
 
-type ActiveSection = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | null;
+type ActiveSection = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | null;
 
 const NewVisitPage: React.FC = () => {
-  const { id: patientId } = useParams<{ id: string }>();
+  const { id: patientId, visitId } = useParams<{ id: string; visitId?: string }>();
   const { t, language, direction } = useLanguage();
-  const { getPatient, addVisit, uploadVisitAttachment, visits, loadPatientVisits } = useData();
+  const { getPatient, addVisit, updateVisit, uploadVisitAttachment, visits, loadPatientVisits } = useData();
+  const isEditMode = !!visitId;
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prescriptionFileInputRef = useRef<HTMLInputElement>(null);
+  const radiologyFileInputRef = useRef<HTMLInputElement>(null);
   const prescriptionRef = useRef<HTMLDivElement>(null);
   const labRequestRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +86,47 @@ const NewVisitPage: React.FC = () => {
       loadPatientVisits(patientId);
     }
   }, [patientId, loadPatientVisits]);
+
+  // Load visit data when in edit mode
+  useEffect(() => {
+    if (isEditMode && visitId && visits.length > 0) {
+      const visitToEdit = visits.find(v => v.id === visitId);
+      if (visitToEdit) {
+        // Populate form with existing data
+        setVisitType(visitToEdit.visitType);
+        setPrice(visitToEdit.price.toString());
+        setFormData({
+          bloodPressure: visitToEdit.vitals.bloodPressure || '',
+          temperature: visitToEdit.vitals.temperature?.toString() || '',
+          weight: visitToEdit.vitals.weight?.toString() || '',
+        });
+        setChiefComplaintDrawing(visitToEdit.chiefComplaintDrawing || '');
+        setDiagnosisDrawing(visitToEdit.diagnosisDrawing || '');
+        setPrescriptionPage1(visitToEdit.notesDrawing || '');
+        setPrescriptionPage2(visitToEdit.notesDrawing2 || '');
+        setPrescriptionPage3(visitToEdit.notesDrawing3 || '');
+        setPastMedicalHistoryDrawing(visitToEdit.pastMedicalHistoryDrawing || '');
+        setHpiDrawing(visitToEdit.hpiDrawing || '');
+        setDrugHistoryDrawing(visitToEdit.drugHistoryDrawing || '');
+        setFamilyHistoryDrawing(visitToEdit.familyHistoryDrawing || '');
+        setCurrentMedicationDrawing(visitToEdit.currentMedicationDrawing || '');
+        setRadiologyPage1(visitToEdit.radiologyDrawing || '');
+        setRadiologyPage2(visitToEdit.radiologyDrawing2 || '');
+        setRadiologyPage3(visitToEdit.radiologyDrawing3 || '');
+
+        // Load lab test request
+        if (visitToEdit.labTestRequest) {
+          try {
+            const labData = JSON.parse(visitToEdit.labTestRequest);
+            setSelectedLabTests(labData.tests || {});
+            setLabTestOtherNotes(labData.notes || '');
+          } catch (e) {
+            console.error('Failed to parse lab test request:', e);
+          }
+        }
+      }
+    }
+  }, [isEditMode, visitId, visits]);
 
   // Track if previous visits section is open
   const [isPreviousVisitsOpen, setIsPreviousVisitsOpen] = useState(false);
@@ -125,7 +171,12 @@ const NewVisitPage: React.FC = () => {
   // Drawing data for each field
   const [chiefComplaintDrawing, setChiefComplaintDrawing] = useState<string>('');
   const [diagnosisDrawing, setDiagnosisDrawing] = useState<string>('');
-  const [notesDrawing, setNotesDrawing] = useState<string>('');
+
+  // Prescription pages (3 pages)
+  const [prescriptionPage1, setPrescriptionPage1] = useState<string>('');
+  const [prescriptionPage2, setPrescriptionPage2] = useState<string>('');
+  const [prescriptionPage3, setPrescriptionPage3] = useState<string>('');
+  const [activePrescriptionPage, setActivePrescriptionPage] = useState<1 | 2 | 3>(1);
 
   // Medical History drawings
   const [pastMedicalHistoryDrawing, setPastMedicalHistoryDrawing] = useState<string>('');
@@ -134,11 +185,24 @@ const NewVisitPage: React.FC = () => {
   const [familyHistoryDrawing, setFamilyHistoryDrawing] = useState<string>('');
   const [currentMedicationDrawing, setCurrentMedicationDrawing] = useState<string>('');
 
-  // Requested Lab drawing
-  const [requestedLabDrawing, setRequestedLabDrawing] = useState<string>('');
+  // Radiology pages (3 pages)
+  const [radiologyPage1, setRadiologyPage1] = useState<string>('');
+  const [radiologyPage2, setRadiologyPage2] = useState<string>('');
+  const [radiologyPage3, setRadiologyPage3] = useState<string>('');
+  const [activeRadiologyPage, setActiveRadiologyPage] = useState<1 | 2 | 3>(1);
+
+  // Radiology attachments (uploaded files in radiology section)
+  const [radiologyAttachments, setRadiologyAttachments] = useState<Attachment[]>([]);
+
+  // Lab Test Request
+  const [selectedLabTests, setSelectedLabTests] = useState<Record<string, boolean>>({});
+  const [labTestOtherNotes, setLabTestOtherNotes] = useState<string>('');
 
   // Attachments
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  // Prescription attachments (uploaded files in prescription section)
+  const [prescriptionAttachments, setPrescriptionAttachments] = useState<Attachment[]>([]);
 
   // File preview modal
   const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
@@ -190,6 +254,284 @@ const NewVisitPage: React.FC = () => {
 
   const removeAttachment = (id: string) => {
     setAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handlePrescriptionFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        toast({
+          title: language === 'ar' ? 'نوع الملف غير مدعوم' : 'Unsupported file type',
+          description: language === 'ar' ? 'يرجى اختيار صورة أو PDF' : 'Please select an image or PDF',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        setPrescriptionAttachments(prev => [...prev, {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          type: file.type,
+          dataUrl,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (prescriptionFileInputRef.current) {
+      prescriptionFileInputRef.current.value = '';
+    }
+  };
+
+  const removePrescriptionAttachment = (id: string) => {
+    setPrescriptionAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handleRadiologyFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        toast({
+          title: language === 'ar' ? 'نوع الملف غير مدعوم' : 'Unsupported file type',
+          description: language === 'ar' ? 'يرجى اختيار صورة أو PDF' : 'Please select an image or PDF',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target?.result as string;
+        setRadiologyAttachments(prev => [...prev, {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          name: file.name,
+          type: file.type,
+          dataUrl,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (radiologyFileInputRef.current) {
+      radiologyFileInputRef.current.value = '';
+    }
+  };
+
+  const removeRadiologyAttachment = (id: string) => {
+    setRadiologyAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const handleLabTestToggle = (testId: string) => {
+    setSelectedLabTests(prev => ({
+      ...prev,
+      [testId]: !prev[testId]
+    }));
+  };
+
+  const handlePrintLabRequest = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const today = new Date();
+    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
+    // Filter categories that have at least one selected test
+    const categoriesWithSelectedTests = LAB_TEST_CATEGORIES.filter(category => {
+      if (category.id === 'others') return labTestOtherNotes;
+      return category.tests.some(test => selectedLabTests[test.id]);
+    });
+
+    // Generate HTML for categories with selected tests only
+    const generateCategoryHtml = (category: typeof LAB_TEST_CATEGORIES[0]) => {
+      if (category.id === 'others') {
+        return `
+          <div class="category">
+            <div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>
+            <div class="others-box">${labTestOtherNotes || ''}</div>
+          </div>
+        `;
+      }
+      const selectedTests = category.tests.filter(test => selectedLabTests[test.id]);
+      return `
+        <div class="category">
+          <div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>
+          ${selectedTests.map(test => `
+            <div class="test-item">
+              <span class="checkbox">&#9745;</span>
+              <span class="test-name">${test.name}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Lab Test Request</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            @page {
+              size: A4;
+              margin: 15mm;
+            }
+            body {
+              font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+              font-size: 12px;
+              line-height: 1.4;
+            }
+            .container {
+              max-width: 210mm;
+              margin: 0 auto;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              padding-bottom: 12px;
+              border-bottom: 2px solid #1e40af;
+              margin-bottom: 15px;
+            }
+            .header-left {
+              text-align: left;
+            }
+            .header-right {
+              text-align: right;
+              direction: rtl;
+            }
+            .doctor-name {
+              font-size: 14px;
+              font-weight: bold;
+              color: #1e40af;
+            }
+            .credentials {
+              font-size: 10px;
+              color: #374151;
+            }
+            .patient-info {
+              display: flex;
+              gap: 40px;
+              margin-bottom: 20px;
+              font-size: 13px;
+            }
+            .patient-info span {
+              font-weight: bold;
+            }
+            .title {
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              color: #1e40af;
+              margin-bottom: 20px;
+              padding: 10px;
+              border: 2px solid #1e40af;
+              border-radius: 8px;
+            }
+            .tests-container {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+            }
+            .category {
+              margin-bottom: 10px;
+              break-inside: avoid;
+            }
+            .category-header {
+              background: #1e40af;
+              color: white;
+              padding: 6px 10px;
+              font-size: 12px;
+              font-weight: bold;
+              margin-bottom: 5px;
+              border-radius: 4px;
+            }
+            .category-header .ar {
+              float: right;
+              font-weight: normal;
+            }
+            .test-item {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding: 4px 10px;
+              font-size: 12px;
+            }
+            .test-item:nth-child(even) {
+              background: #f3f4f6;
+            }
+            .checkbox {
+              font-size: 14px;
+              color: #16a34a;
+            }
+            .test-name {
+              flex: 1;
+            }
+            .others-box {
+              border: 1px solid #d1d5db;
+              min-height: 50px;
+              padding: 8px;
+              font-size: 12px;
+              border-radius: 4px;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 12px;
+              border-top: 1px solid #d1d5db;
+              display: flex;
+              justify-content: space-between;
+              font-size: 10px;
+              color: #6b7280;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-left">
+                <p class="doctor-name">Dr/ Sherif Ali . MD, MRCP (UK)</p>
+                <p class="credentials">Consultant Internal Medicine & Nephrology</p>
+              </div>
+              <div class="header-right">
+                <p class="doctor-name">د/ شريف علي رضا</p>
+                <p class="credentials">استشاري الباطنة العامة والكلى</p>
+              </div>
+            </div>
+            <div class="patient-info">
+              <div>Name / الاسم: <span>${patient?.name || '________________'}</span></div>
+              <div>Date / التاريخ: <span>${dateStr}</span></div>
+            </div>
+            <div class="title">Lab Test Request / طلب تحاليل معملية</div>
+            <div class="tests-container">
+              ${categoriesWithSelectedTests.map(generateCategoryHtml).join('')}
+            </div>
+            <div class="footer">
+              <div>مستشفى تبارك/النسائم - 16552 - 15452</div>
+              <div>١٨ عمارات خلف العبور - مصر الجديدة - ت: 01554343147</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
   };
 
   const handlePrint = (drawingData: string | null, title: string) => {
@@ -374,18 +716,8 @@ const NewVisitPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!chiefComplaintDrawing && !diagnosisDrawing && !notesDrawing) {
-      toast({
-        title: language === 'ar' ? 'يرجى رسم الشكوى أو التشخيص أو الروشتة' : 'Please draw complaint, diagnosis, or prescription',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     try {
-      const visit = await addVisit({
-        patientId: patientId!,
-        date: new Date(),
+      const visitData = {
         visitType: visitType,
         price: parseFloat(price) || 0,
         chiefComplaint: '',
@@ -393,38 +725,89 @@ const NewVisitPage: React.FC = () => {
         diagnosis: '',
         diagnosisDrawing: diagnosisDrawing || null,
         notes: '',
-        notesDrawing: notesDrawing || null,
+        notesDrawing: prescriptionPage1 || null,
+        notesDrawing2: prescriptionPage2 || null,
+        notesDrawing3: prescriptionPage3 || null,
         pastMedicalHistoryDrawing: pastMedicalHistoryDrawing || null,
         hpiDrawing: hpiDrawing || null,
         drugHistoryDrawing: drugHistoryDrawing || null,
         familyHistoryDrawing: familyHistoryDrawing || null,
         currentMedicationDrawing: currentMedicationDrawing || null,
-        requestedLabDrawing: requestedLabDrawing || null,
+        radiologyDrawing: radiologyPage1 || null,
+        radiologyDrawing2: radiologyPage2 || null,
+        radiologyDrawing3: radiologyPage3 || null,
+        labTestRequest: Object.keys(selectedLabTests).some(k => selectedLabTests[k]) || labTestOtherNotes
+          ? JSON.stringify({ tests: selectedLabTests, notes: labTestOtherNotes })
+          : null,
         vitals: {
           bloodPressure: formData.bloodPressure || '120/80',
           temperature: parseFloat(formData.temperature) || 37,
           weight: parseFloat(formData.weight) || 70,
         },
-      });
+      };
 
-      // Upload attachments to the newly created visit
-      if (attachments.length > 0) {
-        await Promise.all(
-          attachments.map(attachment =>
-            uploadVisitAttachment(visit.id, {
-              name: attachment.name,
-              type: attachment.type,
-              dataUrl: attachment.dataUrl,
-            })
-          )
-        );
+      let savedVisitId: string;
+
+      if (isEditMode && visitId) {
+        // Update existing visit
+        const updatedVisit = await updateVisit(visitId, visitData);
+        savedVisitId = updatedVisit.id;
+      } else {
+        // Create new visit
+        const visit = await addVisit({
+          patientId: patientId!,
+          date: new Date(),
+          ...visitData,
+        });
+        savedVisitId = visit.id;
+
+        // Upload attachments to the newly created visit (only for new visits)
+        if (attachments.length > 0) {
+          await Promise.all(
+            attachments.map(attachment =>
+              uploadVisitAttachment(visit.id, {
+                name: attachment.name,
+                type: attachment.type,
+                dataUrl: attachment.dataUrl,
+              })
+            )
+          );
+        }
+
+        // Upload prescription attachments
+        if (prescriptionAttachments.length > 0) {
+          await Promise.all(
+            prescriptionAttachments.map(attachment =>
+              uploadVisitAttachment(visit.id, {
+                name: `[Prescription] ${attachment.name}`,
+                type: attachment.type,
+                dataUrl: attachment.dataUrl,
+              })
+            )
+          );
+        }
+
+        // Upload radiology attachments
+        if (radiologyAttachments.length > 0) {
+          await Promise.all(
+            radiologyAttachments.map(attachment =>
+              uploadVisitAttachment(visit.id, {
+                name: `[Radiology] ${attachment.name}`,
+                type: attachment.type,
+                dataUrl: attachment.dataUrl,
+              })
+            )
+          );
+        }
       }
 
       toast({
-        title: language === 'ar' ? 'تم حفظ الزيارة بنجاح' : 'Visit saved successfully',
+        title: isEditMode
+          ? (language === 'ar' ? 'تم تحديث الزيارة بنجاح' : 'Visit updated successfully')
+          : (language === 'ar' ? 'تم حفظ الزيارة بنجاح' : 'Visit saved successfully'),
       });
 
-      navigate(`/patients/${patientId}/visit/${visit.id}`);
+      navigate(`/patients/${patientId}/visit/${savedVisitId}`);
     } catch (error) {
       toast({
         title: language === 'ar' ? 'حدث خطأ' : 'An error occurred',
@@ -445,8 +828,8 @@ const NewVisitPage: React.FC = () => {
     placeholderAr: string;
     initialData?: string;
   }) => (
-    <div className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm flex flex-col" style={{ minHeight: '700px' }}>
-      {/* Header */}
+    <div className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm flex flex-col" dir="ltr" style={{ minHeight: '700px' }}>
+      {/* Header - Always LTR */}
       <div className="border-b border-gray-300 p-4 pb-3 flex-shrink-0">
         <div className="flex justify-between items-start">
           <div className="text-start">
@@ -570,7 +953,11 @@ const NewVisitPage: React.FC = () => {
         </Button>
 
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold text-foreground">{t('visits.newVisit')}</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            {isEditMode
+              ? (language === 'ar' ? 'تعديل الزيارة' : 'Edit Visit')
+              : t('visits.newVisit')}
+          </h1>
           {/* Global Pen Size Control */}
           <div className="flex items-center gap-2 bg-card rounded-xl px-3 py-2 card-shadow">
             <PenTool className="w-4 h-4 text-muted-foreground" />
@@ -947,7 +1334,7 @@ const NewVisitPage: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          {/* SECTION 3: Prescription */}
+          {/* SECTION 3: Prescription (3 Pages) */}
           <div className="bg-card rounded-2xl card-shadow overflow-hidden">
             <SectionHeader
               title={language === 'ar' ? 'الروشتة' : 'Prescription'}
@@ -961,7 +1348,8 @@ const NewVisitPage: React.FC = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePrint(notesDrawing, language === 'ar' ? 'الروشتة' : 'Prescription');
+                    const currentDrawing = activePrescriptionPage === 1 ? prescriptionPage1 : activePrescriptionPage === 2 ? prescriptionPage2 : prescriptionPage3;
+                    handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`);
                   }}
                   className="gap-1 h-8"
                 >
@@ -979,22 +1367,132 @@ const NewVisitPage: React.FC = () => {
                   className="overflow-hidden"
                 >
                   <div className="p-6 pt-2 border-t border-border" ref={prescriptionRef}>
-                    <PrescriptionTemplate
-                      onSave={setNotesDrawing}
-                      placeholder="Write prescription here..."
-                      placeholderAr="اكتب الروشتة هنا..."
-                      initialData={notesDrawing}
-                    />
+                    {/* Page Tabs - Always in English */}
+                    <div className="flex items-center gap-2 mb-4" dir="ltr">
+                      {[1, 2, 3].map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setActivePrescriptionPage(page as 1 | 2 | 3)}
+                          className={cn(
+                            'px-4 py-2 rounded-lg font-medium transition-colors',
+                            activePrescriptionPage === page
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                          )}
+                        >
+                          Page {page}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Page Content */}
+                    {activePrescriptionPage === 1 && (
+                      <PrescriptionTemplate
+                        onSave={setPrescriptionPage1}
+                        placeholder="Write prescription here (Page 1)..."
+                        placeholderAr="اكتب الروشتة هنا (صفحة 1)..."
+                        initialData={prescriptionPage1}
+                      />
+                    )}
+                    {activePrescriptionPage === 2 && (
+                      <PrescriptionTemplate
+                        onSave={setPrescriptionPage2}
+                        placeholder="Write prescription here (Page 2)..."
+                        placeholderAr="اكتب الروشتة هنا (صفحة 2)..."
+                        initialData={prescriptionPage2}
+                      />
+                    )}
+                    {activePrescriptionPage === 3 && (
+                      <PrescriptionTemplate
+                        onSave={setPrescriptionPage3}
+                        placeholder="Write prescription here (Page 3)..."
+                        placeholderAr="اكتب الروشتة هنا (صفحة 3)..."
+                        initialData={prescriptionPage3}
+                      />
+                    )}
+
+                    {/* Prescription File Upload */}
+                    <div className="mt-6 pt-4 border-t border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          {language === 'ar' ? 'مرفقات الروشتة' : 'Prescription Attachments'}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={prescriptionFileInputRef}
+                            type="file"
+                            accept="image/*,application/pdf"
+                            multiple
+                            onChange={handlePrescriptionFileUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => prescriptionFileInputRef.current?.click()}
+                            className="gap-1"
+                          >
+                            <Upload className="w-3 h-3" />
+                            {language === 'ar' ? 'رفع ملف' : 'Upload'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {prescriptionAttachments.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {prescriptionAttachments.map((attachment) => (
+                            <div
+                              key={attachment.id}
+                              className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group"
+                            >
+                              {isImageFile(attachment.type) ? (
+                                <img
+                                  src={attachment.dataUrl}
+                                  alt={attachment.name}
+                                  className="w-full h-20 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'image' })}
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
+                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'pdf' })}
+                                >
+                                  <File className="w-6 h-6 text-muted-foreground mb-1" />
+                                  <span className="text-xs text-muted-foreground">PDF</span>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removePrescriptionAttachment(attachment.id)}
+                                className="absolute top-1 end-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                              <div className="p-1.5">
+                                <p className="text-xs text-muted-foreground truncate">{attachment.name}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-3">
+                          {language === 'ar' ? 'لا توجد مرفقات - يمكنك رفع صور أو PDF' : 'No attachments - you can upload images or PDFs'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* SECTION 4: Requested Lab */}
+          {/* SECTION 4: Radiology (3 Pages) */}
           <div className="bg-card rounded-2xl card-shadow overflow-hidden">
             <SectionHeader
-              title={language === 'ar' ? 'التحاليل المطلوبة' : 'Requested Lab'}
+              title={language === 'ar' ? 'الأشعة' : 'Radiology'}
               icon={<FlaskConical className="w-5 h-5" />}
               isOpen={activeSection === 'lab'}
               onClick={() => toggleSection('lab')}
@@ -1005,7 +1503,8 @@ const NewVisitPage: React.FC = () => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePrint(requestedLabDrawing, language === 'ar' ? 'التحاليل المطلوبة' : 'Requested Lab');
+                    const currentDrawing = activeRadiologyPage === 1 ? radiologyPage1 : activeRadiologyPage === 2 ? radiologyPage2 : radiologyPage3;
+                    handlePrint(currentDrawing, language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`);
                   }}
                   className="gap-1 h-8"
                 >
@@ -1023,11 +1522,165 @@ const NewVisitPage: React.FC = () => {
                   className="overflow-hidden"
                 >
                   <div className="p-6 pt-2 border-t border-border" ref={labRequestRef}>
-                    <PrescriptionTemplate
-                      onSave={setRequestedLabDrawing}
-                      placeholder="Write requested lab tests here..."
-                      placeholderAr="اكتب التحاليل المطلوبة هنا..."
-                      initialData={requestedLabDrawing}
+                    {/* Page Tabs - Always in English */}
+                    <div className="flex items-center gap-2 mb-4" dir="ltr">
+                      {[1, 2, 3].map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setActiveRadiologyPage(page as 1 | 2 | 3)}
+                          className={cn(
+                            'px-4 py-2 rounded-lg font-medium transition-colors',
+                            activeRadiologyPage === page
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                          )}
+                        >
+                          Page {page}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Page Content */}
+                    {activeRadiologyPage === 1 && (
+                      <PrescriptionTemplate
+                        onSave={setRadiologyPage1}
+                        placeholder="Write radiology requests here (Page 1)..."
+                        placeholderAr="اكتب طلبات الأشعة هنا (صفحة 1)..."
+                        initialData={radiologyPage1}
+                      />
+                    )}
+                    {activeRadiologyPage === 2 && (
+                      <PrescriptionTemplate
+                        onSave={setRadiologyPage2}
+                        placeholder="Write radiology requests here (Page 2)..."
+                        placeholderAr="اكتب طلبات الأشعة هنا (صفحة 2)..."
+                        initialData={radiologyPage2}
+                      />
+                    )}
+                    {activeRadiologyPage === 3 && (
+                      <PrescriptionTemplate
+                        onSave={setRadiologyPage3}
+                        placeholder="Write radiology requests here (Page 3)..."
+                        placeholderAr="اكتب طلبات الأشعة هنا (صفحة 3)..."
+                        initialData={radiologyPage3}
+                      />
+                    )}
+
+                    {/* Radiology File Upload */}
+                    <div className="mt-6 pt-4 border-t border-border">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          {language === 'ar' ? 'مرفقات الأشعة' : 'Radiology Attachments'}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={radiologyFileInputRef}
+                            type="file"
+                            accept="image/*,application/pdf"
+                            multiple
+                            onChange={handleRadiologyFileUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => radiologyFileInputRef.current?.click()}
+                            className="gap-1"
+                          >
+                            <Upload className="w-3 h-3" />
+                            {language === 'ar' ? 'رفع ملف' : 'Upload'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {radiologyAttachments.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {radiologyAttachments.map((attachment) => (
+                            <div
+                              key={attachment.id}
+                              className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group"
+                            >
+                              {isImageFile(attachment.type) ? (
+                                <img
+                                  src={attachment.dataUrl}
+                                  alt={attachment.name}
+                                  className="w-full h-20 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'image' })}
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
+                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'pdf' })}
+                                >
+                                  <File className="w-6 h-6 text-muted-foreground mb-1" />
+                                  <span className="text-xs text-muted-foreground">PDF</span>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeRadiologyAttachment(attachment.id)}
+                                className="absolute top-1 end-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
+                              <div className="p-1.5">
+                                <p className="text-xs text-muted-foreground truncate">{attachment.name}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-3">
+                          {language === 'ar' ? 'لا توجد مرفقات - يمكنك رفع صور أو PDF' : 'No attachments - you can upload images or PDFs'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* SECTION 5: Lab Test Request */}
+          <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+            <SectionHeader
+              title={language === 'ar' ? 'طلب تحاليل معملية' : 'Lab Test Request'}
+              icon={<FlaskConical className="w-5 h-5" />}
+              isOpen={activeSection === 'lab-tests'}
+              onClick={() => toggleSection('lab-tests')}
+              extra={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrintLabRequest();
+                  }}
+                  className="gap-1 h-8"
+                >
+                  <Printer className="w-4 h-4" />
+                </Button>
+              }
+            />
+            <AnimatePresence initial={false}>
+              {activeSection === 'lab-tests' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-2 border-t border-border">
+                    <LabTestRequestForm
+                      selectedTests={selectedLabTests}
+                      onTestToggle={handleLabTestToggle}
+                      otherTests={labTestOtherNotes}
+                      onOtherTestsChange={setLabTestOtherNotes}
                     />
                   </div>
                 </motion.div>
@@ -1107,8 +1760,19 @@ const NewVisitPage: React.FC = () => {
           </div>
 
           <div className="flex gap-4">
-            <Button type="submit" className="flex-1">{t('common.save')}</Button>
-            <Button type="button" variant="outline" onClick={() => navigate(`/patients/${patientId}`)} className="flex-1">{t('common.cancel')}</Button>
+            <Button type="submit" className="flex-1">
+              {isEditMode
+                ? (language === 'ar' ? 'تحديث' : 'Update')
+                : t('common.save')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(isEditMode ? `/patients/${patientId}/visit/${visitId}` : `/patients/${patientId}`)}
+              className="flex-1"
+            >
+              {t('common.cancel')}
+            </Button>
           </div>
         </motion.form>
 
