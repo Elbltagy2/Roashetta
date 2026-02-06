@@ -1,4 +1,8 @@
 import { Notification } from '../types/notification';
+import { mockApi } from './mockApi';
+
+// Check if we're in demo mode (for Vercel deployment)
+const IS_DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 // Use relative URL in production (when served from same origin), absolute in development
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3000/api');
@@ -680,5 +684,7 @@ export interface AnalyticsData {
   }[];
 }
 
-export const api = new ApiClient();
+// Use mock API in demo mode, real API otherwise
+const apiClient = new ApiClient();
+export const api = IS_DEMO_MODE ? mockApi : apiClient;
 export default api;
