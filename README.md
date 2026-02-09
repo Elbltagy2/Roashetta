@@ -1,6 +1,6 @@
 # Roashetta - نظام إدارة العيادات الطبية
 
-Medical Clinic Management System with Egyptian-style prescription pad (روشتة)
+Medical Clinic Management System with Egyptian-style prescription pad (روشتة).
 
 ## Features
 
