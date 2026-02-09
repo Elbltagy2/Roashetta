@@ -39,16 +39,16 @@ Medical Clinic Management System with Egyptian-style prescription pad (روشت�
 - "Finish" button to clear current patient when done
 
 ### Real-time Notifications
-- WebSocket-based real-time notification system
+- WebSocket-based real-time notification system.
 - Notification types:
-  - New visit created
-  - Patient information updated
-  - Current patient changed
-- Notification bell with unread count badge
-- Mark notifications as read (individual or all)
-- Delete notifications (individual or all)
-- Toast notifications for instant alerts
-- Automatic refresh of current patient data when relevant updates occur
+  - New visit created.
+  - Patient information updated.
+  - Current patient changed.
+- Notification bell with unread count badge.
+- Mark notifications as read (individual or all).
+- Delete notifications (individual or all).
+- Toast notifications for instant alerts.
+- Automatic refresh of current patient data when relevant updates occur.
 
 ### Staff Management
 - Assistant accounts with granular permissions
