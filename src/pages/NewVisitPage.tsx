@@ -28,6 +28,7 @@ import {
   DollarSign,
   UserPlus,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { getDisplayDataUrl } from '@/lib/drawing-utils';
+import { downloadPdf } from '@/lib/download-pdf';
 import api, { VisitType, Settings } from '@/services/api';
 import {
   Select,
@@ -57,6 +60,128 @@ interface Attachment {
 }
 
 type ActiveSection = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | null;
+
+// Defined outside component to prevent remount on parent re-render
+const PrescriptionTemplate = React.memo(({
+  onSave,
+  placeholder,
+  placeholderAr,
+  initialData,
+  language,
+  globalPenSize,
+}: {
+  onSave: (data: string) => void;
+  placeholder: string;
+  placeholderAr: string;
+  initialData?: string;
+  language: 'ar' | 'en';
+  globalPenSize: number;
+}) => (
+  <div className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm flex flex-col" dir="ltr" style={{ minHeight: '700px' }}>
+    {/* Header - Always LTR */}
+    <div className="border-b border-gray-300 p-4 pb-3 flex-shrink-0">
+      <div className="flex justify-between items-start">
+        <div className="text-start">
+          <p className="text-base font-bold text-gray-800">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
+        </div>
+        <div className="text-end leading-relaxed" dir="rtl">
+          <p className="text-base font-bold text-gray-800">دكتـــور</p>
+          <p className="text-base font-bold text-gray-800">شــريف علي رضــا</p>
+          <p className="text-xs text-gray-600">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
+          <p className="text-xs text-gray-600">لطب الباطنـــة والكـــلى</p>
+          <p className="text-xs text-gray-600">دكتوراه الأمـــراض الباطنيـــة</p>
+          <p className="text-xs text-gray-600">استشارى أمراض الباطنـــة العامة والكلى</p>
+          <p className="text-xs text-gray-600">وعضو الجمعية المصرية والأوربيـــة</p>
+          <p className="text-xs text-gray-600">لأمـــراض الكـــلى</p>
+          <p className="text-xs text-gray-600">بمستشفيات جـــامعـــة عين شمـــس</p>
+        </div>
+      </div>
+      <div className="mt-4 pt-3 text-start text-sm text-gray-700 leading-relaxed">
+        <div className="flex items-center gap-1">
+          <span>الإســـم :</span>
+          <span className="border-b border-dotted border-gray-400 min-w-[150px] inline-block">&nbsp;</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span>التـــاريخ :</span>
+          <span className="mx-1">/</span>
+          <span className="mx-1">/</span>
+          <span>٢٠</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Rx Symbol and Drawing Area */}
+    <div className="relative flex-1">
+      <div className="absolute top-6 start-6 text-gray-400 text-6xl font-serif select-none pointer-events-none" style={{ fontFamily: 'Times New Roman, serif' }}>
+        ℞/
+      </div>
+      <div className="p-4 ps-20 h-full">
+        <SimpleDrawingCanvas
+          language={language}
+          minHeight={350}
+          maxHeight={600}
+          placeholder={language === 'ar' ? placeholderAr : placeholder}
+          onSave={onSave}
+          penSize={globalPenSize}
+          initialData={initialData}
+        />
+      </div>
+    </div>
+
+    {/* Footer */}
+    <div className="border-t border-gray-300 p-3 bg-gray-50 flex-shrink-0 mt-auto">
+      <div className="flex justify-between items-start text-xs text-gray-600">
+        <div className="text-start">
+          <p className="font-semibold">مستشفى تبارك/النسائم</p>
+          <p>16552 - 15452</p>
+        </div>
+        <div className="text-end">
+          <p>١٨ عمارات خلف العبور - مصر الجديدة</p>
+          <p>ت: 01554343147 - 0222602733</p>
+        </div>
+      </div>
+    </div>
+  </div>
+));
+
+// Defined outside component to prevent remount on parent re-render
+const SectionHeader = React.memo(({
+  title,
+  icon,
+  isOpen,
+  onClick,
+  extra,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  isOpen: boolean;
+  onClick: () => void;
+  extra?: React.ReactNode;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      'w-full flex items-center justify-between p-4 text-start transition-colors rounded-t-2xl',
+      'hover:bg-muted/50',
+      isOpen ? 'bg-muted/30' : 'rounded-b-2xl'
+    )}
+  >
+    <div className="flex items-center gap-3">
+      <span className="text-primary">{icon}</span>
+      <span className="font-semibold text-lg text-foreground">{title}</span>
+    </div>
+    <div className="flex items-center gap-2">
+      {extra}
+      <motion.div
+        animate={{ rotate: isOpen ? 180 : 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+      </motion.div>
+    </div>
+  </button>
+));
 
 const NewVisitPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId?: string }>();
@@ -335,10 +460,7 @@ const NewVisitPage: React.FC = () => {
     }));
   };
 
-  const handlePrintLabRequest = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
+  const getLabRequestHtml = () => {
     const today = new Date();
     const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
 
@@ -372,7 +494,7 @@ const NewVisitPage: React.FC = () => {
       `;
     };
 
-    printWindow.document.write(`
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -525,7 +647,15 @@ const NewVisitPage: React.FC = () => {
           </div>
         </body>
       </html>
-    `);
+    `;
+  };
+
+  const handlePrintLabRequest = () => {
+    const html = getLabRequestHtml();
+    if (!html) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
@@ -534,18 +664,20 @@ const NewVisitPage: React.FC = () => {
     }, 250);
   };
 
-  const handlePrint = (drawingData: string | null, title: string) => {
-    if (!drawingData) return;
+  const handleDownloadLabRequest = () => {
+    const html = getLabRequestHtml();
+    if (!html) return;
+    const today = new Date().toISOString().split('T')[0];
+    downloadPdf(html, `lab-request-${today}`, 'a4');
+  };
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
+  const getDrawingHtml = (drawingData: string, title: string) => {
     const today = new Date();
     const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
 
-    printWindow.document.write(`
+    return `
       <!DOCTYPE html>
-      <html dir="${direction}">
+      <html dir="ltr">
         <head>
           <title>${title}</title>
           <style>
@@ -676,18 +808,18 @@ const NewVisitPage: React.FC = () => {
               </div>
               <div class="patient-info">
                 <div class="patient-info-row">
-                  <span>الإســـم :</span>
+                  <span>Name :</span>
                   <span class="font-medium">${patient?.name || ''}</span>
                 </div>
                 <div class="patient-info-row">
-                  <span>التـــاريخ :</span>
+                  <span>Date :</span>
                   <span class="font-medium">${dateStr}</span>
                 </div>
               </div>
             </div>
             <div class="body-section">
               <div class="rx-symbol">℞/</div>
-              <img src="${drawingData}" alt="${title}" class="drawing-image" />
+              <img src="${getDisplayDataUrl(drawingData) || ''}" alt="${title}" class="drawing-image" />
             </div>
             <div class="footer">
               <div class="footer-content">
@@ -704,13 +836,27 @@ const NewVisitPage: React.FC = () => {
           </div>
         </body>
       </html>
-    `);
+    `;
+  };
+
+  const handlePrint = (drawingData: string | null, title: string) => {
+    if (!drawingData) return;
+    const html = getDrawingHtml(drawingData, title);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
     }, 250);
+  };
+
+  const handleDownloadDrawing = (drawingData: string | null, title: string) => {
+    if (!drawingData) return;
+    const today = new Date().toISOString().split('T')[0];
+    downloadPdf(getDrawingHtml(drawingData, title), `${title}-${today}`, 'a5');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -816,123 +962,6 @@ const NewVisitPage: React.FC = () => {
     }
   };
 
-  // Prescription Template Component
-  const PrescriptionTemplate = ({
-    onSave,
-    placeholder,
-    placeholderAr,
-    initialData,
-  }: {
-    onSave: (data: string) => void;
-    placeholder: string;
-    placeholderAr: string;
-    initialData?: string;
-  }) => (
-    <div className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-sm flex flex-col" dir="ltr" style={{ minHeight: '700px' }}>
-      {/* Header - Always LTR */}
-      <div className="border-b border-gray-300 p-4 pb-3 flex-shrink-0">
-        <div className="flex justify-between items-start">
-          <div className="text-start">
-            <p className="text-base font-bold text-gray-800">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
-          </div>
-          <div className="text-end leading-relaxed" dir="rtl">
-            <p className="text-base font-bold text-gray-800">دكتـــور</p>
-            <p className="text-base font-bold text-gray-800">شــريف علي رضــا</p>
-            <p className="text-xs text-gray-600">زميـــل الكلية الملكيـــة البـــريطانيـــة</p>
-            <p className="text-xs text-gray-600">لطب الباطنـــة والكـــلى</p>
-            <p className="text-xs text-gray-600">دكتوراه الأمـــراض الباطنيـــة</p>
-            <p className="text-xs text-gray-600">استشارى أمراض الباطنـــة العامة والكلى</p>
-            <p className="text-xs text-gray-600">وعضو الجمعية المصرية والأوربيـــة</p>
-            <p className="text-xs text-gray-600">لأمـــراض الكـــلى</p>
-            <p className="text-xs text-gray-600">بمستشفيات جـــامعـــة عين شمـــس</p>
-          </div>
-        </div>
-        <div className="mt-4 pt-3 text-start text-sm text-gray-700 leading-relaxed">
-          <div className="flex items-center gap-1">
-            <span>الإســـم :</span>
-            <span className="border-b border-dotted border-gray-400 min-w-[150px] inline-block">&nbsp;</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>التـــاريخ :</span>
-            <span className="mx-1">/</span>
-            <span className="mx-1">/</span>
-            <span>٢٠</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Rx Symbol and Drawing Area */}
-      <div className="relative flex-1">
-        <div className="absolute top-6 start-6 text-gray-400 text-6xl font-serif select-none pointer-events-none" style={{ fontFamily: 'Times New Roman, serif' }}>
-          ℞/
-        </div>
-        <div className="p-4 ps-20 h-full">
-          <SimpleDrawingCanvas
-            language={language}
-            minHeight={350}
-            maxHeight={600}
-            placeholder={language === 'ar' ? placeholderAr : placeholder}
-            onSave={onSave}
-            penSize={globalPenSize}
-            initialData={initialData}
-          />
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-gray-300 p-3 bg-gray-50 flex-shrink-0 mt-auto">
-        <div className="flex justify-between items-start text-xs text-gray-600">
-          <div className="text-start">
-            <p className="font-semibold">مستشفى تبارك/النسائم</p>
-            <p>16552 - 15452</p>
-          </div>
-          <div className="text-end">
-            <p>١٨ عمارات خلف العبور - مصر الجديدة</p>
-            <p>ت: 01554343147 - 0222602733</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Collapsible Section Header
-  const SectionHeader = ({
-    title,
-    icon,
-    isOpen,
-    onClick,
-    extra,
-  }: {
-    title: string;
-    icon: React.ReactNode;
-    isOpen: boolean;
-    onClick: () => void;
-    extra?: React.ReactNode;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'w-full flex items-center justify-between p-4 text-start transition-colors rounded-t-2xl',
-        'hover:bg-muted/50',
-        isOpen ? 'bg-muted/30' : 'rounded-b-2xl'
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <span className="text-primary">{icon}</span>
-        <span className="font-semibold text-lg text-foreground">{title}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        {extra}
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown className="w-5 h-5 text-muted-foreground" />
-        </motion.div>
-      </div>
-    </button>
-  );
 
   if (!patient) {
     return (
@@ -1342,19 +1371,34 @@ const NewVisitPage: React.FC = () => {
               isOpen={activeSection === 'prescription'}
               onClick={() => toggleSection('prescription')}
               extra={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const currentDrawing = activePrescriptionPage === 1 ? prescriptionPage1 : activePrescriptionPage === 2 ? prescriptionPage2 : prescriptionPage3;
-                    handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activePrescriptionPage === 1 ? prescriptionPage1 : activePrescriptionPage === 2 ? prescriptionPage2 : prescriptionPage3;
+                      handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activePrescriptionPage === 1 ? prescriptionPage1 : activePrescriptionPage === 2 ? prescriptionPage2 : prescriptionPage3;
+                      handleDownloadDrawing(currentDrawing, language === 'ar' ? `الروشتة-صفحة-${activePrescriptionPage}` : `prescription-page-${activePrescriptionPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               }
             />
             <AnimatePresence initial={false}>
@@ -1393,6 +1437,8 @@ const NewVisitPage: React.FC = () => {
                         placeholder="Write prescription here (Page 1)..."
                         placeholderAr="اكتب الروشتة هنا (صفحة 1)..."
                         initialData={prescriptionPage1}
+                        language={language}
+                        globalPenSize={globalPenSize}
                       />
                     )}
                     {activePrescriptionPage === 2 && (
@@ -1401,6 +1447,8 @@ const NewVisitPage: React.FC = () => {
                         placeholder="Write prescription here (Page 2)..."
                         placeholderAr="اكتب الروشتة هنا (صفحة 2)..."
                         initialData={prescriptionPage2}
+                        language={language}
+                        globalPenSize={globalPenSize}
                       />
                     )}
                     {activePrescriptionPage === 3 && (
@@ -1409,6 +1457,8 @@ const NewVisitPage: React.FC = () => {
                         placeholder="Write prescription here (Page 3)..."
                         placeholderAr="اكتب الروشتة هنا (صفحة 3)..."
                         initialData={prescriptionPage3}
+                        language={language}
+                        globalPenSize={globalPenSize}
                       />
                     )}
 
@@ -1497,19 +1547,34 @@ const NewVisitPage: React.FC = () => {
               isOpen={activeSection === 'lab'}
               onClick={() => toggleSection('lab')}
               extra={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const currentDrawing = activeRadiologyPage === 1 ? radiologyPage1 : activeRadiologyPage === 2 ? radiologyPage2 : radiologyPage3;
-                    handlePrint(currentDrawing, language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activeRadiologyPage === 1 ? radiologyPage1 : activeRadiologyPage === 2 ? radiologyPage2 : radiologyPage3;
+                      handlePrint(currentDrawing, language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activeRadiologyPage === 1 ? radiologyPage1 : activeRadiologyPage === 2 ? radiologyPage2 : radiologyPage3;
+                      handleDownloadDrawing(currentDrawing, language === 'ar' ? `الأشعة-صفحة-${activeRadiologyPage}` : `radiology-page-${activeRadiologyPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               }
             />
             <AnimatePresence initial={false}>
@@ -1548,6 +1613,8 @@ const NewVisitPage: React.FC = () => {
                         placeholder="Write radiology requests here (Page 1)..."
                         placeholderAr="اكتب طلبات الأشعة هنا (صفحة 1)..."
                         initialData={radiologyPage1}
+                        language={language}
+                        globalPenSize={globalPenSize}
                       />
                     )}
                     {activeRadiologyPage === 2 && (
@@ -1556,6 +1623,8 @@ const NewVisitPage: React.FC = () => {
                         placeholder="Write radiology requests here (Page 2)..."
                         placeholderAr="اكتب طلبات الأشعة هنا (صفحة 2)..."
                         initialData={radiologyPage2}
+                        language={language}
+                        globalPenSize={globalPenSize}
                       />
                     )}
                     {activeRadiologyPage === 3 && (
@@ -1564,6 +1633,8 @@ const NewVisitPage: React.FC = () => {
                         placeholder="Write radiology requests here (Page 3)..."
                         placeholderAr="اكتب طلبات الأشعة هنا (صفحة 3)..."
                         initialData={radiologyPage3}
+                        language={language}
+                        globalPenSize={globalPenSize}
                       />
                     )}
 
@@ -1652,18 +1723,32 @@ const NewVisitPage: React.FC = () => {
               isOpen={activeSection === 'lab-tests'}
               onClick={() => toggleSection('lab-tests')}
               extra={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePrintLabRequest();
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrintLabRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadLabRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               }
             />
             <AnimatePresence initial={false}>

@@ -20,6 +20,7 @@ import ExpensesPage from "./pages/ExpensesPage";
 import AssistantsPage from "./pages/AssistantsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import QueuePage from "./pages/QueuePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const AppRoutes = () => {
       <Route path="/patients/:id/visit/:visitId" element={<ProtectedRoute><VisitDetailPage /></ProtectedRoute>} />
       <Route path="/patients/:id/visit/:visitId/edit" element={<ProtectedRoute><NewVisitPage /></ProtectedRoute>} />
       <Route path="/prescriptions" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
+      <Route path="/queue" element={<ProtectedRoute><QueuePage /></ProtectedRoute>} />
       <Route path="/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       <Route path="/assistants" element={<ProtectedRoute><AssistantsPage /></ProtectedRoute>} />

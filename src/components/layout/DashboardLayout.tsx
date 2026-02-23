@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Users,
-  FileText,
   Settings,
   LogOut,
   Menu,
@@ -13,6 +12,7 @@ import {
   UserCog,
   Wallet,
   BarChart3,
+  ClipboardList,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +35,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { key: 'patients', icon: Users, path: '/patients' },
+  { key: 'queue', icon: ClipboardList, path: '/queue' },
   { key: 'expenses', icon: Wallet, path: '/expenses' },
   { key: 'analytics', icon: BarChart3, path: '/analytics', doctorOnly: true },
   { key: 'assistants', icon: UserCog, path: '/assistants', doctorOnly: true },

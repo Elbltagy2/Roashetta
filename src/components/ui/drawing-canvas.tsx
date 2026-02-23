@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pen, RotateCcw, Download, Printer, Eraser } from 'lucide-react';
+import { Pen, RotateCcw, Download, Printer, Eraser, FileDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { downloadPdf } from '@/lib/download-pdf';
 
 interface DoctorInfo {
   nameAr: string;
@@ -159,14 +160,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     link.click();
   };
 
-  const printCanvas = () => {
+  const getCanvasPrintHtml = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    printWindow.document.write(`
+    if (!canvas) return '';
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -190,16 +187,25 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         </head>
         <body>
           <img src="${canvas.toDataURL('image/png')}" />
-          <script>
-            window.onload = function() {
-              window.print();
-              window.onafterprint = function() { window.close(); }
-            }
-          </script>
         </body>
       </html>
-    `);
+    `;
+  };
+
+  const printCanvas = () => {
+    const html = getCanvasPrintHtml();
+    if (!html) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(html.replace('</body>', `<script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); } }</script></body>`));
     printWindow.document.close();
+  };
+
+  const downloadCanvasPdf = () => {
+    const html = getCanvasPrintHtml();
+    if (!html) return;
+    const today = new Date().toISOString().split('T')[0];
+    downloadPdf(html, `prescription-${today}`, 'a5');
   };
 
   // Get current date in Arabic format
@@ -288,6 +294,16 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           >
             <Download className="w-4 h-4" />
             {language === 'ar' ? 'تحميل' : 'Download'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={downloadCanvasPdf}
+            className="gap-1.5"
+          >
+            <FileDown className="w-4 h-4" />
+            {language === 'ar' ? 'تحميل PDF' : 'PDF'}
           </Button>
           <Button
             type="button"

@@ -11,6 +11,7 @@ import labResultRoutes from './labResultRoutes';
 import notificationRoutes from './notificationRoutes';
 import settingsRoutes from './settingsRoutes';
 import analyticsRoutes from './analyticsRoutes';
+import queueRoutes from './queueRoutes';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/lab-results', labResultRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/queue', queueRoutes);
 
 export default router;

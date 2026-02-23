@@ -353,6 +353,39 @@ class ApiClient {
     if (params.toString()) url += `?${params.toString()}`;
     return this.request<AnalyticsData>(url);
   }
+
+  // Queue
+  async getQueue(date?: string) {
+    let url = '/queue';
+    if (date) url += `?date=${encodeURIComponent(date)}`;
+    return this.request<QueueEntry[]>(url);
+  }
+
+  async addToQueue(data: { patientId: string }) {
+    return this.request<QueueEntry>('/queue', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateQueueEntry(id: string, data: UpdateQueueEntryData) {
+    return this.request<QueueEntry>(`/queue/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async removeFromQueue(id: string) {
+    return this.request<void>(`/queue/${id}`, { method: 'DELETE' });
+  }
+
+  async reorderQueue(entries: { id: string; position: number }[]) {
+    return this.request<void>('/queue/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ entries }),
+    });
+  }
+
 }
 
 // Types
@@ -682,6 +715,26 @@ export interface AnalyticsData {
     followupVisits: number;
     revenue: number;
   }[];
+}
+
+// Queue
+export type QueueStatus = 'waiting' | 'in-progress' | 'done';
+
+export interface QueueEntry {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientPhone: string;
+  position: number;
+  status: QueueStatus;
+  addedAt: string;
+  addedBy: string;
+  queueDate: string;
+}
+
+export interface UpdateQueueEntryData {
+  status?: QueueStatus;
+  position?: number;
 }
 
 // Use mock API in demo mode, real API otherwise

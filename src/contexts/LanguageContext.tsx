@@ -21,8 +21,25 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.analytics': 'التحليلات',
     'nav.assistants': 'المساعدون',
     'nav.settings': 'الإعدادات',
+    'nav.queue': 'الحجوزات',
     'nav.logout': 'تسجيل الخروج',
-    
+
+    // Queue
+    'queue.title': 'طابور اليوم',
+    'queue.addPatient': 'إضافة مريض',
+    'queue.searchPatient': 'ابحث عن مريض...',
+    'queue.waiting': 'بانتظار',
+    'queue.inProgress': 'جاري الكشف',
+    'queue.done': 'تم',
+    'queue.startVisit': 'بدء الكشف',
+    'queue.markDone': 'تم الكشف',
+    'queue.remove': 'حذف',
+    'queue.empty': 'لا يوجد مرضى في الطابور',
+    'queue.alreadyInQueue': 'المريض موجود بالفعل في الطابور',
+    'queue.patientCount': 'مريض في الانتظار',
+    'queue.setCurrentPatient': 'تعيين كمريض حالي',
+    'queue.viewProfile': 'عرض الملف',
+
     // Auth
     'auth.login': 'تسجيل الدخول',
     'auth.signup': 'إنشاء حساب',
@@ -133,8 +150,25 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.analytics': 'Analytics',
     'nav.assistants': 'Assistants',
     'nav.settings': 'Settings',
+    'nav.queue': 'Queue',
     'nav.logout': 'Logout',
-    
+
+    // Queue
+    'queue.title': "Today's Queue",
+    'queue.addPatient': 'Add Patient',
+    'queue.searchPatient': 'Search patient...',
+    'queue.waiting': 'Waiting',
+    'queue.inProgress': 'In Progress',
+    'queue.done': 'Done',
+    'queue.startVisit': 'Start Visit',
+    'queue.markDone': 'Mark Done',
+    'queue.remove': 'Remove',
+    'queue.empty': 'No patients in queue',
+    'queue.alreadyInQueue': 'Patient already in queue',
+    'queue.patientCount': 'patients waiting',
+    'queue.setCurrentPatient': 'Set as Current Patient',
+    'queue.viewProfile': 'View Profile',
+
     // Auth
     'auth.login': 'Login',
     'auth.signup': 'Sign Up',

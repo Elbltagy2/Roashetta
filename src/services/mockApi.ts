@@ -126,6 +126,7 @@ const STORAGE_KEYS = {
   settings: 'demo_settings',
   notifications: 'demo_notifications',
   currentPatient: 'demo_currentPatient',
+  queue: 'demo_queue',
   initialized: 'demo_initialized',
 };
 
@@ -184,6 +185,8 @@ import type {
   Assistant,
   CreateAssistantData,
   UpdateAssistantData,
+  QueueEntry,
+  UpdateQueueEntryData,
 } from './api';
 
 type AuthErrorCallback = () => void;
@@ -602,6 +605,74 @@ class MockApiClient {
       dailyBreakdown: [],
     };
   }
+
+  // Queue
+  async getQueue(date?: string): Promise<QueueEntry[]> {
+    const today = date || new Date().toISOString().split('T')[0];
+    const entries = getData<QueueEntry>(STORAGE_KEYS.queue);
+    return entries
+      .filter(e => e.queueDate === today)
+      .sort((a, b) => a.position - b.position);
+  }
+
+  async addToQueue(data: { patientId: string }): Promise<QueueEntry> {
+    const patients = getData<Patient>(STORAGE_KEYS.patients);
+    const patient = patients.find(p => p.id === data.patientId);
+    if (!patient) throw new Error('Patient not found');
+
+    const today = new Date().toISOString().split('T')[0];
+    const entries = getData<QueueEntry>(STORAGE_KEYS.queue);
+    const todayEntries = entries.filter(e => e.queueDate === today);
+
+    // Check duplicate
+    if (todayEntries.find(e => e.patientId === data.patientId)) {
+      throw new Error('Patient already in queue');
+    }
+
+    const maxPos = todayEntries.reduce((max, e) => Math.max(max, e.position), 0);
+    const newEntry: QueueEntry = {
+      id: generateId(),
+      patientId: data.patientId,
+      patientName: patient.name,
+      patientPhone: patient.phone || '',
+      position: maxPos + 1,
+      status: 'waiting',
+      addedAt: new Date().toISOString(),
+      addedBy: 'demo-doctor-1',
+      queueDate: today,
+    };
+
+    entries.push(newEntry);
+    setData(STORAGE_KEYS.queue, entries);
+    return newEntry;
+  }
+
+  async updateQueueEntry(id: string, data: UpdateQueueEntryData): Promise<QueueEntry> {
+    const entries = getData<QueueEntry>(STORAGE_KEYS.queue);
+    const index = entries.findIndex(e => e.id === id);
+    if (index === -1) throw new Error('Queue entry not found');
+
+    if (data.status !== undefined) entries[index].status = data.status;
+    if (data.position !== undefined) entries[index].position = data.position;
+
+    setData(STORAGE_KEYS.queue, entries);
+    return entries[index];
+  }
+
+  async removeFromQueue(id: string): Promise<void> {
+    const entries = getData<QueueEntry>(STORAGE_KEYS.queue);
+    setData(STORAGE_KEYS.queue, entries.filter(e => e.id !== id));
+  }
+
+  async reorderQueue(reorderEntries: { id: string; position: number }[]): Promise<void> {
+    const entries = getData<QueueEntry>(STORAGE_KEYS.queue);
+    for (const r of reorderEntries) {
+      const entry = entries.find(e => e.id === r.id);
+      if (entry) entry.position = r.position;
+    }
+    setData(STORAGE_KEYS.queue, entries);
+  }
+
 }
 
 export const mockApi = new MockApiClient();

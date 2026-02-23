@@ -3,13 +3,23 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock, DollarSign, Check, X, Pencil } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock, DollarSign, Check, X, Pencil, Download } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData, VisitAttachment } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { getDisplayDataUrl } from '@/lib/drawing-utils';
+import { printHtml, downloadPdf } from '@/lib/download-pdf';
+import { pdfToImages } from '@/lib/pdf-to-images';
 import { LAB_TEST_CATEGORIES } from '@/data/labTests';
 
 type SectionName = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | 'attachments' | 'previous-visits';
@@ -18,7 +28,7 @@ const VisitDetailPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId: string }>();
   const { t, language, direction } = useLanguage();
   const { isAssistant } = useAuth();
-  const { getPatient, visits, loadPatientVisits, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice } = useData();
+  const { getPatient, visits, loadPatientVisits, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit } = useData();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -42,6 +52,9 @@ const VisitDetailPage: React.FC = () => {
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [editedPrice, setEditedPrice] = useState<number>(0);
   const [isSavingPrice, setIsSavingPrice] = useState(false);
+
+  // Visit type toggle state
+  const [isSavingVisitType, setIsSavingVisitType] = useState(false);
 
   // Prescription page view state
   const [activePrescriptionPage, setActivePrescriptionPage] = useState<1 | 2 | 3>(1);
@@ -167,6 +180,18 @@ const VisitDetailPage: React.FC = () => {
     }
   };
 
+  const handleChangeVisitType = async (newType: string) => {
+    if (!visitId || !visit || newType === visit.visitType) return;
+    setIsSavingVisitType(true);
+    try {
+      await updateVisit(visitId, { visitType: newType as 'new' | 'followup' });
+    } catch (error) {
+      console.error('Failed to update visit type:', error);
+    } finally {
+      setIsSavingVisitType(false);
+    }
+  };
+
   // Open file in new tab - converts data URL to blob for better browser support
   const openFile = (dataUrl: string, type: string) => {
     try {
@@ -234,13 +259,11 @@ const VisitDetailPage: React.FC = () => {
     </button>
   );
 
-  const handlePrint = (drawingData: string | null, title: string) => {
-    if (!drawingData || !patient) return;
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
 
-    const printContent = `
+  const getDrawingHtml = (drawingData: string, title: string) => {
+    if (!patient) return '';
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -248,23 +271,23 @@ const VisitDetailPage: React.FC = () => {
           <style>
             @page { size: A5; margin: 0; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; }
+            body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; direction: ltr; }
             .prescription-container { width: 148mm; min-height: 210mm; display: flex; flex-direction: column; background: white; }
             .header { border-bottom: 1px solid #d1d5db; padding: 16px; padding-bottom: 12px; }
-            .header-content { display: flex; justify-content: space-between; align-items: flex-start; }
-            .header-left { text-align: left; }
+            .header-content { display: flex; direction: ltr; justify-content: space-between; align-items: flex-start; }
+            .header-left { text-align: left; direction: ltr; }
             .header-right { text-align: right; direction: rtl; line-height: 1.6; }
             .doctor-name { font-size: 14px; font-weight: bold; color: #1f2937; }
             .credentials { font-size: 10px; color: #4b5563; }
-            .patient-info { margin-top: 16px; padding-top: 12px; font-size: 12px; color: #374151; text-align: left; line-height: 1.6; }
+            .patient-info { margin-top: 16px; padding-top: 12px; font-size: 12px; color: #374151; direction: ltr; text-align: left; line-height: 1.6; }
             .patient-info span { font-weight: 500; }
             .body { position: relative; flex: 1; padding: 16px; padding-left: 70px; }
             .rx-symbol { position: absolute; top: 20px; left: 20px; font-size: 40px; color: #9ca3af; font-family: 'Times New Roman', serif; }
             .body img { width: 100%; margin-top: 10px; }
             .footer { border-top: 1px solid #d1d5db; padding: 12px; background: #f9fafb; margin-top: auto; }
-            .footer-content { display: flex; justify-content: space-between; align-items: flex-start; font-size: 10px; color: #4b5563; }
-            .footer-left { text-align: left; }
-            .footer-right { text-align: right; }
+            .footer-content { display: flex; direction: ltr; justify-content: space-between; align-items: flex-start; font-size: 10px; color: #4b5563; }
+            .footer-left { text-align: left; direction: rtl; }
+            .footer-right { text-align: right; direction: rtl; }
             .footer p { margin: 0; }
             .footer .hospital { font-weight: 600; }
             @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
@@ -290,13 +313,13 @@ const VisitDetailPage: React.FC = () => {
                 </div>
               </div>
               <div class="patient-info">
-                <div>الإســـم : <span>${patient.name}</span></div>
-                <div>التـــاريخ : <span>${visit ? format(visit.date, 'dd/MM/yyyy') : ''}</span></div>
+                <div>Name : <span>${patient.name}</span></div>
+                <div>Date : <span>${visit ? format(visit.date, 'dd/MM/yyyy') : ''}</span></div>
               </div>
             </div>
             <div class="body">
               <div class="rx-symbol">℞/</div>
-              <img src="${drawingData}" />
+              <img src="${getDisplayDataUrl(drawingData) || ''}" />
             </div>
             <div class="footer">
               <div class="footer-content">
@@ -311,56 +334,72 @@ const VisitDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <script>
-            window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };
-          </script>
         </body>
       </html>
     `;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
   };
 
-  const handlePrintReport = () => {
-    if (!patient || !visit) return;
+  const handlePrint = (drawingData: string | null, title: string) => {
+    if (!drawingData || !patient) return;
+    printHtml(getDrawingHtml(drawingData, title));
+  };
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handleDownloadDrawing = (drawingData: string | null, title: string) => {
+    if (!drawingData || !patient) return;
+    const filename = `${title}-${visit ? format(visit.date, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0]}`;
+    downloadPdf(getDrawingHtml(drawingData, title), filename, 'a5');
+  };
+
+  const getReportHtml = async () => {
+    if (!patient || !visit) return '';
 
     const visitDate = format(visit.date, 'dd/MM/yyyy');
     const visitDateFull = format(visit.date, 'PPP', { locale: dateLocale });
 
     // Collect all drawings
     const medicalHistoryDrawings = [
-      { label: language === 'ar' ? 'التاريخ المرضي السابق' : 'Past Medical History', data: visit.pastMedicalHistoryDrawing },
-      { label: language === 'ar' ? 'تاريخ المرض الحالي' : 'HPI', data: visit.hpiDrawing },
-      { label: language === 'ar' ? 'تاريخ الأدوية' : 'Drug History', data: visit.drugHistoryDrawing },
-      { label: language === 'ar' ? 'التاريخ العائلي' : 'Family History', data: visit.familyHistoryDrawing },
-      { label: language === 'ar' ? 'الأدوية الحالية' : 'Current Medication', data: visit.currentMedicationDrawing },
+      { label: 'التاريخ المرضي السابق / Past Medical History', data: visit.pastMedicalHistoryDrawing },
+      { label: 'تاريخ المرض الحالي / History of Present Illness', data: visit.hpiDrawing },
+      { label: 'تاريخ الأدوية / Drug History', data: visit.drugHistoryDrawing },
+      { label: 'التاريخ العائلي / Family History', data: visit.familyHistoryDrawing },
+      { label: 'الأدوية الحالية / Current Medication', data: visit.currentMedicationDrawing },
     ].filter(d => d.data);
 
     const medicalNotesDrawings = [
-      { label: language === 'ar' ? 'الشكوى الرئيسية' : 'Chief Complaint', data: visit.chiefComplaintDrawing },
-      { label: language === 'ar' ? 'التشخيص' : 'Diagnosis', data: visit.diagnosisDrawing },
+      { label: 'الشكوى الرئيسية / Chief Complaint', data: visit.chiefComplaintDrawing },
+      { label: 'التشخيص / Diagnosis', data: visit.diagnosisDrawing },
     ].filter(d => d.data);
 
     const prescriptionPages = [
-      { label: language === 'ar' ? 'الروشتة - صفحة 1' : 'Prescription - Page 1', data: visit.notesDrawing },
-      { label: language === 'ar' ? 'الروشتة - صفحة 2' : 'Prescription - Page 2', data: visit.notesDrawing2 },
-      { label: language === 'ar' ? 'الروشتة - صفحة 3' : 'Prescription - Page 3', data: visit.notesDrawing3 },
+      { label: 'الروشتة - صفحة 1 / Prescription - Page 1', data: visit.notesDrawing },
+      { label: 'الروشتة - صفحة 2 / Prescription - Page 2', data: visit.notesDrawing2 },
+      { label: 'الروشتة - صفحة 3 / Prescription - Page 3', data: visit.notesDrawing3 },
     ].filter(d => d.data);
 
     const radiologyPages = [
-      { label: language === 'ar' ? 'الأشعة - صفحة 1' : 'Radiology - Page 1', data: visit.radiologyDrawing },
-      { label: language === 'ar' ? 'الأشعة - صفحة 2' : 'Radiology - Page 2', data: visit.radiologyDrawing2 },
-      { label: language === 'ar' ? 'الأشعة - صفحة 3' : 'Radiology - Page 3', data: visit.radiologyDrawing3 },
+      { label: 'الأشعة - صفحة 1 / Radiology - Page 1', data: visit.radiologyDrawing },
+      { label: 'الأشعة - صفحة 2 / Radiology - Page 2', data: visit.radiologyDrawing2 },
+      { label: 'الأشعة - صفحة 3 / Radiology - Page 3', data: visit.radiologyDrawing3 },
     ].filter(d => d.data);
 
     // Filter attachments by type (excluding prescription and radiology specific ones for main attachments section)
     const generalAttachments = attachments.filter(a => !a.name.startsWith('[Prescription]') && !a.name.startsWith('[Radiology]'));
     const prescriptionAttachments = attachments.filter(a => a.name.startsWith('[Prescription]'));
     const radiologyAttachments = attachments.filter(a => a.name.startsWith('[Radiology]'));
+
+    // Convert PDF attachments to images
+    const pdfImageMap = new Map<string, string[]>();
+    const pdfAttachments = attachments.filter(a => a.type === 'application/pdf');
+    await Promise.all(
+      pdfAttachments.map(async (a) => {
+        try {
+          const images = await pdfToImages(a.dataUrl);
+          pdfImageMap.set(a.id, images);
+        } catch (e) {
+          console.error('Failed to convert PDF to images:', a.name, e);
+        }
+      })
+    );
 
     const generateDrawingSection = (title: string, drawings: Array<{ label: string; data: string | null }>) => {
       if (drawings.length === 0) return '';
@@ -371,7 +410,7 @@ const VisitDetailPage: React.FC = () => {
             <div class="drawing-item">
               <h3 class="drawing-label">${d.label}</h3>
               <div class="drawing-container">
-                <img src="${d.data}" alt="${d.label}" />
+                <img src="${getDisplayDataUrl(d.data) || ''}" alt="${d.label}" />
               </div>
             </div>
           `).join('')}
@@ -381,39 +420,54 @@ const VisitDetailPage: React.FC = () => {
 
     const generateAttachmentsSection = (title: string, attachmentsList: typeof attachments) => {
       if (attachmentsList.length === 0) return '';
-      return `
-        <div class="section">
-          <h2 class="section-title">${title}</h2>
-          <div class="attachments-grid">
-            ${attachmentsList.map(a => {
-              const isImage = a.type.startsWith('image/');
-              const displayName = a.name.replace('[Prescription] ', '').replace('[Radiology] ', '');
-              if (isImage) {
+
+      const imageAttachments = attachmentsList.filter(a => a.type.startsWith('image/'));
+      const pdfAttachmentsList = attachmentsList.filter(a => !a.type.startsWith('image/'));
+
+      let html = '';
+
+      // Image attachments in a grid
+      if (imageAttachments.length > 0) {
+        html += `
+          <div class="section">
+            <h2 class="section-title">${title}</h2>
+            <div class="attachments-grid">
+              ${imageAttachments.map(a => {
+                const displayName = a.name.replace('[Prescription] ', '').replace('[Radiology] ', '');
                 return `
                   <div class="attachment-item">
                     <img src="${a.dataUrl}" alt="${displayName}" />
                     <p class="attachment-name">${displayName}</p>
                   </div>
                 `;
-              } else {
-                return `
-                  <div class="attachment-item pdf-item">
-                    <div class="pdf-icon">PDF</div>
-                    <p class="attachment-name">${displayName}</p>
-                  </div>
-                `;
-              }
-            }).join('')}
+              }).join('')}
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
+
+      // PDF attachments as full pages appended
+      for (const a of pdfAttachmentsList) {
+        const displayName = a.name.replace('[Prescription] ', '').replace('[Radiology] ', '');
+        const pdfPages = pdfImageMap.get(a.id);
+        if (pdfPages && pdfPages.length > 0) {
+          html += pdfPages.map((pageImg, idx) => `
+            <div class="pdf-full-page">
+              <p class="pdf-page-label">${displayName}${pdfPages.length > 1 ? ` — صفحة / Page ${idx + 1}/${pdfPages.length}` : ''}</p>
+              <img src="${pageImg}" alt="${displayName} - page ${idx + 1}" />
+            </div>
+          `).join('');
+        }
+      }
+
+      return html;
     };
 
-    const printContent = `
+    return `
       <!DOCTYPE html>
-      <html dir="${direction}">
+      <html>
         <head>
-          <title>${language === 'ar' ? 'تقرير الزيارة' : 'Visit Report'} - ${patient.name}</title>
+          <title>تقرير الزيارة / Visit Report - ${patient.name}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page { size: A4; margin: 15mm; }
@@ -422,8 +476,9 @@ const VisitDetailPage: React.FC = () => {
               background: white;
               color: #1f2937;
               line-height: 1.6;
+              direction: ltr;
             }
-            .report-container { max-width: 100%; }
+            .report-container { max-width: 100%; direction: rtl; text-align: right; }
 
             /* Header */
             .report-header {
@@ -433,11 +488,12 @@ const VisitDetailPage: React.FC = () => {
             }
             .header-top {
               display: flex;
+              direction: ltr;
               justify-content: space-between;
               align-items: flex-start;
               margin-bottom: 20px;
             }
-            .clinic-info-left { text-align: left; }
+            .clinic-info-left { text-align: left; direction: ltr; }
             .clinic-info-right { text-align: right; direction: rtl; }
             .doctor-name { font-size: 16px; font-weight: bold; color: #1f2937; }
             .credentials { font-size: 11px; color: #4b5563; }
@@ -447,6 +503,8 @@ const VisitDetailPage: React.FC = () => {
               padding: 15px;
               border-radius: 8px;
               margin-top: 15px;
+              direction: rtl;
+              text-align: right;
             }
             .patient-name { font-size: 20px; font-weight: bold; color: #1f2937; margin-bottom: 5px; }
             .visit-date { font-size: 14px; color: #6b7280; }
@@ -457,6 +515,8 @@ const VisitDetailPage: React.FC = () => {
               padding: 15px;
               border-radius: 8px;
               margin-bottom: 25px;
+              direction: rtl;
+              text-align: right;
             }
             .vitals-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #1e40af; }
             .vitals-grid {
@@ -518,6 +578,7 @@ const VisitDetailPage: React.FC = () => {
             }
             .prescription-header-content {
               display: flex;
+              direction: ltr;
               justify-content: space-between;
               align-items: flex-start;
             }
@@ -545,6 +606,7 @@ const VisitDetailPage: React.FC = () => {
               font-size: 10px;
               color: #6b7280;
               display: flex;
+              direction: ltr;
               justify-content: space-between;
             }
 
@@ -553,6 +615,21 @@ const VisitDetailPage: React.FC = () => {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
               gap: 15px;
+            }
+            .pdf-full-page {
+              page-break-before: always;
+              text-align: center;
+              padding: 0;
+            }
+            .pdf-full-page img {
+              max-width: 100%;
+              max-height: 100vh;
+              object-fit: contain;
+            }
+            .pdf-full-page .pdf-page-label {
+              font-size: 12px;
+              color: #6b7280;
+              margin-bottom: 8px;
             }
             .attachment-item {
               border: 1px solid #e5e7eb;
@@ -611,36 +688,36 @@ const VisitDetailPage: React.FC = () => {
               </div>
               <div class="patient-header">
                 <p class="patient-name">${patient.name}</p>
-                <p class="visit-date">${language === 'ar' ? 'تاريخ الزيارة:' : 'Visit Date:'} ${visitDateFull}</p>
+                <p class="visit-date">تاريخ الزيارة / Visit Date: ${visitDateFull}</p>
               </div>
             </div>
 
             <!-- Vitals -->
             <div class="vitals-section">
-              <h2 class="vitals-title">${language === 'ar' ? 'العلامات الحيوية' : 'Vitals'}</h2>
+              <h2 class="vitals-title">العلامات الحيوية / Vitals</h2>
               <div class="vitals-grid" style="grid-template-columns: repeat(3, 1fr);">
                 <div class="vital-item">
-                  <label>${language === 'ar' ? 'ضغط الدم' : 'Blood Pressure'}</label>
+                  <label>ضغط الدم / Blood Pressure</label>
                   <span>${visit.vitals.bloodPressure || '-'} mmHg</span>
                 </div>
                 <div class="vital-item">
-                  <label>${language === 'ar' ? 'الحرارة' : 'Temperature'}</label>
+                  <label>الحرارة / Temperature</label>
                   <span>${visit.vitals.temperature || '-'}°C</span>
                 </div>
                 <div class="vital-item">
-                  <label>${language === 'ar' ? 'الوزن' : 'Weight'}</label>
+                  <label>الوزن / Weight</label>
                   <span>${visit.vitals.weight || '-'} kg</span>
                 </div>
               </div>
             </div>
 
-            ${medicalHistoryDrawings.length > 0 ? generateDrawingSection(language === 'ar' ? 'التاريخ الطبي' : 'Medical History', medicalHistoryDrawings) : ''}
+            ${medicalHistoryDrawings.length > 0 ? generateDrawingSection('التاريخ الطبي / Medical History', medicalHistoryDrawings) : ''}
 
-            ${medicalNotesDrawings.length > 0 ? generateDrawingSection(language === 'ar' ? 'الملاحظات الطبية' : 'Medical Notes', medicalNotesDrawings) : ''}
+            ${medicalNotesDrawings.length > 0 ? generateDrawingSection('الملاحظات الطبية / Medical Notes', medicalNotesDrawings) : ''}
 
             ${prescriptionPages.length > 0 ? `
               <div class="section">
-                <h2 class="section-title">${language === 'ar' ? 'الروشتة' : 'Prescription'}</h2>
+                <h2 class="section-title">الروشتة / Prescription</h2>
                 ${prescriptionPages.map(p => `
                   <div class="prescription-item">
                     <div class="prescription-header">
@@ -654,13 +731,13 @@ const VisitDetailPage: React.FC = () => {
                         </div>
                       </div>
                       <div style="margin-top: 10px; font-size: 11px;">
-                        <span>الإســـم: ${patient.name}</span> |
-                        <span>التـــاريخ: ${visitDate}</span>
+                        <span>الإســـم / Name: ${patient.name}</span> |
+                        <span>التـــاريخ / Date: ${visitDate}</span>
                       </div>
                     </div>
                     <div class="prescription-body">
                       <div class="rx-symbol">℞/</div>
-                      <img src="${p.data}" alt="${p.label}" />
+                      <img src="${getDisplayDataUrl(p.data) || ''}" alt="${p.label}" />
                     </div>
                     <div class="prescription-footer">
                       <div>مستشفى تبارك/النسائم | 16552 - 15452</div>
@@ -671,11 +748,11 @@ const VisitDetailPage: React.FC = () => {
               </div>
             ` : ''}
 
-            ${prescriptionAttachments.length > 0 ? generateAttachmentsSection(language === 'ar' ? 'مرفقات الروشتة' : 'Prescription Attachments', prescriptionAttachments) : ''}
+            ${prescriptionAttachments.length > 0 ? generateAttachmentsSection('مرفقات الروشتة / Prescription Attachments', prescriptionAttachments) : ''}
 
             ${radiologyPages.length > 0 ? `
               <div class="section">
-                <h2 class="section-title">${language === 'ar' ? 'الأشعة' : 'Radiology'}</h2>
+                <h2 class="section-title">الأشعة / Radiology</h2>
                 ${radiologyPages.map(p => `
                   <div class="prescription-item">
                     <div class="prescription-header">
@@ -689,13 +766,13 @@ const VisitDetailPage: React.FC = () => {
                         </div>
                       </div>
                       <div style="margin-top: 10px; font-size: 11px;">
-                        <span>الإســـم: ${patient.name}</span> |
-                        <span>التـــاريخ: ${visitDate}</span>
+                        <span>الإســـم / Name: ${patient.name}</span> |
+                        <span>التـــاريخ / Date: ${visitDate}</span>
                       </div>
                     </div>
                     <div class="prescription-body">
                       <div class="rx-symbol">℞/</div>
-                      <img src="${p.data}" alt="${p.label}" />
+                      <img src="${getDisplayDataUrl(p.data) || ''}" alt="${p.label}" />
                     </div>
                     <div class="prescription-footer">
                       <div>مستشفى تبارك/النسائم | 16552 - 15452</div>
@@ -706,32 +783,30 @@ const VisitDetailPage: React.FC = () => {
               </div>
             ` : ''}
 
-            ${radiologyAttachments.length > 0 ? generateAttachmentsSection(language === 'ar' ? 'مرفقات الأشعة' : 'Radiology Attachments', radiologyAttachments) : ''}
+            ${radiologyAttachments.length > 0 ? generateAttachmentsSection('مرفقات الأشعة / Radiology Attachments', radiologyAttachments) : ''}
 
-            ${generalAttachments.length > 0 ? generateAttachmentsSection(language === 'ar' ? 'المرفقات' : 'Attachments', generalAttachments) : ''}
+            ${generalAttachments.length > 0 ? generateAttachmentsSection('المرفقات / Attachments', generalAttachments) : ''}
           </div>
-
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.onafterprint = function() { window.close(); };
-              }, 500);
-            };
-          </script>
         </body>
       </html>
     `;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
   };
 
-  const handlePrintLabRequest = () => {
-    if (!patient || !visit || !visit.labTestRequest) return;
+  const handlePrintReport = async () => {
+    const html = await getReportHtml();
+    if (!html) return;
+    printHtml(html);
+  };
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  const handleDownloadReport = async () => {
+    const html = await getReportHtml();
+    if (!html) return;
+    const filename = `visit-report-${visit ? format(visit.date, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0]}`;
+    downloadPdf(html, filename, 'a4');
+  };
+
+  const getLabRequestHtml = () => {
+    if (!patient || !visit || !visit.labTestRequest) return '';
 
     const visitDate = format(visit.date, 'dd/MM/yyyy');
 
@@ -774,7 +849,7 @@ const VisitDetailPage: React.FC = () => {
       `;
     };
 
-    printWindow.document.write(`
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -925,18 +1000,22 @@ const VisitDetailPage: React.FC = () => {
               <div>١٨ عمارات خلف العبور - مصر الجديدة - ت: 01554343147</div>
             </div>
           </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.onafterprint = function() { window.close(); };
-              }, 500);
-            };
-          </script>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+  };
+
+  const handlePrintLabRequest = () => {
+    const html = getLabRequestHtml();
+    if (!html) return;
+    printHtml(html);
+  };
+
+  const handleDownloadLabRequest = () => {
+    const html = getLabRequestHtml();
+    if (!html) return;
+    const filename = `lab-request-${visit ? format(visit.date, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0]}`;
+    downloadPdf(html, filename, 'a4');
   };
 
   if (!patient || !visit) {
@@ -980,6 +1059,10 @@ const VisitDetailPage: React.FC = () => {
                 <Printer className="w-4 h-4" />
                 {language === 'ar' ? 'طباعة التقرير' : 'Print Report'}
               </Button>
+              <Button onClick={handleDownloadReport} variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                {language === 'ar' ? 'تحميل التقرير' : 'Download Report'}
+              </Button>
             </div>
           </div>
         </div>
@@ -990,7 +1073,7 @@ const VisitDetailPage: React.FC = () => {
             <Activity className="w-5 h-5 text-primary print:text-gray-600" />
             {t('visits.vitals')}
           </h2>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr 1fr 2fr 2fr' }}>
             <div>
               <p className="text-sm text-muted-foreground">{t('visits.bloodPressure')}</p>
               <p className="font-semibold">{visit.vitals.bloodPressure || '-'} mmHg</p>
@@ -1002,6 +1085,33 @@ const VisitDetailPage: React.FC = () => {
             <div>
               <p className="text-sm text-muted-foreground">{t('visits.weight')}</p>
               <p className="font-semibold">{visit.vitals.weight || '-'} kg</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <ClipboardList className="w-3 h-3" />
+                {language === 'ar' ? 'نوع الزيارة' : 'Visit Type'}
+              </p>
+              <Select
+                value={visit.visitType}
+                onValueChange={handleChangeVisitType}
+                disabled={isSavingVisitType}
+              >
+                <SelectTrigger className="h-8 w-fit text-sm font-semibold gap-1">
+                  {isSavingVisitType ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <SelectValue />
+                  )}
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">
+                    {language === 'ar' ? 'كشف جديد' : 'New Visit'}
+                  </SelectItem>
+                  <SelectItem value="followup">
+                    {language === 'ar' ? 'متابعة' : 'Follow-up'}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -1085,7 +1195,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'التاريخ المرضي السابق' : 'Past Medical History'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.pastMedicalHistoryDrawing} alt="Past Medical History" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.pastMedicalHistoryDrawing) || ''} alt="Past Medical History" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1098,7 +1208,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'تاريخ المرض الحالي' : 'HPI (History of Present Illness)'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.hpiDrawing} alt="HPI" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.hpiDrawing) || ''} alt="HPI" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1111,7 +1221,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'تاريخ الأدوية' : 'Drug History'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.drugHistoryDrawing} alt="Drug History" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.drugHistoryDrawing) || ''} alt="Drug History" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1124,7 +1234,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'التاريخ العائلي' : 'Family History'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.familyHistoryDrawing} alt="Family History" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.familyHistoryDrawing) || ''} alt="Family History" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1169,7 +1279,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'الشكوى الرئيسية' : 'Chief Complaint'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.chiefComplaintDrawing} alt="Chief Complaint" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.chiefComplaintDrawing) || ''} alt="Chief Complaint" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1182,7 +1292,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'التشخيص' : 'Diagnosis'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.diagnosisDrawing} alt="Diagnosis" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.diagnosisDrawing) || ''} alt="Diagnosis" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1195,7 +1305,7 @@ const VisitDetailPage: React.FC = () => {
                         {language === 'ar' ? 'الأدوية الحالية' : 'Current Medication'}
                       </h3>
                       <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={visit.currentMedicationDrawing} alt="Current Medication" className="w-full rounded" />
+                        <img src={getDisplayDataUrl(visit.currentMedicationDrawing) || ''} alt="Current Medication" className="w-full rounded" />
                       </div>
                     </div>
                   )}
@@ -1249,19 +1359,34 @@ const VisitDetailPage: React.FC = () => {
             onClick={() => toggleSection('prescription')}
             extra={
               (visit.notesDrawing || visit.notesDrawing2 || visit.notesDrawing3) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const currentDrawing = activePrescriptionPage === 1 ? visit.notesDrawing : activePrescriptionPage === 2 ? visit.notesDrawing2 : visit.notesDrawing3;
-                    handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activePrescriptionPage === 1 ? visit.notesDrawing : activePrescriptionPage === 2 ? visit.notesDrawing2 : visit.notesDrawing3;
+                      handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activePrescriptionPage === 1 ? visit.notesDrawing : activePrescriptionPage === 2 ? visit.notesDrawing2 : visit.notesDrawing3;
+                      handleDownloadDrawing(currentDrawing, language === 'ar' ? `الروشتة-صفحة-${activePrescriptionPage}` : `prescription-page-${activePrescriptionPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               )
             }
           />
@@ -1362,7 +1487,7 @@ const VisitDetailPage: React.FC = () => {
                                       ℞/
                                     </div>
                                     <div className="p-4 ps-20">
-                                      <img src={currentDrawing} alt={language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`} className="w-full" />
+                                      <img src={getDisplayDataUrl(currentDrawing) || ''} alt={language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`} className="w-full" />
                                     </div>
                                   </div>
                                   <div className="prescription-footer border-t border-gray-300 p-3 bg-gray-50 flex-shrink-0 mt-auto">
@@ -1435,19 +1560,34 @@ const VisitDetailPage: React.FC = () => {
             onClick={() => toggleSection('lab')}
             extra={
               (visit.radiologyDrawing || visit.radiologyDrawing2 || visit.radiologyDrawing3) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const currentDrawing = activeRadiologyPage === 1 ? visit.radiologyDrawing : activeRadiologyPage === 2 ? visit.radiologyDrawing2 : visit.radiologyDrawing3;
-                    handlePrint(currentDrawing, language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`);
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activeRadiologyPage === 1 ? visit.radiologyDrawing : activeRadiologyPage === 2 ? visit.radiologyDrawing2 : visit.radiologyDrawing3;
+                      handlePrint(currentDrawing, language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const currentDrawing = activeRadiologyPage === 1 ? visit.radiologyDrawing : activeRadiologyPage === 2 ? visit.radiologyDrawing2 : visit.radiologyDrawing3;
+                      handleDownloadDrawing(currentDrawing, language === 'ar' ? `الأشعة-صفحة-${activeRadiologyPage}` : `radiology-page-${activeRadiologyPage}`);
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               )
             }
           />
@@ -1548,7 +1688,7 @@ const VisitDetailPage: React.FC = () => {
                                       ℞/
                                     </div>
                                     <div className="p-4 ps-20">
-                                      <img src={currentDrawing} alt={language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`} className="w-full" />
+                                      <img src={getDisplayDataUrl(currentDrawing) || ''} alt={language === 'ar' ? `الأشعة - صفحة ${activeRadiologyPage}` : `Radiology - Page ${activeRadiologyPage}`} className="w-full" />
                                     </div>
                                   </div>
                                   <div className="radiology-footer border-t border-gray-300 p-3 bg-gray-50 flex-shrink-0 mt-auto">
@@ -1621,18 +1761,32 @@ const VisitDetailPage: React.FC = () => {
               isOpen={isSectionOpen('lab-tests')}
               onClick={() => toggleSection('lab-tests')}
               extra={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePrintLabRequest();
-                  }}
-                  className="gap-1 h-8"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrintLabRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadLabRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
               }
             />
             <AnimatePresence initial={false}>

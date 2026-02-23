@@ -416,6 +416,24 @@ function createTables() {
     )
   `);
 
+  // Create queue table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS queue (
+      id TEXT PRIMARY KEY,
+      doctor_id TEXT NOT NULL,
+      patient_id TEXT NOT NULL,
+      patient_name TEXT NOT NULL,
+      patient_phone TEXT,
+      position INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'in-progress', 'done')),
+      added_at TEXT DEFAULT (datetime('now')),
+      added_by TEXT NOT NULL,
+      queue_date TEXT NOT NULL,
+      FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+      FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create indexes
   db.exec(`CREATE INDEX IF NOT EXISTS idx_doctors_email ON doctors(email)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_patients_doctor_id ON patients(doctor_id)`);
@@ -436,6 +454,8 @@ function createTables() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_doctor_id ON notifications(doctor_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_visit_attachments_visit_id ON visit_attachments(visit_id)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_queue_doctor_date ON queue(doctor_id, queue_date)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_queue_patient_date ON queue(patient_id, queue_date)`);
 }
 
 // Create default doctor account for testing
