@@ -10,6 +10,8 @@ import { errorHandler } from './presentation/middleware/errorHandler';
 import { initializeSocketServer } from './infrastructure/socket/socketServer';
 import { initializeDatabase, closeDatabase } from './infrastructure/database/config';
 import { validateLicenseKey } from './utils/license';
+import { updater } from './infrastructure/updater/Updater';
+import { APP_VERSION } from './utils/version';
 
 dotenv.config();
 
@@ -176,6 +178,27 @@ async function startServer() {
       if (process.env.AUTO_OPEN_BROWSER === 'true') {
         console.log('🌐 Opening browser...\n');
         openBrowser(localURL);
+      }
+
+      // Non-blocking update check on startup
+      console.log(`📦 App version: ${APP_VERSION}`);
+      if (process.env.UPDATE_MANIFEST_URL) {
+        updater
+          .checkForUpdates()
+          .then((state) => {
+            if (state.manifest && updater.isUpdateAvailable()) {
+              console.log(
+                `🆕 Update available: ${APP_VERSION} → ${state.manifest.version}`
+              );
+            } else if (state.lastCheckError) {
+              console.log(`⚠️  Update check failed: ${state.lastCheckError}`);
+            } else {
+              console.log('✅ App is up to date');
+            }
+          })
+          .catch(() => {
+            // already swallowed inside checkForUpdates
+          });
       }
     });
   } catch (error) {

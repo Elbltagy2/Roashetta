@@ -428,6 +428,23 @@ class ApiClient {
     );
   }
 
+  // Updates
+  async getUpdateInfo() {
+    return this.request<UpdateState>('/updates');
+  }
+
+  async checkForUpdates() {
+    return this.request<UpdateState>('/updates/check', { method: 'POST' });
+  }
+
+  async installUpdate() {
+    return this.request<UpdateState>('/updates/install', { method: 'POST' });
+  }
+
+  async restartForUpdate() {
+    return this.request<{ status: string }>('/updates/restart', { method: 'POST' });
+  }
+
 }
 
 // Types
@@ -808,6 +825,31 @@ export interface QueueEntry {
 export interface UpdateQueueEntryData {
   status?: QueueStatus;
   position?: number;
+}
+
+// App auto-update
+export interface UpdateManifest {
+  version: string;
+  downloadUrl: string;
+  sha256: string;
+  releasedAt?: string;
+  notes?: string;
+  minVersion?: string;
+}
+
+export type DownloadStatus =
+  | { state: 'idle' }
+  | { state: 'downloading'; receivedBytes: number; totalBytes: number }
+  | { state: 'downloaded'; path: string }
+  | { state: 'error'; message: string };
+
+export interface UpdateState {
+  currentVersion: string;
+  manifest: UpdateManifest | null;
+  lastCheckedAt: string | null;
+  lastCheckError: string | null;
+  downloadStatus: DownloadStatus;
+  pendingRestart: boolean;
 }
 
 // Use mock API in demo mode, real API otherwise

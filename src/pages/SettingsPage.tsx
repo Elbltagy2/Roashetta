@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import api, { Settings as SettingsType, DiscoveredScanner } from '@/services/api';
+import UpdatesPanel from '@/components/settings/UpdatesPanel';
 
 const SettingsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -330,6 +331,8 @@ const SettingsPage: React.FC = () => {
             </div>
           )}
         </motion.div>
+
+        <UpdatesPanel />
       </div>
     </DashboardLayout>
   );

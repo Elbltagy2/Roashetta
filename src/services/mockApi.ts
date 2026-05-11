@@ -727,6 +727,30 @@ class MockApiClient {
     throw new Error('Scanner is not available in demo mode');
   }
 
+  // Updates — not applicable in demo mode (no backend exe to swap)
+  async getUpdateInfo() {
+    return {
+      currentVersion: 'demo',
+      manifest: null,
+      lastCheckedAt: null,
+      lastCheckError: 'Auto-update is not available in demo mode',
+      downloadStatus: { state: 'idle' as const },
+      pendingRestart: false,
+    };
+  }
+
+  async checkForUpdates() {
+    return this.getUpdateInfo();
+  }
+
+  async installUpdate() {
+    throw new Error('Auto-update is not available in demo mode');
+  }
+
+  async restartForUpdate() {
+    throw new Error('Auto-update is not available in demo mode');
+  }
+
 }
 
 export const mockApi = new MockApiClient();
