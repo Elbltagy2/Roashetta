@@ -1,6 +1,6 @@
 // Bumped per release. Keep in sync with package.json. The updater compares
 // this against the remote manifest to decide if a download is needed.
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.2';
 
 export function compareVersions(a: string, b: string): -1 | 0 | 1 {
   const pa = a.split('.').map((n) => parseInt(n, 10) || 0);

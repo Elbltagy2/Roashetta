@@ -1,7 +1,0 @@
-{
-  "version": "1.0.1",
-  "downloadUrl": "http://localhost:3000/test-payload.bin",
-  "sha256": "042749b76e1aa6d3b714b7fe8aa68bc00e7ed1f308a8e4c75fc0e8c6e5cbd009",
-  "releasedAt": "2026-05-11T18:00:00Z",
-  "notes": "Test release - fake payload for local UI verification only."
-}
