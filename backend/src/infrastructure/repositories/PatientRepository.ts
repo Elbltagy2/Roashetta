@@ -1,5 +1,9 @@
 import { db } from '../database/config';
-import { IPatientRepository } from '../../domain/repositories/IPatientRepository';
+import {
+  IPatientRepository,
+  PaginatedPatientsOptions,
+  PaginatedPatientsResult,
+} from '../../domain/repositories/IPatientRepository';
 import { Patient, CreatePatientInput, UpdatePatientInput } from '../../domain/entities/Patient';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,6 +16,39 @@ export class PatientRepository implements IPatientRepository {
   findByDoctorId(doctorId: string): Promise<Patient[]> {
     const rows = db.prepare('SELECT * FROM patients WHERE doctor_id = ? ORDER BY created_at DESC').all(doctorId) as Record<string, unknown>[];
     return Promise.resolve(rows.map(row => this.mapToEntity(row)));
+  }
+
+  findPaginated(doctorId: string, opts: PaginatedPatientsOptions): Promise<PaginatedPatientsResult> {
+    const where: string[] = ['doctor_id = ?'];
+    const params: unknown[] = [doctorId];
+
+    const trimmedSearch = opts.search?.trim();
+    if (trimmedSearch) {
+      const pattern = `%${trimmedSearch}%`;
+      where.push('(file_number LIKE ? OR name LIKE ? OR phone LIKE ?)');
+      params.push(pattern, pattern, pattern);
+    }
+    if (opts.gender) {
+      where.push('gender = ?');
+      params.push(opts.gender);
+    }
+
+    const whereSql = where.join(' AND ');
+
+    const totalRow = db.prepare(
+      `SELECT COUNT(*) AS cnt FROM patients WHERE ${whereSql}`
+    ).get(...params) as { cnt: number };
+    const total = Number(totalRow?.cnt ?? 0);
+
+    const offset = (opts.page - 1) * opts.limit;
+    const rows = db.prepare(
+      `SELECT * FROM patients WHERE ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    ).all(...params, opts.limit, offset) as Record<string, unknown>[];
+
+    return Promise.resolve({
+      data: rows.map(row => this.mapToEntity(row)),
+      total,
+    });
   }
 
   create(data: CreatePatientInput): Promise<Patient> {

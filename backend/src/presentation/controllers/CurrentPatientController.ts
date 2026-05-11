@@ -5,6 +5,7 @@ import { db } from '../../infrastructure/database/config';
 import { PatientRepository } from '../../infrastructure/repositories/PatientRepository';
 import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
 import { NotificationService } from '../../application/services/NotificationService';
+import { cache, cacheKeys } from '../../infrastructure/cache/MemoryCache';
 
 const notificationRepository = new NotificationRepository();
 
@@ -14,13 +15,21 @@ export class CurrentPatientController {
     try {
       const doctorId = req.doctorId!;
 
+      const cacheKey = cacheKeys.currentPatient(doctorId);
+      const cached = cache.get<{ currentPatient: unknown }>(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
       // Get the current_patient_id from doctors table
       const doctorResult = db.prepare(
         'SELECT current_patient_id FROM doctors WHERE id = ?'
       ).get(doctorId) as { current_patient_id: string | null } | undefined;
 
       if (!doctorResult || !doctorResult.current_patient_id) {
-        return res.json({ currentPatient: null });
+        const payload = { currentPatient: null };
+        cache.set(cacheKey, payload);
+        return res.json(payload);
       }
 
       // Get the full patient details
@@ -32,10 +41,14 @@ export class CurrentPatientController {
         db.prepare(
           'UPDATE doctors SET current_patient_id = NULL WHERE id = ?'
         ).run(doctorId);
-        return res.json({ currentPatient: null });
+        const payload = { currentPatient: null };
+        cache.set(cacheKey, payload);
+        return res.json(payload);
       }
 
-      res.json({ currentPatient: patient });
+      const payload = { currentPatient: patient };
+      cache.set(cacheKey, payload);
+      res.json(payload);
     } catch (error) {
       next(error);
     }
@@ -65,12 +78,15 @@ export class CurrentPatientController {
         "UPDATE doctors SET current_patient_id = ?, updated_at = datetime('now') WHERE id = ?"
       ).run(patientId, doctorId);
 
+      cache.delete(cacheKeys.currentPatient(doctorId));
+
       // Emit notification to all connected clients in the doctor's room
+      // Fire-and-forget: don't block the response on notification persistence/emit
       const io = req.app.get('io') as SocketIOServer;
       const notificationService = new NotificationService(notificationRepository, io);
 
-      try {
-        await notificationService.createAndEmit({
+      notificationService
+        .createAndEmit({
           doctorId,
           type: 'current_patient_changed',
           title: 'Current Patient Changed',
@@ -83,10 +99,10 @@ export class CurrentPatientController {
           createdById: req.user!.id,
           createdByName: req.user!.email.split('@')[0],
           createdByRole: req.user!.role,
+        })
+        .catch((notifError) => {
+          console.error('Failed to create notification:', notifError);
         });
-      } catch (notifError) {
-        console.error('Failed to create notification:', notifError);
-      }
 
       res.json({ currentPatient: patient });
     } catch (error) {
@@ -102,6 +118,8 @@ export class CurrentPatientController {
       db.prepare(
         "UPDATE doctors SET current_patient_id = NULL, updated_at = datetime('now') WHERE id = ?"
       ).run(doctorId);
+
+      cache.delete(cacheKeys.currentPatient(doctorId));
 
       res.json({ currentPatient: null });
     } catch (error) {

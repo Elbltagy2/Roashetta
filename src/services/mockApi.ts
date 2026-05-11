@@ -256,6 +256,41 @@ class MockApiClient {
     return getData<Patient>(STORAGE_KEYS.patients);
   }
 
+  async getPatientsPaginated(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    gender?: 'male' | 'female';
+  }): Promise<{
+    data: Patient[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const all = getData<Patient>(STORAGE_KEYS.patients);
+    const search = params.search?.trim().toLowerCase() ?? '';
+    const filtered = all.filter((p) => {
+      const matchesSearch =
+        !search ||
+        p.name.toLowerCase().includes(search) ||
+        p.phone.includes(search) ||
+        (p.fileNumber ?? '').toLowerCase().includes(search);
+      const matchesGender = !params.gender || p.gender === params.gender;
+      return matchesSearch && matchesGender;
+    });
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / params.limit));
+    const offset = (params.page - 1) * params.limit;
+    return {
+      data: filtered.slice(offset, offset + params.limit),
+      total,
+      page: params.page,
+      limit: params.limit,
+      totalPages,
+    };
+  }
+
   async getPatient(id: string): Promise<Patient> {
     const patients = getData<Patient>(STORAGE_KEYS.patients);
     const patient = patients.find(p => p.id === id);

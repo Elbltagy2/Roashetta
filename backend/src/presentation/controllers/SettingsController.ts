@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { SettingsRepository } from '../../infrastructure/repositories/SettingsRepository';
+import { cache, cacheKeys } from '../../infrastructure/cache/MemoryCache';
 
 const settingsRepository = new SettingsRepository();
 
@@ -8,18 +9,25 @@ export class SettingsController {
   async get(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const doctorId = req.doctorId!;
-      const settings = await settingsRepository.findByDoctorId(doctorId);
 
-      if (!settings) {
-        // Return default settings if none exist
-        return res.json({
-          doctorId,
-          newVisitPrice: 0,
-          followupVisitPrice: 0,
-        });
+      const cacheKey = cacheKeys.settings(doctorId);
+      const cached = cache.get<unknown>(cacheKey);
+      if (cached) {
+        return res.json(cached);
       }
 
-      res.json(settings);
+      const settings = await settingsRepository.findByDoctorId(doctorId);
+
+      const payload = settings ?? {
+        doctorId,
+        newVisitPrice: 0,
+        followupVisitPrice: 0,
+        lastScannerUrl: '',
+        lastScannerName: '',
+      };
+
+      cache.set(cacheKey, payload);
+      res.json(payload);
     } catch (error) {
       next(error);
     }
@@ -28,13 +36,19 @@ export class SettingsController {
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const doctorId = req.doctorId!;
-      const { newVisitPrice, followupVisitPrice } = req.body;
+      const { newVisitPrice, followupVisitPrice, lastScannerUrl, lastScannerName } = req.body;
+
+      const existing = await settingsRepository.findByDoctorId(doctorId);
 
       const settings = await settingsRepository.upsert({
         doctorId,
-        newVisitPrice: newVisitPrice ?? 0,
-        followupVisitPrice: followupVisitPrice ?? 0,
+        newVisitPrice: newVisitPrice ?? existing?.newVisitPrice ?? 0,
+        followupVisitPrice: followupVisitPrice ?? existing?.followupVisitPrice ?? 0,
+        lastScannerUrl: lastScannerUrl ?? existing?.lastScannerUrl ?? '',
+        lastScannerName: lastScannerName ?? existing?.lastScannerName ?? '',
       });
+
+      cache.delete(cacheKeys.settings(doctorId));
 
       res.json(settings);
     } catch (error) {

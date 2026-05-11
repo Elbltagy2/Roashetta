@@ -136,6 +136,26 @@ class ApiClient {
     return this.request<Patient[]>('/patients');
   }
 
+  async getPatientsPaginated(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    gender?: 'male' | 'female';
+  }) {
+    const query = new URLSearchParams();
+    query.set('page', String(params.page));
+    query.set('limit', String(params.limit));
+    if (params.search) query.set('search', params.search);
+    if (params.gender) query.set('gender', params.gender);
+    return this.request<{
+      data: Patient[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>(`/patients?${query.toString()}`);
+  }
+
   async getPatient(id: string) {
     return this.request<Patient>(`/patients/${id}`);
   }
