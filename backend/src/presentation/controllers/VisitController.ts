@@ -128,6 +128,8 @@ export class VisitController {
         radiologyDrawing2: req.body.radiologyDrawing2,
         radiologyDrawing3: req.body.radiologyDrawing3,
         labTestRequest: req.body.labTestRequest,
+        radiologyRequest: req.body.radiologyRequest,
+        medicalChecklists: req.body.medicalChecklists,
         vitals: req.body.vitals,
       };
 

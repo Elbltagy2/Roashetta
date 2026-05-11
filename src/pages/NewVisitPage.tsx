@@ -36,13 +36,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SimpleDrawingCanvas } from '@/components/ui/simple-drawing-canvas';
 import LabTestRequestForm from '@/components/visit/LabTestRequestForm';
+import RadiologyRequestForm from '@/components/visit/RadiologyRequestForm';
+import CheckboxRequestForm, { ChecklistCategory } from '@/components/visit/CheckboxRequestForm';
 import { LAB_TEST_CATEGORIES } from '@/data/labTests';
+import { RADIOLOGY_TEST_CATEGORIES } from '@/data/radiologyTests';
+import { CHIEF_COMPLAINT_CATEGORIES } from '@/data/chiefComplaintItems';
+import { DIAGNOSIS_CATEGORIES } from '@/data/diagnosisItems';
+import { PAST_MEDICAL_HISTORY_CATEGORIES } from '@/data/pastMedicalHistoryItems';
+import { HPI_CATEGORIES } from '@/data/hpiItems';
+import { DRUG_HISTORY_CATEGORIES } from '@/data/drugHistoryItems';
+import { FAMILY_HISTORY_CATEGORIES } from '@/data/familyHistoryItems';
+import { CURRENT_MEDICATION_CATEGORIES } from '@/data/currentMedicationItems';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getDisplayDataUrl } from '@/lib/drawing-utils';
 import { downloadPdf } from '@/lib/download-pdf';
+import { pdfToImages } from '@/lib/pdf-to-images';
 import api, { VisitType, Settings } from '@/services/api';
 import {
   Select,
@@ -59,7 +70,7 @@ interface Attachment {
   dataUrl: string;
 }
 
-type ActiveSection = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | null;
+type ActiveSection = 'medical-history' | 'medical-history-checklist' | 'medical-notes' | 'clinical-notes-checklist' | 'prescription' | 'lab' | 'lab-tests' | 'radiology-request' | null;
 
 // Defined outside component to prevent remount on parent re-render
 const PrescriptionTemplate = React.memo(({
@@ -249,6 +260,33 @@ const NewVisitPage: React.FC = () => {
             console.error('Failed to parse lab test request:', e);
           }
         }
+
+        // Load radiology request
+        if (visitToEdit.radiologyRequest) {
+          try {
+            const radData = JSON.parse(visitToEdit.radiologyRequest);
+            setSelectedRadiologyTests(radData.tests || {});
+            setRadiologyTestOtherNotes(radData.notes || '');
+          } catch (e) {
+            console.error('Failed to parse radiology request:', e);
+          }
+        }
+
+        // Load medical checklists
+        if (visitToEdit.medicalChecklists) {
+          try {
+            const mc = JSON.parse(visitToEdit.medicalChecklists);
+            if (mc.chiefComplaint) { setCcChecklist(mc.chiefComplaint.items || {}); setCcNotes(mc.chiefComplaint.notes || ''); }
+            if (mc.diagnosis) { setDxChecklist(mc.diagnosis.items || {}); setDxNotes(mc.diagnosis.notes || ''); }
+            if (mc.pastMedicalHistory) { setPmhChecklist(mc.pastMedicalHistory.items || {}); setPmhNotes(mc.pastMedicalHistory.notes || ''); }
+            if (mc.hpi) { setHpiChecklist(mc.hpi.items || {}); setHpiNotes(mc.hpi.notes || ''); }
+            if (mc.drugHistory) { setDhChecklist(mc.drugHistory.items || {}); setDhNotes(mc.drugHistory.notes || ''); }
+            if (mc.familyHistory) { setFhChecklist(mc.familyHistory.items || {}); setFhNotes(mc.familyHistory.notes || ''); }
+            if (mc.currentMedication) { setCmChecklist(mc.currentMedication.items || {}); setCmNotes(mc.currentMedication.notes || ''); }
+          } catch (e) {
+            console.error('Failed to parse medical checklists:', e);
+          }
+        }
       }
     }
   }, [isEditMode, visitId, visits]);
@@ -323,6 +361,31 @@ const NewVisitPage: React.FC = () => {
   const [selectedLabTests, setSelectedLabTests] = useState<Record<string, boolean>>({});
   const [labTestOtherNotes, setLabTestOtherNotes] = useState<string>('');
 
+  // Radiology Request
+  const [selectedRadiologyTests, setSelectedRadiologyTests] = useState<Record<string, boolean>>({});
+  const [radiologyTestOtherNotes, setRadiologyTestOtherNotes] = useState<string>('');
+
+  // Medical Checklists (7 forms)
+  type MedHistoryTab = 'pmh' | 'hpi' | 'drugHistory' | 'familyHistory';
+  type ClinicalNotesTab = 'chiefComplaint' | 'diagnosis' | 'currentMedication';
+  const [activeMedHistoryTab, setActiveMedHistoryTab] = useState<MedHistoryTab>('pmh');
+  const [activeClinicalNotesTab, setActiveClinicalNotesTab] = useState<ClinicalNotesTab>('chiefComplaint');
+
+  const [ccChecklist, setCcChecklist] = useState<Record<string, boolean>>({});
+  const [ccNotes, setCcNotes] = useState('');
+  const [dxChecklist, setDxChecklist] = useState<Record<string, boolean>>({});
+  const [dxNotes, setDxNotes] = useState('');
+  const [pmhChecklist, setPmhChecklist] = useState<Record<string, boolean>>({});
+  const [pmhNotes, setPmhNotes] = useState('');
+  const [hpiChecklist, setHpiChecklist] = useState<Record<string, boolean>>({});
+  const [hpiNotes, setHpiNotes] = useState('');
+  const [dhChecklist, setDhChecklist] = useState<Record<string, boolean>>({});
+  const [dhNotes, setDhNotes] = useState('');
+  const [fhChecklist, setFhChecklist] = useState<Record<string, boolean>>({});
+  const [fhNotes, setFhNotes] = useState('');
+  const [cmChecklist, setCmChecklist] = useState<Record<string, boolean>>({});
+  const [cmNotes, setCmNotes] = useState('');
+
   // Attachments
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
@@ -331,6 +394,27 @@ const NewVisitPage: React.FC = () => {
 
   // File preview modal
   const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
+  const [pdfPages, setPdfPages] = useState<string[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleOpenPdf = async (url: string) => {
+    setSelectedFile({ url, type: 'pdf' });
+    setPdfPages([]);
+    setPdfLoading(true);
+    try {
+      const pages = await pdfToImages(url);
+      setPdfPages(pages);
+    } catch (err) {
+      console.error('Failed to render PDF:', err);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleCloseFile = () => {
+    setSelectedFile(null);
+    setPdfPages([]);
+  };
 
   // Global pen size for all drawing canvases
   const [globalPenSize, setGlobalPenSize] = useState(2);
@@ -458,6 +542,18 @@ const NewVisitPage: React.FC = () => {
       ...prev,
       [testId]: !prev[testId]
     }));
+  };
+
+  const handleRadiologyTestToggle = (testId: string) => {
+    setSelectedRadiologyTests(prev => ({
+      ...prev,
+      [testId]: !prev[testId]
+    }));
+  };
+
+  // Medical checklist toggle handlers
+  const toggleChecklist = (setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>) => (itemId: string) => {
+    setter(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
   const getLabRequestHtml = () => {
@@ -669,6 +765,203 @@ const NewVisitPage: React.FC = () => {
     if (!html) return;
     const today = new Date().toISOString().split('T')[0];
     downloadPdf(html, `lab-request-${today}`, 'a4');
+  };
+
+  const getRadiologyRequestHtml = () => {
+    const today = new Date();
+    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
+    const categoriesWithSelectedTests = RADIOLOGY_TEST_CATEGORIES.filter(category => {
+      if (category.id === 'others') return radiologyTestOtherNotes;
+      return category.tests.some(test => selectedRadiologyTests[test.id]);
+    });
+
+    const generateCategoryHtml = (category: typeof RADIOLOGY_TEST_CATEGORIES[0]) => {
+      if (category.id === 'others') {
+        return `
+          <div class="category">
+            <div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>
+            <div class="others-box">${radiologyTestOtherNotes || ''}</div>
+          </div>
+        `;
+      }
+      const selected = category.tests.filter(test => selectedRadiologyTests[test.id]);
+      return `
+        <div class="category">
+          <div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>
+          ${selected.map(test => `
+            <div class="test-item">
+              <span class="checkbox">&#9745;</span>
+              <span class="test-name">${test.name}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Radiology Request</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; }
+            .container { max-width: 210mm; margin: 0 auto; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 2px solid #7c3aed; margin-bottom: 15px; }
+            .header-left { text-align: left; }
+            .header-right { text-align: right; direction: rtl; }
+            .doctor-name { font-size: 14px; font-weight: bold; color: #7c3aed; }
+            .credentials { font-size: 10px; color: #374151; }
+            .patient-info { display: flex; gap: 40px; margin-bottom: 20px; font-size: 13px; }
+            .patient-info span { font-weight: bold; }
+            .title { text-align: center; font-size: 18px; font-weight: bold; color: #7c3aed; margin-bottom: 20px; padding: 10px; border: 2px solid #7c3aed; border-radius: 8px; }
+            .tests-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .category { margin-bottom: 10px; break-inside: avoid; }
+            .category-header { background: #7c3aed; color: white; padding: 6px 10px; font-size: 12px; font-weight: bold; margin-bottom: 5px; border-radius: 4px; }
+            .category-header .ar { float: right; font-weight: normal; }
+            .test-item { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 12px; }
+            .test-item:nth-child(even) { background: #f3f4f6; }
+            .checkbox { font-size: 14px; color: #16a34a; }
+            .test-name { flex: 1; }
+            .others-box { border: 1px solid #d1d5db; min-height: 50px; padding: 8px; font-size: 12px; border-radius: 4px; }
+            .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #d1d5db; display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-left">
+                <p class="doctor-name">Dr/ Sherif Ali . MD, MRCP (UK)</p>
+                <p class="credentials">Consultant Internal Medicine & Nephrology</p>
+              </div>
+              <div class="header-right">
+                <p class="doctor-name">د/ شريف علي رضا</p>
+                <p class="credentials">استشاري الباطنة العامة والكلى</p>
+              </div>
+            </div>
+            <div class="patient-info">
+              <div>Name / الاسم: <span>${patient?.name || '________________'}</span></div>
+              <div>Date / التاريخ: <span>${dateStr}</span></div>
+            </div>
+            <div class="title">Radiology Request / طلب أشعة</div>
+            <div class="tests-container">
+              ${categoriesWithSelectedTests.map(generateCategoryHtml).join('')}
+            </div>
+            <div class="footer">
+              <div>مستشفى تبارك/النسائم - 16552 - 15452</div>
+              <div>١٨ عمارات خلف العبور - مصر الجديدة - ت: 01554343147</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const handlePrintRadiologyRequest = () => {
+    const html = getRadiologyRequestHtml();
+    if (!html) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const handleDownloadRadiologyRequest = () => {
+    const html = getRadiologyRequestHtml();
+    if (!html) return;
+    const today = new Date().toISOString().split('T')[0];
+    downloadPdf(html, `radiology-request-${today}`, 'a4');
+  };
+
+  // Generic checklist HTML generator for print/download
+  const getChecklistHtml = (
+    title: string,
+    titleAr: string,
+    color: string,
+    categories: ChecklistCategory[],
+    selectedItems: Record<string, boolean>,
+    otherNotes: string,
+  ) => {
+    const today = new Date();
+    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+
+    const categoriesWithSelected = categories.filter(category => {
+      if (category.id === 'others') return otherNotes;
+      return category.tests.some(test => selectedItems[test.id]);
+    });
+
+    const generateCategoryHtml = (category: ChecklistCategory) => {
+      if (category.id === 'others') {
+        return `<div class="category"><div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div><div class="others-box">${otherNotes || ''}</div></div>`;
+      }
+      const selected = category.tests.filter(test => selectedItems[test.id]);
+      return `<div class="category"><div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>${selected.map(test => `<div class="test-item"><span class="checkbox">&#9745;</span><span class="test-name">${test.name}</span></div>`).join('')}</div>`;
+    };
+
+    return `<!DOCTYPE html><html><head><title>${title}</title><style>
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      @page { size: A4; margin: 15mm; }
+      body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; }
+      .container { max-width: 210mm; margin: 0 auto; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 2px solid ${color}; margin-bottom: 15px; }
+      .header-left { text-align: left; } .header-right { text-align: right; direction: rtl; }
+      .doctor-name { font-size: 14px; font-weight: bold; color: ${color}; }
+      .credentials { font-size: 10px; color: #374151; }
+      .patient-info { display: flex; gap: 40px; margin-bottom: 20px; font-size: 13px; }
+      .patient-info span { font-weight: bold; }
+      .title { text-align: center; font-size: 18px; font-weight: bold; color: ${color}; margin-bottom: 20px; padding: 10px; border: 2px solid ${color}; border-radius: 8px; }
+      .tests-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+      .category { margin-bottom: 10px; break-inside: avoid; }
+      .category-header { background: ${color}; color: white; padding: 6px 10px; font-size: 12px; font-weight: bold; margin-bottom: 5px; border-radius: 4px; }
+      .category-header .ar { float: right; font-weight: normal; }
+      .test-item { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 12px; }
+      .test-item:nth-child(even) { background: #f3f4f6; }
+      .checkbox { font-size: 14px; color: #16a34a; } .test-name { flex: 1; }
+      .others-box { border: 1px solid #d1d5db; min-height: 50px; padding: 8px; font-size: 12px; border-radius: 4px; }
+      .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #d1d5db; display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; }
+    </style></head><body><div class="container">
+      <div class="header"><div class="header-left"><p class="doctor-name">Dr/ Sherif Ali . MD, MRCP (UK)</p><p class="credentials">Consultant Internal Medicine & Nephrology</p></div><div class="header-right"><p class="doctor-name">د/ شريف علي رضا</p><p class="credentials">استشاري الباطنة العامة والكلى</p></div></div>
+      <div class="patient-info"><div>Name / الاسم: <span>${patient?.name || '________________'}</span></div><div>Date / التاريخ: <span>${dateStr}</span></div></div>
+      <div class="title">${title} / ${titleAr}</div>
+      <div class="tests-container">${categoriesWithSelected.map(generateCategoryHtml).join('')}</div>
+      <div class="footer"><div>مستشفى تبارك/النسائم - 16552 - 15452</div><div>١٨ عمارات خلف العبور - مصر الجديدة - ت: 01554343147</div></div>
+    </div></body></html>`;
+  };
+
+  // Checklist config map for print/download
+  const checklistConfigs = {
+    pmh: { title: 'Past Medical History', titleAr: 'التاريخ المرضي السابق', color: '#16a34a', categories: PAST_MEDICAL_HISTORY_CATEGORIES, items: pmhChecklist, notes: pmhNotes },
+    hpi: { title: 'HPI', titleAr: 'تاريخ المرض الحالي', color: '#ea580c', categories: HPI_CATEGORIES, items: hpiChecklist, notes: hpiNotes },
+    drugHistory: { title: 'Drug History', titleAr: 'تاريخ الأدوية', color: '#e11d48', categories: DRUG_HISTORY_CATEGORIES, items: dhChecklist, notes: dhNotes },
+    familyHistory: { title: 'Family History', titleAr: 'التاريخ العائلي', color: '#d97706', categories: FAMILY_HISTORY_CATEGORIES, items: fhChecklist, notes: fhNotes },
+    chiefComplaint: { title: 'Chief Complaint', titleAr: 'الشكوى الرئيسية', color: '#0d9488', categories: CHIEF_COMPLAINT_CATEGORIES, items: ccChecklist, notes: ccNotes },
+    diagnosis: { title: 'Diagnosis', titleAr: 'التشخيص', color: '#4f46e5', categories: DIAGNOSIS_CATEGORIES, items: dxChecklist, notes: dxNotes },
+    currentMedication: { title: 'Current Medication', titleAr: 'الأدوية الحالية', color: '#0891b2', categories: CURRENT_MEDICATION_CATEGORIES, items: cmChecklist, notes: cmNotes },
+  };
+
+  const handlePrintChecklist = (key: keyof typeof checklistConfigs) => {
+    const cfg = checklistConfigs[key];
+    const html = getChecklistHtml(cfg.title, cfg.titleAr, cfg.color, cfg.categories, cfg.items, cfg.notes);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+  };
+
+  const handleDownloadChecklist = (key: keyof typeof checklistConfigs) => {
+    const cfg = checklistConfigs[key];
+    const html = getChecklistHtml(cfg.title, cfg.titleAr, cfg.color, cfg.categories, cfg.items, cfg.notes);
+    const today = new Date().toISOString().split('T')[0];
+    downloadPdf(html, `${cfg.title.toLowerCase().replace(/\s+/g, '-')}-${today}`, 'a4');
   };
 
   const getDrawingHtml = (drawingData: string, title: string) => {
@@ -885,6 +1178,24 @@ const NewVisitPage: React.FC = () => {
         labTestRequest: Object.keys(selectedLabTests).some(k => selectedLabTests[k]) || labTestOtherNotes
           ? JSON.stringify({ tests: selectedLabTests, notes: labTestOtherNotes })
           : null,
+        radiologyRequest: Object.keys(selectedRadiologyTests).some(k => selectedRadiologyTests[k]) || radiologyTestOtherNotes
+          ? JSON.stringify({ tests: selectedRadiologyTests, notes: radiologyTestOtherNotes })
+          : null,
+        medicalChecklists: (() => {
+          const mc = {
+            chiefComplaint: { items: ccChecklist, notes: ccNotes },
+            diagnosis: { items: dxChecklist, notes: dxNotes },
+            pastMedicalHistory: { items: pmhChecklist, notes: pmhNotes },
+            hpi: { items: hpiChecklist, notes: hpiNotes },
+            drugHistory: { items: dhChecklist, notes: dhNotes },
+            familyHistory: { items: fhChecklist, notes: fhNotes },
+            currentMedication: { items: cmChecklist, notes: cmNotes },
+          };
+          const hasAny = Object.values(mc).some(form =>
+            Object.values(form.items).some(v => v) || form.notes
+          );
+          return hasAny ? JSON.stringify(mc) : null;
+        })(),
         vitals: {
           bloodPressure: formData.bloodPressure || '120/80',
           temperature: parseFloat(formData.temperature) || 37,
@@ -1040,7 +1351,7 @@ const NewVisitPage: React.FC = () => {
                   ) : (
                     <div
                       className="w-full h-24 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                      onClick={() => setSelectedFile({ url: record.dataUrl, type: 'pdf' })}
+                      onClick={() => handleOpenPdf(record.dataUrl)}
                     >
                       <File className="w-8 h-8 text-muted-foreground mb-1" />
                       <span className="text-xs text-muted-foreground text-center px-2 truncate max-w-full">
@@ -1289,6 +1600,105 @@ const NewVisitPage: React.FC = () => {
             </AnimatePresence>
           </div>
 
+          {/* SECTION 1B: Medical History Checklist */}
+          <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+            <SectionHeader
+              title={language === 'ar' ? 'قائمة التاريخ الطبي' : 'Medical History Checklist'}
+              icon={<ClipboardList className="w-5 h-5" />}
+              isOpen={activeSection === 'medical-history-checklist'}
+              onClick={() => toggleSection('medical-history-checklist')}
+              extra={
+                <div className="flex items-center gap-1">
+                  <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handlePrintChecklist(activeMedHistoryTab); }} className="gap-1 h-8">
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDownloadChecklist(activeMedHistoryTab); }} className="gap-1 h-8">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              }
+            />
+            <AnimatePresence initial={false}>
+              {activeSection === 'medical-history-checklist' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-2 border-t border-border">
+                    {/* Tab Bar */}
+                    <div className="flex items-center gap-2 mb-4 flex-wrap" dir="ltr">
+                      {([
+                        { key: 'pmh' as MedHistoryTab, label: 'PMH', labelAr: 'تاريخ مرضي', color: 'bg-green-600' },
+                        { key: 'hpi' as MedHistoryTab, label: 'HPI', labelAr: 'مرض حالي', color: 'bg-orange-600' },
+                        { key: 'drugHistory' as MedHistoryTab, label: 'Drug Hx', labelAr: 'أدوية', color: 'bg-rose-600' },
+                        { key: 'familyHistory' as MedHistoryTab, label: 'Family Hx', labelAr: 'عائلي', color: 'bg-amber-600' },
+                      ]).map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setActiveMedHistoryTab(tab.key)}
+                          className={cn(
+                            'px-4 py-2 rounded-lg font-medium transition-colors text-sm',
+                            activeMedHistoryTab === tab.key
+                              ? `${tab.color} text-white`
+                              : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                          )}
+                        >
+                          {language === 'ar' ? tab.labelAr : tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tab Content */}
+                    {activeMedHistoryTab === 'pmh' && (
+                      <CheckboxRequestForm
+                        categories={PAST_MEDICAL_HISTORY_CATEGORIES}
+                        selectedItems={pmhChecklist}
+                        onItemToggle={toggleChecklist(setPmhChecklist)}
+                        otherText={pmhNotes}
+                        onOtherTextChange={setPmhNotes}
+                        accentColor="green"
+                      />
+                    )}
+                    {activeMedHistoryTab === 'hpi' && (
+                      <CheckboxRequestForm
+                        categories={HPI_CATEGORIES}
+                        selectedItems={hpiChecklist}
+                        onItemToggle={toggleChecklist(setHpiChecklist)}
+                        otherText={hpiNotes}
+                        onOtherTextChange={setHpiNotes}
+                        accentColor="orange"
+                      />
+                    )}
+                    {activeMedHistoryTab === 'drugHistory' && (
+                      <CheckboxRequestForm
+                        categories={DRUG_HISTORY_CATEGORIES}
+                        selectedItems={dhChecklist}
+                        onItemToggle={toggleChecklist(setDhChecklist)}
+                        otherText={dhNotes}
+                        onOtherTextChange={setDhNotes}
+                        accentColor="rose"
+                      />
+                    )}
+                    {activeMedHistoryTab === 'familyHistory' && (
+                      <CheckboxRequestForm
+                        categories={FAMILY_HISTORY_CATEGORIES}
+                        selectedItems={fhChecklist}
+                        onItemToggle={toggleChecklist(setFhChecklist)}
+                        otherText={fhNotes}
+                        onOtherTextChange={setFhNotes}
+                        accentColor="amber"
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* SECTION 2: Medical Notes */}
           <div className="bg-card rounded-2xl card-shadow overflow-hidden">
             <SectionHeader
@@ -1357,6 +1767,94 @@ const NewVisitPage: React.FC = () => {
                         initialData={currentMedicationDrawing}
                       />
                     </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* SECTION 2B: Clinical Notes Checklist */}
+          <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+            <SectionHeader
+              title={language === 'ar' ? 'قائمة الملاحظات السريرية' : 'Clinical Notes Checklist'}
+              icon={<Stethoscope className="w-5 h-5" />}
+              isOpen={activeSection === 'clinical-notes-checklist'}
+              onClick={() => toggleSection('clinical-notes-checklist')}
+              extra={
+                <div className="flex items-center gap-1">
+                  <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handlePrintChecklist(activeClinicalNotesTab); }} className="gap-1 h-8">
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDownloadChecklist(activeClinicalNotesTab); }} className="gap-1 h-8">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              }
+            />
+            <AnimatePresence initial={false}>
+              {activeSection === 'clinical-notes-checklist' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-2 border-t border-border">
+                    {/* Tab Bar */}
+                    <div className="flex items-center gap-2 mb-4 flex-wrap" dir="ltr">
+                      {([
+                        { key: 'chiefComplaint' as ClinicalNotesTab, label: 'Chief Complaint', labelAr: 'شكوى رئيسية', color: 'bg-teal-600' },
+                        { key: 'diagnosis' as ClinicalNotesTab, label: 'Diagnosis', labelAr: 'تشخيص', color: 'bg-indigo-600' },
+                        { key: 'currentMedication' as ClinicalNotesTab, label: 'Current Med', labelAr: 'أدوية حالية', color: 'bg-cyan-600' },
+                      ]).map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setActiveClinicalNotesTab(tab.key)}
+                          className={cn(
+                            'px-4 py-2 rounded-lg font-medium transition-colors text-sm',
+                            activeClinicalNotesTab === tab.key
+                              ? `${tab.color} text-white`
+                              : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                          )}
+                        >
+                          {language === 'ar' ? tab.labelAr : tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tab Content */}
+                    {activeClinicalNotesTab === 'chiefComplaint' && (
+                      <CheckboxRequestForm
+                        categories={CHIEF_COMPLAINT_CATEGORIES}
+                        selectedItems={ccChecklist}
+                        onItemToggle={toggleChecklist(setCcChecklist)}
+                        otherText={ccNotes}
+                        onOtherTextChange={setCcNotes}
+                        accentColor="teal"
+                      />
+                    )}
+                    {activeClinicalNotesTab === 'diagnosis' && (
+                      <CheckboxRequestForm
+                        categories={DIAGNOSIS_CATEGORIES}
+                        selectedItems={dxChecklist}
+                        onItemToggle={toggleChecklist(setDxChecklist)}
+                        otherText={dxNotes}
+                        onOtherTextChange={setDxNotes}
+                        accentColor="indigo"
+                      />
+                    )}
+                    {activeClinicalNotesTab === 'currentMedication' && (
+                      <CheckboxRequestForm
+                        categories={CURRENT_MEDICATION_CATEGORIES}
+                        selectedItems={cmChecklist}
+                        onItemToggle={toggleChecklist(setCmChecklist)}
+                        otherText={cmNotes}
+                        onOtherTextChange={setCmNotes}
+                        accentColor="cyan"
+                      />
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -1508,7 +2006,7 @@ const NewVisitPage: React.FC = () => {
                               ) : (
                                 <div
                                   className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'pdf' })}
+                                  onClick={() => handleOpenPdf(attachment.dataUrl)}
                                 >
                                   <File className="w-6 h-6 text-muted-foreground mb-1" />
                                   <span className="text-xs text-muted-foreground">PDF</span>
@@ -1684,7 +2182,7 @@ const NewVisitPage: React.FC = () => {
                               ) : (
                                 <div
                                   className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'pdf' })}
+                                  onClick={() => handleOpenPdf(attachment.dataUrl)}
                                 >
                                   <File className="w-6 h-6 text-muted-foreground mb-1" />
                                   <span className="text-xs text-muted-foreground">PDF</span>
@@ -1773,6 +2271,64 @@ const NewVisitPage: React.FC = () => {
             </AnimatePresence>
           </div>
 
+          {/* SECTION 6: Radiology Request */}
+          <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+            <SectionHeader
+              title={language === 'ar' ? 'طلب أشعة' : 'Radiology Request'}
+              icon={<Activity className="w-5 h-5" />}
+              isOpen={activeSection === 'radiology-request'}
+              onClick={() => toggleSection('radiology-request')}
+              extra={
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrintRadiologyRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadRadiologyRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              }
+            />
+            <AnimatePresence initial={false}>
+              {activeSection === 'radiology-request' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-2 border-t border-border">
+                    <RadiologyRequestForm
+                      selectedTests={selectedRadiologyTests}
+                      onTestToggle={handleRadiologyTestToggle}
+                      otherTests={radiologyTestOtherNotes}
+                      onOtherTestsChange={setRadiologyTestOtherNotes}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* Attachments Section (Always visible, not collapsible) */}
           <div className="bg-card rounded-2xl card-shadow p-6 space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -1820,7 +2376,7 @@ const NewVisitPage: React.FC = () => {
                     ) : (
                       <div
                         className="w-full h-24 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                        onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'pdf' })}
+                        onClick={() => handleOpenPdf(attachment.dataUrl)}
                       >
                         <File className="w-8 h-8 text-muted-foreground mb-1" />
                         <span className="text-xs text-muted-foreground text-center px-2 truncate max-w-full">
@@ -1865,11 +2421,11 @@ const NewVisitPage: React.FC = () => {
         {selectedFile && (
           <div
             className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-            onClick={() => setSelectedFile(null)}
+            onClick={handleCloseFile}
           >
             <button
               className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10"
-              onClick={() => setSelectedFile(null)}
+              onClick={handleCloseFile}
             >
               <X className="w-6 h-6" />
             </button>
@@ -1881,12 +2437,26 @@ const NewVisitPage: React.FC = () => {
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <iframe
-                src={selectedFile.url}
-                className="w-full max-w-4xl h-[90vh] rounded-lg bg-white"
+              <div
+                className="w-full max-w-4xl h-[90vh] rounded-lg bg-white overflow-auto"
                 onClick={(e) => e.stopPropagation()}
-                title="PDF Preview"
-              />
+              >
+                {pdfLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">Loading PDF...</p>
+                  </div>
+                ) : pdfPages.length > 0 ? (
+                  <div className="flex flex-col items-center gap-2 p-2">
+                    {pdfPages.map((pageImg, i) => (
+                      <img key={i} src={pageImg} alt={`Page ${i + 1}`} className="w-full" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">Failed to load PDF</p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

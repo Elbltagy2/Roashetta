@@ -12,6 +12,7 @@ import notificationRoutes from './notificationRoutes';
 import settingsRoutes from './settingsRoutes';
 import analyticsRoutes from './analyticsRoutes';
 import queueRoutes from './queueRoutes';
+import scannerRoutes from './scannerRoutes';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/queue', queueRoutes);
+router.use('/scanner', scannerRoutes);
 
 export default router;

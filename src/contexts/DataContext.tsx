@@ -76,6 +76,10 @@ export interface Visit {
   radiologyDrawing3: string | null;
   // Lab Test Request (JSON string)
   labTestRequest: string | null;
+  // Radiology Request (JSON string)
+  radiologyRequest: string | null;
+  // Medical Checklists (JSON string - combined 7 checklist forms)
+  medicalChecklists: string | null;
   vitals: Vital;
 }
 
@@ -209,6 +213,8 @@ const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
   radiologyDrawing2: apiVisit.radiologyDrawing2 || null,
   radiologyDrawing3: apiVisit.radiologyDrawing3 || null,
   labTestRequest: apiVisit.labTestRequest || null,
+  radiologyRequest: apiVisit.radiologyRequest || null,
+  medicalChecklists: apiVisit.medicalChecklists || null,
   vitals: {
     bloodPressure: apiVisit.vitals?.bloodPressure || '',
     temperature: apiVisit.vitals?.temperature || 0,
@@ -427,6 +433,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       radiologyDrawing3: visitData.radiologyDrawing3 || undefined,
       // Lab Test Request
       labTestRequest: visitData.labTestRequest || undefined,
+      // Radiology Request
+      radiologyRequest: visitData.radiologyRequest || undefined,
+      // Medical Checklists
+      medicalChecklists: visitData.medicalChecklists || undefined,
       vitals: {
         bloodPressure: visitData.vitals.bloodPressure,
         temperature: visitData.vitals.temperature,
@@ -464,6 +474,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       radiologyDrawing2: visitData.radiologyDrawing2,
       radiologyDrawing3: visitData.radiologyDrawing3,
       labTestRequest: visitData.labTestRequest,
+      radiologyRequest: visitData.radiologyRequest,
+      medicalChecklists: visitData.medicalChecklists,
       vitals: visitData.vitals,
     };
 

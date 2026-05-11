@@ -81,6 +81,8 @@ const DEMO_VISITS = [
     radiologyDrawing2: null,
     radiologyDrawing3: null,
     labTestRequest: null,
+    radiologyRequest: null,
+    medicalChecklists: null,
     vitals: { bloodPressure: '120/80', temperature: 38.5, weight: 75 },
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -109,6 +111,8 @@ const DEMO_VISITS = [
     radiologyDrawing2: null,
     radiologyDrawing3: null,
     labTestRequest: null,
+    radiologyRequest: null,
+    medicalChecklists: null,
     vitals: { bloodPressure: '140/90', temperature: 37, weight: 65 },
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
@@ -381,6 +385,8 @@ class MockApiClient {
       radiologyDrawing2: data.radiologyDrawing2 || null,
       radiologyDrawing3: data.radiologyDrawing3 || null,
       labTestRequest: data.labTestRequest || null,
+      radiologyRequest: data.radiologyRequest || null,
+      medicalChecklists: data.medicalChecklists || null,
       vitals: data.vitals || { bloodPressure: '', temperature: 0, weight: 0 },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -706,6 +712,19 @@ class MockApiClient {
       if (entry) entry.position = r.position;
     }
     setData(STORAGE_KEYS.queue, entries);
+  }
+
+  // Scanner — not supported in demo mode
+  async discoverScanners() {
+    throw new Error('Scanner is not available in demo mode');
+  }
+
+  async setDefaultScanner(_data: { url: string; name?: string }) {
+    throw new Error('Scanner is not available in demo mode');
+  }
+
+  async quickScan(_visitId: string, _options?: unknown) {
+    throw new Error('Scanner is not available in demo mode');
   }
 
 }

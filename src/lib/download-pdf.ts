@@ -2,64 +2,74 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export async function downloadPdf(htmlContent: string, filename: string, pageSize: 'a4' | 'a5' = 'a5') {
-  // Parse the full HTML document properly
+  // Open new tab IMMEDIATELY (must be in click context, otherwise tablet Chrome blocks it)
+  const pdfTab = window.open('', '_blank');
+  if (pdfTab) {
+    pdfTab.document.write('<html><head><title>' + filename + '</title></head><body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;background:#f5f5f5;"><div style="text-align:center;"><p style="font-size:18px;">Generating PDF...</p></div></body></html>');
+  }
+
+  // Parse the full HTML document
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
 
-  // Create off-screen container
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.left = '0';
-  container.style.top = '0';
-  container.style.opacity = '0';
-  container.style.pointerEvents = 'none';
-  container.style.zIndex = '-9999';
+  // Build a hidden iframe for html2canvas to render from
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.left = '-10000px';
+  iframe.style.top = '0';
+  iframe.style.width = pageSize === 'a4' ? '210mm' : '148mm';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  iframe.style.visibility = 'hidden';
+  document.body.appendChild(iframe);
 
-  // Copy <style> tags, rewriting 'body' selectors to target our wrapper class
-  doc.querySelectorAll('style').forEach(styleEl => {
-    const rewritten = (styleEl.textContent || '').replace(/\bbody\b/g, '.pdf-body');
-    const newStyle = document.createElement('style');
-    newStyle.textContent = rewritten;
-    container.appendChild(newStyle);
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!iframeDoc) {
+    document.body.removeChild(iframe);
+    throw new Error('Could not access iframe document');
+  }
+
+  // Write full HTML into the iframe
+  iframeDoc.open();
+  iframeDoc.write(htmlContent);
+  iframeDoc.close();
+
+  // Wait for images inside the iframe to load
+  await new Promise<void>(resolve => {
+    const checkReady = () => {
+      const imgs = iframeDoc.querySelectorAll('img');
+      const allLoaded = Array.from(imgs).every(img => img.complete && img.naturalWidth > 0);
+      if (allLoaded || imgs.length === 0) {
+        resolve();
+      } else {
+        setTimeout(checkReady, 100);
+      }
+    };
+    setTimeout(checkReady, 300);
   });
 
-  // Create wrapper div that receives body styles via .pdf-body class
-  const wrapper = document.createElement('div');
-  wrapper.className = 'pdf-body';
-  wrapper.style.width = pageSize === 'a4' ? '210mm' : '148mm';
-  wrapper.style.background = 'white';
-  wrapper.innerHTML = doc.body.innerHTML;
-  if (doc.body.getAttribute('dir')) {
-    wrapper.setAttribute('dir', doc.body.getAttribute('dir')!);
-  }
-  container.appendChild(wrapper);
+  // Give extra time for fonts and layout
+  await new Promise(resolve => setTimeout(resolve, 300));
 
-  document.body.appendChild(container);
+  // Make iframe visible for html2canvas to capture
+  iframe.style.left = '0';
+  iframe.style.visibility = 'visible';
+  iframe.style.height = 'auto';
 
-  // Wait for images to load
-  const images = container.querySelectorAll('img');
-  if (images.length > 0) {
-    await Promise.all(
-      Array.from(images).map(img =>
-        img.complete && img.naturalWidth > 0
-          ? Promise.resolve()
-          : new Promise<void>(resolve => {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-            })
-      )
-    );
-  }
-
-  // Let the browser finish layout
-  await new Promise(resolve => setTimeout(resolve, 200));
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
 
   try {
-    // Capture the wrapper as a canvas
-    const canvas = await html2canvas(wrapper, {
+    const body = iframeDoc.body;
+
+    const canvas = await html2canvas(body, {
       scale: 2,
       useCORS: true,
       logging: false,
+      width: body.scrollWidth,
+      height: body.scrollHeight,
+      windowWidth: body.scrollWidth,
+      windowHeight: body.scrollHeight,
     });
 
     // Page dimensions in mm
@@ -73,12 +83,10 @@ export async function downloadPdf(htmlContent: string, filename: string, pageSiz
     const imgWidthPx = canvas.width;
     const imgHeightPx = canvas.height;
 
-    // Scale image to fit page width
     const ratio = pageMM.w / imgWidthPx;
     const totalHeightMM = imgHeightPx * ratio;
     const pageHeightMM = pageMM.h;
 
-    // Render page by page
     let yOffset = 0;
     let page = 0;
     while (yOffset < totalHeightMM) {
@@ -88,18 +96,19 @@ export async function downloadPdf(htmlContent: string, filename: string, pageSiz
       page++;
     }
 
-    // Download via blob + link (more reliable than .save())
+    // Show PDF in the already-open tab
     const blob = pdf.output('blob');
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.pdf`;
-    link.click();
 
-    // Also open in new tab
-    window.open(url, '_blank');
+    if (pdfTab && !pdfTab.closed) {
+      pdfTab.location.href = url;
+    } else {
+      // Fallback if tab was closed or blocked
+      window.open(url, '_blank');
+    }
   } finally {
-    document.body.removeChild(container);
+    document.body.style.overflow = prevOverflow;
+    document.body.removeChild(iframe);
   }
 }
 

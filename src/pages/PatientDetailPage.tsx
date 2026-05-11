@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { pdfToImages } from '@/lib/pdf-to-images';
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,10 +51,31 @@ const PatientDetailPage: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const investigationFileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
+  const [pdfPages, setPdfPages] = useState<string[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const patient = getPatient(id || '');
   const visits = getPatientVisits(id || '');
   const previousInvestigations = getPreviousInvestigations(id || '');
+
+  const handleOpenPdf = async (url: string) => {
+    setSelectedFile({ url, type: 'pdf' });
+    setPdfPages([]);
+    setPdfLoading(true);
+    try {
+      const pages = await pdfToImages(url);
+      setPdfPages(pages);
+    } catch (err) {
+      console.error('Failed to render PDF:', err);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const handleCloseFile = () => {
+    setSelectedFile(null);
+    setPdfPages([]);
+  };
 
   // Load visits, records, and investigations from API when patient ID changes
   useEffect(() => {
@@ -310,7 +332,7 @@ const PatientDetailPage: React.FC = () => {
                   ) : (
                     <div
                       className="w-full h-32 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                      onClick={() => setSelectedFile({ url: record.dataUrl, type: 'pdf' })}
+                      onClick={() => handleOpenPdf(record.dataUrl)}
                     >
                       <File className="w-10 h-10 text-muted-foreground mb-2" />
                       <span className="text-xs text-muted-foreground text-center px-2 truncate max-w-full">
@@ -421,11 +443,11 @@ const PatientDetailPage: React.FC = () => {
         {selectedFile && (
           <div
             className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-            onClick={() => setSelectedFile(null)}
+            onClick={handleCloseFile}
           >
             <button
               className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10"
-              onClick={() => setSelectedFile(null)}
+              onClick={handleCloseFile}
             >
               <X className="w-6 h-6" />
             </button>
@@ -437,12 +459,26 @@ const PatientDetailPage: React.FC = () => {
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <iframe
-                src={selectedFile.url}
-                className="w-full max-w-4xl h-[90vh] rounded-lg bg-white"
+              <div
+                className="w-full max-w-4xl h-[90vh] rounded-lg bg-white overflow-auto"
                 onClick={(e) => e.stopPropagation()}
-                title="PDF Preview"
-              />
+              >
+                {pdfLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">Loading PDF...</p>
+                  </div>
+                ) : pdfPages.length > 0 ? (
+                  <div className="flex flex-col items-center gap-2 p-2">
+                    {pdfPages.map((pageImg, i) => (
+                      <img key={i} src={pageImg} alt={`Page ${i + 1}`} className="w-full" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">Failed to load PDF</p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

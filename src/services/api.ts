@@ -406,6 +406,28 @@ class ApiClient {
     });
   }
 
+  // Scanner
+  async discoverScanners() {
+    return this.request<DiscoveredScanner[]>('/scanner/discover');
+  }
+
+  async setDefaultScanner(data: { url: string; name?: string }) {
+    return this.request<Settings>('/scanner/default', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async quickScan(visitId: string, options?: ScanOptions) {
+    return this.request<{ attachment: VisitAttachment; scanner: { url: string; name: string } }>(
+      `/scanner/quick-scan/${visitId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(options ?? {}),
+      },
+    );
+  }
+
 }
 
 // Types
@@ -514,6 +536,10 @@ export interface Visit {
   radiologyDrawing3: string | null;
   // Lab Test Request (JSON string)
   labTestRequest: string | null;
+  // Radiology Request (JSON string)
+  radiologyRequest: string | null;
+  // Medical Checklists (JSON string)
+  medicalChecklists: string | null;
   vitals: {
     bloodPressure: string;
     temperature: number;
@@ -547,6 +573,10 @@ export interface CreateVisitData {
   radiologyDrawing3?: string;
   // Lab Test Request (JSON string)
   labTestRequest?: string;
+  // Radiology Request (JSON string)
+  radiologyRequest?: string;
+  // Medical Checklists (JSON string)
+  medicalChecklists?: string;
   vitals?: {
     bloodPressure?: string;
     temperature?: number;
@@ -574,6 +604,8 @@ export interface UpdateVisitData {
   radiologyDrawing2?: string | null;
   radiologyDrawing3?: string | null;
   labTestRequest?: string | null;
+  radiologyRequest?: string | null;
+  medicalChecklists?: string | null;
   vitals?: {
     bloodPressure?: string;
     temperature?: number;
@@ -708,6 +740,8 @@ export interface Settings {
   doctorId: string;
   newVisitPrice: number;
   followupVisitPrice: number;
+  lastScannerUrl?: string;
+  lastScannerName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -715,6 +749,25 @@ export interface Settings {
 export interface UpdateSettingsData {
   newVisitPrice?: number;
   followupVisitPrice?: number;
+  lastScannerUrl?: string;
+  lastScannerName?: string;
+}
+
+// Scanner
+export interface DiscoveredScanner {
+  name: string;
+  host: string;
+  port: number;
+  url: string;
+  secure: boolean;
+}
+
+export interface ScanOptions {
+  url?: string;
+  resolution?: number;
+  colorMode?: 'RGB24' | 'Grayscale8' | 'BlackAndWhite1';
+  source?: 'Platen' | 'Feeder';
+  format?: 'image/jpeg' | 'application/pdf';
 }
 
 // Analytics

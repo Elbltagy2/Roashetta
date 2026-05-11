@@ -246,10 +246,26 @@ function createTables() {
   try {
     db.exec(`ALTER TABLE visits ADD COLUMN lab_test_request TEXT`);
   } catch (e) { /* Column already exists */ }
+  // Add radiology request JSON field (checkbox-based)
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN radiology_request TEXT`);
+  } catch (e) { /* Column already exists */ }
+  // Add medical checklists JSON field (combined 7 checklist forms)
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN medical_checklists TEXT`);
+  } catch (e) { /* Column already exists */ }
 
   // Add file_number column to patients table
   try {
     db.exec(`ALTER TABLE patients ADD COLUMN file_number TEXT DEFAULT ''`);
+  } catch (e) { /* Column already exists */ }
+
+  // Scanner: remember last-used network scanner per doctor
+  try {
+    db.exec(`ALTER TABLE settings ADD COLUMN last_scanner_url TEXT DEFAULT ''`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE settings ADD COLUMN last_scanner_name TEXT DEFAULT ''`);
   } catch (e) { /* Column already exists */ }
 
   // Create visit_attachments table

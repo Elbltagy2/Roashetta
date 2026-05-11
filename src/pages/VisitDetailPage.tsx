@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock, DollarSign, Check, X, Pencil, Download } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock, DollarSign, Check, X, Pencil, Download, ScanLine } from 'lucide-react';
+import api from '@/services/api';
+import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -21,8 +23,9 @@ import { getDisplayDataUrl } from '@/lib/drawing-utils';
 import { printHtml, downloadPdf } from '@/lib/download-pdf';
 import { pdfToImages } from '@/lib/pdf-to-images';
 import { LAB_TEST_CATEGORIES } from '@/data/labTests';
+import { RADIOLOGY_TEST_CATEGORIES } from '@/data/radiologyTests';
 
-type SectionName = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | 'attachments' | 'previous-visits';
+type SectionName = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | 'radiology-request' | 'attachments' | 'previous-visits';
 
 const VisitDetailPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId: string }>();
@@ -47,6 +50,7 @@ const VisitDetailPage: React.FC = () => {
   const [attachments, setAttachments] = useState<VisitAttachment[]>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   // Price editing state
   const [isEditingPrice, setIsEditingPrice] = useState(false);
@@ -141,6 +145,31 @@ const VisitDetailPage: React.FC = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleScanAndAttach = async () => {
+    if (!visitId) return;
+    setIsScanning(true);
+    const toastId = toast.loading(
+      language === 'ar' ? 'جاري المسح الضوئي...' : 'Scanning...'
+    );
+    try {
+      await api.quickScan(visitId);
+      const updated = await loadVisitAttachments(visitId);
+      setAttachments(updated);
+      toast.success(
+        language === 'ar' ? 'تم حفظ المسح الضوئي' : 'Scan saved',
+        { id: toastId }
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Scan failed';
+      toast.error(
+        language === 'ar' ? `فشل المسح: ${message}` : `Scan failed: ${message}`,
+        { id: toastId }
+      );
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -1018,6 +1047,120 @@ const VisitDetailPage: React.FC = () => {
     downloadPdf(html, filename, 'a4');
   };
 
+  const getRadiologyRequestHtml = () => {
+    if (!patient || !visit || !visit.radiologyRequest) return '';
+
+    const visitDate = format(visit.date, 'dd/MM/yyyy');
+
+    let radData: { tests: Record<string, boolean>; notes: string } = { tests: {}, notes: '' };
+    try {
+      radData = JSON.parse(visit.radiologyRequest);
+    } catch (e) {
+      console.error('Failed to parse radiology request:', e);
+      return '';
+    }
+
+    const categoriesWithSelectedTests = RADIOLOGY_TEST_CATEGORIES.filter(category => {
+      if (category.id === 'others') return radData.notes;
+      return category.tests.some(test => radData.tests[test.id]);
+    });
+
+    const generateCategoryHtml = (category: typeof RADIOLOGY_TEST_CATEGORIES[0]) => {
+      if (category.id === 'others') {
+        return `
+          <div class="category">
+            <div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>
+            <div class="others-box">${radData.notes || ''}</div>
+          </div>
+        `;
+      }
+      const selectedTests = category.tests.filter(test => radData.tests[test.id]);
+      return `
+        <div class="category">
+          <div class="category-header">${category.name} <span class="ar">${category.nameAr}</span></div>
+          ${selectedTests.map(test => `
+            <div class="test-item">
+              <span class="checkbox">&#9745;</span>
+              <span class="test-name">${test.name}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Radiology Request</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { size: A4; margin: 15mm; }
+            body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; }
+            .container { max-width: 210mm; margin: 0 auto; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 2px solid #7c3aed; margin-bottom: 15px; }
+            .header-left { text-align: left; }
+            .header-right { text-align: right; direction: rtl; }
+            .doctor-name { font-size: 14px; font-weight: bold; color: #7c3aed; }
+            .credentials { font-size: 10px; color: #374151; }
+            .patient-info { display: flex; gap: 40px; margin-bottom: 20px; font-size: 13px; }
+            .patient-info span { font-weight: bold; }
+            .title { text-align: center; font-size: 18px; font-weight: bold; color: #7c3aed; margin-bottom: 20px; padding: 10px; border: 2px solid #7c3aed; border-radius: 8px; }
+            .tests-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .category { margin-bottom: 10px; break-inside: avoid; }
+            .category-header { background: #7c3aed; color: white; padding: 6px 10px; font-size: 12px; font-weight: bold; margin-bottom: 5px; border-radius: 4px; }
+            .category-header .ar { float: right; font-weight: normal; }
+            .test-item { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 12px; }
+            .test-item:nth-child(even) { background: #f3f4f6; }
+            .checkbox { font-size: 14px; color: #16a34a; }
+            .test-name { flex: 1; }
+            .others-box { border: 1px solid #d1d5db; min-height: 50px; padding: 8px; font-size: 12px; border-radius: 4px; }
+            .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #d1d5db; display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-left">
+                <p class="doctor-name">Dr/ Sherif Ali . MD, MRCP (UK)</p>
+                <p class="credentials">Consultant Internal Medicine & Nephrology</p>
+              </div>
+              <div class="header-right">
+                <p class="doctor-name">د/ شريف علي رضا</p>
+                <p class="credentials">استشاري الباطنة العامة والكلى</p>
+              </div>
+            </div>
+            <div class="patient-info">
+              <div>Name / الاسم: <span>${patient.name}</span></div>
+              <div>Date / التاريخ: <span>${visitDate}</span></div>
+            </div>
+            <div class="title">Radiology Request / طلب أشعة</div>
+            <div class="tests-container">
+              ${categoriesWithSelectedTests.map(generateCategoryHtml).join('')}
+            </div>
+            <div class="footer">
+              <div>مستشفى تبارك/النسائم - 16552 - 15452</div>
+              <div>١٨ عمارات خلف العبور - مصر الجديدة - ت: 01554343147</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const handlePrintRadiologyRequest = () => {
+    const html = getRadiologyRequestHtml();
+    if (!html) return;
+    printHtml(html);
+  };
+
+  const handleDownloadRadiologyRequest = () => {
+    const html = getRadiologyRequestHtml();
+    if (!html) return;
+    const filename = `radiology-request-${visit ? format(visit.date, 'yyyy-MM-dd') : new Date().toISOString().split('T')[0]}`;
+    downloadPdf(html, filename, 'a4');
+  };
+
   if (!patient || !visit) {
     return (
       <DashboardLayout>
@@ -1868,7 +2011,121 @@ const VisitDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* SECTION 6: Attachments (Collapsible) */}
+        {/* SECTION 6: Radiology Request (Collapsible) */}
+        {visit.radiologyRequest && (
+          <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+            <SectionHeader
+              title={language === 'ar' ? 'طلب أشعة' : 'Radiology Request'}
+              icon={<Activity className="w-5 h-5" />}
+              isOpen={isSectionOpen('radiology-request')}
+              onClick={() => toggleSection('radiology-request')}
+              extra={
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrintRadiologyRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadRadiologyRequest();
+                    }}
+                    className="gap-1 h-8"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              }
+            />
+            <AnimatePresence initial={false}>
+              {isSectionOpen('radiology-request') && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-2 border-t border-border">
+                    {(() => {
+                      let radData: { tests: Record<string, boolean>; notes: string } = { tests: {}, notes: '' };
+                      try {
+                        radData = JSON.parse(visit.radiologyRequest || '{}');
+                      } catch (e) {
+                        return (
+                          <p className="text-muted-foreground text-center py-4">
+                            {language === 'ar' ? 'خطأ في تحميل البيانات' : 'Error loading data'}
+                          </p>
+                        );
+                      }
+
+                      const selectedTests = Object.entries(radData.tests || {})
+                        .filter(([, selected]) => selected)
+                        .map(([testId]) => testId);
+
+                      if (selectedTests.length === 0 && !radData.notes) {
+                        return (
+                          <p className="text-muted-foreground text-center py-4">
+                            {language === 'ar' ? 'لا توجد أشعة مطلوبة' : 'No radiology tests requested'}
+                          </p>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {RADIOLOGY_TEST_CATEGORIES.filter(category =>
+                              category.tests.some(test => radData.tests[test.id])
+                            ).map(category => (
+                              <div key={category.id} className="border rounded-lg p-3">
+                                <h4 className="text-sm font-semibold text-purple-700 mb-2 border-b border-purple-200 pb-1">
+                                  {category.name}
+                                  <span className="text-gray-500 text-xs mr-2 float-left">{category.nameAr}</span>
+                                </h4>
+                                <div className="space-y-1">
+                                  {category.tests
+                                    .filter(test => radData.tests[test.id])
+                                    .map(test => (
+                                      <div key={test.id} className="flex items-center gap-2 text-sm">
+                                        <span className="text-green-600">✓</span>
+                                        <span>{test.name}</span>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {radData.notes && (
+                            <div className="border rounded-lg p-3">
+                              <h4 className="text-sm font-semibold text-purple-700 mb-2 border-b border-purple-200 pb-1">
+                                {language === 'ar' ? 'أخرى' : 'Others'}
+                              </h4>
+                              <p className="text-sm text-gray-700">{radData.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* SECTION 7: Attachments (Collapsible) */}
         <div className="bg-card rounded-2xl card-shadow overflow-hidden">
           <SectionHeader
             title={language === 'ar' ? 'المرفقات' : 'Attachments'}
@@ -1891,8 +2148,8 @@ const VisitDetailPage: React.FC = () => {
                 className="overflow-hidden"
               >
                 <div className="p-6 pt-2 border-t border-border">
-                  {/* Upload Button */}
-                  <div className="mb-4">
+                  {/* Upload + Scan Buttons */}
+                  <div className="mb-4 flex flex-wrap gap-2">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1904,7 +2161,7 @@ const VisitDetailPage: React.FC = () => {
                     <Button
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
+                      disabled={isUploading || isScanning}
                       className="gap-2"
                     >
                       {isUploading ? (
@@ -1913,6 +2170,20 @@ const VisitDetailPage: React.FC = () => {
                         <Upload className="w-4 h-4" />
                       )}
                       {language === 'ar' ? 'رفع مرفق' : 'Upload Attachment'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleScanAndAttach}
+                      disabled={isUploading || isScanning}
+                      className="gap-2"
+                      title={language === 'ar' ? 'استخدام ماسح ضوئي على الشبكة' : 'Use a network (WiFi) scanner'}
+                    >
+                      {isScanning ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ScanLine className="w-4 h-4" />
+                      )}
+                      {language === 'ar' ? 'مسح ضوئي وحفظ' : 'Scan & Attach'}
                     </Button>
                   </div>
 

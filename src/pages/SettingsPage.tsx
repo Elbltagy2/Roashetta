@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, DollarSign, Save, Loader2 } from 'lucide-react';
+import { Settings, DollarSign, Save, Loader2, ScanLine, RefreshCw, Check } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
-import api, { Settings as SettingsType } from '@/services/api';
+import api, { Settings as SettingsType, DiscoveredScanner } from '@/services/api';
 
 const SettingsPage: React.FC = () => {
   const { language } = useLanguage();
@@ -20,6 +20,11 @@ const SettingsPage: React.FC = () => {
     newVisitPrice: '',
     followupVisitPrice: '',
   });
+
+  // Scanner state
+  const [scanners, setScanners] = useState<DiscoveredScanner[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [savingScannerUrl, setSavingScannerUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -69,6 +74,53 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleDiscoverScanners = async () => {
+    setIsDiscovering(true);
+    try {
+      const found = await api.discoverScanners();
+      setScanners(found);
+      if (found.length === 0) {
+        toast({
+          title: language === 'ar'
+            ? 'لم يتم العثور على ماسح ضوئي على الشبكة'
+            : 'No scanners found on the network',
+          description: language === 'ar'
+            ? 'تأكد من تشغيل الماسح الضوئي وأنه متصل بنفس شبكة WiFi'
+            : 'Make sure the scanner is on and connected to the same WiFi',
+        });
+      }
+    } catch (error) {
+      console.error('Discovery failed:', error);
+      toast({
+        title: language === 'ar' ? 'فشل البحث عن الماسح' : 'Scanner discovery failed',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
+
+  const handleSetDefaultScanner = async (scanner: DiscoveredScanner) => {
+    setSavingScannerUrl(scanner.url);
+    try {
+      const updated = await api.setDefaultScanner({ url: scanner.url, name: scanner.name });
+      setSettings(updated);
+      toast({
+        title: language === 'ar'
+          ? `تم تعيين "${scanner.name}" كماسح افتراضي`
+          : `Default scanner set to "${scanner.name}"`,
+      });
+    } catch (error) {
+      console.error('Failed to save scanner:', error);
+      toast({
+        title: language === 'ar' ? 'فشل حفظ الماسح' : 'Failed to save scanner',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingScannerUrl(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -81,7 +133,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <Settings className="w-8 h-8 text-primary" />
@@ -185,6 +237,98 @@ const SettingsPage: React.FC = () => {
               </Button>
             </div>
           </form>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="bg-card rounded-2xl card-shadow p-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <ScanLine className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">
+                {language === 'ar' ? 'الماسح الضوئي على الشبكة' : 'Network Scanner'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {language === 'ar'
+                  ? 'الاتصال بماسح ضوئي مشترك على نفس شبكة WiFi'
+                  : 'Connect to a scanner on the same WiFi network'}
+              </p>
+            </div>
+          </div>
+
+          {settings?.lastScannerUrl ? (
+            <div className="mb-4 p-4 rounded-xl border border-border bg-muted/30">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+                {language === 'ar' ? 'الماسح الافتراضي' : 'Default scanner'}
+              </div>
+              <div className="font-medium">{settings.lastScannerName || settings.lastScannerUrl}</div>
+              <div className="text-xs text-muted-foreground break-all mt-1">{settings.lastScannerUrl}</div>
+            </div>
+          ) : (
+            <div className="mb-4 p-4 rounded-xl border border-dashed border-border text-sm text-muted-foreground">
+              {language === 'ar'
+                ? 'لم يتم تعيين ماسح افتراضي بعد'
+                : 'No default scanner set yet'}
+            </div>
+          )}
+
+          <Button
+            variant="outline"
+            onClick={handleDiscoverScanners}
+            disabled={isDiscovering}
+            className="gap-2"
+          >
+            {isDiscovering ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            {language === 'ar' ? 'البحث عن ماسحات' : 'Discover Scanners'}
+          </Button>
+
+          {scanners.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {scanners.map((scanner) => {
+                const isCurrent = settings?.lastScannerUrl === scanner.url;
+                const isSavingThis = savingScannerUrl === scanner.url;
+                return (
+                  <div
+                    key={scanner.url}
+                    className="flex items-center justify-between p-3 rounded-xl border border-border"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium truncate">{scanner.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {scanner.host}:{scanner.port}
+                        {scanner.secure ? ' · HTTPS' : ''}
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isCurrent ? 'secondary' : 'default'}
+                      disabled={isCurrent || isSavingThis}
+                      onClick={() => handleSetDefaultScanner(scanner)}
+                      className="gap-2"
+                    >
+                      {isSavingThis ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : isCurrent ? (
+                        <Check className="w-3 h-3" />
+                      ) : null}
+                      {isCurrent
+                        ? language === 'ar' ? 'الافتراضي' : 'Default'
+                        : language === 'ar' ? 'تعيين كافتراضي' : 'Set as default'}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
       </div>
     </DashboardLayout>

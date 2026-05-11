@@ -33,6 +33,10 @@ export interface Visit {
   radiologyDrawing3: string | null;
   // Lab Test Request (JSON string)
   labTestRequest: string | null;
+  // Radiology Request (JSON string)
+  radiologyRequest: string | null;
+  // Medical Checklists (JSON string - all 7 checklist forms combined)
+  medicalChecklists: string | null;
   vitals: Vitals;
   createdAt: Date;
   updatedAt: Date;

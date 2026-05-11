@@ -48,10 +48,10 @@ export class VisitRepository implements IVisitRepository {
         past_medical_history_drawing, hpi_drawing, drug_history_drawing,
         family_history_drawing, current_medication_drawing,
         radiology_drawing, radiology_drawing_2, radiology_drawing_3,
-        lab_test_request,
+        lab_test_request, radiology_request, medical_checklists,
         blood_pressure, temperature, weight, visit_date, created_at, updated_at
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.patientId,
@@ -75,6 +75,8 @@ export class VisitRepository implements IVisitRepository {
       data.radiologyDrawing2 ?? null,
       data.radiologyDrawing3 ?? null,
       data.labTestRequest ?? null,
+      data.radiologyRequest ?? null,
+      data.medicalChecklists ?? null,
       data.vitals?.bloodPressure ?? null,
       data.vitals?.temperature ?? null,
       data.vitals?.weight ?? null,
@@ -165,6 +167,14 @@ export class VisitRepository implements IVisitRepository {
     if (data.labTestRequest !== undefined) {
       fields.push('lab_test_request = ?');
       values.push(data.labTestRequest);
+    }
+    if (data.radiologyRequest !== undefined) {
+      fields.push('radiology_request = ?');
+      values.push(data.radiologyRequest);
+    }
+    if (data.medicalChecklists !== undefined) {
+      fields.push('medical_checklists = ?');
+      values.push(data.medicalChecklists);
     }
     if (data.vitals?.bloodPressure !== undefined) {
       fields.push('blood_pressure = ?');
@@ -277,6 +287,8 @@ export class VisitRepository implements IVisitRepository {
       radiologyDrawing2: row.radiology_drawing_2 as string | null,
       radiologyDrawing3: row.radiology_drawing_3 as string | null,
       labTestRequest: row.lab_test_request as string | null,
+      radiologyRequest: row.radiology_request as string | null,
+      medicalChecklists: row.medical_checklists as string | null,
       vitals: {
         bloodPressure: row.blood_pressure as string,
         temperature: row.temperature as number,
