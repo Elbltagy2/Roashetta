@@ -1631,29 +1631,52 @@ const VisitDetailPage: React.FC = () => {
                               {language === 'ar' ? 'مرفقات الروشتة' : 'Prescription Attachments'}
                             </h3>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                              {prescriptionAttachmentsList.map((attachment) => (
-                                <div
-                                  key={attachment.id}
-                                  className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group cursor-pointer"
-                                  onClick={() => openFile(attachment.dataUrl, attachment.type)}
-                                >
-                                  {isImageFile(attachment.type) ? (
-                                    <img
-                                      src={attachment.dataUrl}
-                                      alt={attachment.name.replace('[Prescription] ', '')}
-                                      className="w-full h-20 object-cover hover:opacity-90 transition-opacity"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 hover:bg-muted/70 transition-colors">
-                                      <File className="w-6 h-6 text-muted-foreground mb-1" />
-                                      <span className="text-xs text-muted-foreground">PDF</span>
+                              {prescriptionAttachmentsList.map((attachment) => {
+                                const displayName = attachment.name.replace('[Prescription] ', '');
+                                return (
+                                  <div
+                                    key={attachment.id}
+                                    className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group"
+                                  >
+                                    {isImageFile(attachment.type) ? (
+                                      <img
+                                        src={attachment.dataUrl}
+                                        alt={displayName}
+                                        className="w-full h-20 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 hover:bg-muted/70 transition-colors"
+                                        onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                                      >
+                                        <File className="w-6 h-6 text-muted-foreground mb-1" />
+                                        <span className="text-xs text-muted-foreground">PDF</span>
+                                      </button>
+                                    )}
+                                    {isImageFile(attachment.type) && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handlePrint(
+                                            attachment.dataUrl,
+                                            language === 'ar' ? `روشتة - ${displayName}` : `Prescription - ${displayName}`
+                                          );
+                                        }}
+                                        className="absolute top-1 end-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title={language === 'ar' ? 'طباعة كروشتة' : 'Print as prescription'}
+                                      >
+                                        <Printer className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                    <div className="p-1.5">
+                                      <p className="text-xs text-muted-foreground truncate">{displayName}</p>
                                     </div>
-                                  )}
-                                  <div className="p-1.5">
-                                    <p className="text-xs text-muted-foreground truncate">{attachment.name.replace('[Prescription] ', '')}</p>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )}
