@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
@@ -29,6 +29,9 @@ import {
   UserPlus,
   RefreshCw,
   Download,
+  Save,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -62,6 +65,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  getDraftKey,
+  loadDraft,
+  clearDraft,
+  VisitDraftEnvelope,
+} from '@/lib/visit-draft';
+import { useVisitDraftAutoSave } from '@/hooks/useVisitDraftAutoSave';
 
 interface Attachment {
   id: string;
@@ -418,6 +428,173 @@ const NewVisitPage: React.FC = () => {
 
   // Global pen size for all drawing canvases
   const [globalPenSize, setGlobalPenSize] = useState(2);
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Auto-save draft to localStorage so the doctor can resume after a crash
+  // ──────────────────────────────────────────────────────────────────────
+  const draftKey = useMemo(
+    () => getDraftKey(patientId || 'unknown', visitId),
+    [patientId, visitId]
+  );
+
+  // Tracks the draft that was auto-restored on mount, so we can show
+  // a "you're working from a restored draft" banner until the doctor
+  // either saves the visit or explicitly discards it.
+  const [restoredDraft, setRestoredDraft] = useState<VisitDraftEnvelope | null>(null);
+  // Auto-save is suspended for one tick while we hydrate from the draft
+  // on mount; otherwise we'd immediately overwrite the draft with empty state.
+  const [autoSaveReady, setAutoSaveReady] = useState(false);
+
+  // Build a memoized snapshot of all form fields. Reference identity changes
+  // only when one of the underlying fields changes, which gates the auto-save.
+  const draftSnapshot = useMemo(
+    () => ({
+      visitType,
+      price,
+      formData,
+      chiefComplaintDrawing,
+      diagnosisDrawing,
+      prescriptionPage1,
+      prescriptionPage2,
+      prescriptionPage3,
+      pastMedicalHistoryDrawing,
+      hpiDrawing,
+      drugHistoryDrawing,
+      familyHistoryDrawing,
+      currentMedicationDrawing,
+      radiologyPage1,
+      radiologyPage2,
+      radiologyPage3,
+      selectedLabTests,
+      labTestOtherNotes,
+      selectedRadiologyTests,
+      radiologyTestOtherNotes,
+      ccChecklist,
+      ccNotes,
+      dxChecklist,
+      dxNotes,
+      pmhChecklist,
+      pmhNotes,
+      hpiChecklist,
+      hpiNotes,
+      dhChecklist,
+      dhNotes,
+      fhChecklist,
+      fhNotes,
+      cmChecklist,
+      cmNotes,
+    }),
+    [
+      visitType, price, formData,
+      chiefComplaintDrawing, diagnosisDrawing,
+      prescriptionPage1, prescriptionPage2, prescriptionPage3,
+      pastMedicalHistoryDrawing, hpiDrawing, drugHistoryDrawing,
+      familyHistoryDrawing, currentMedicationDrawing,
+      radiologyPage1, radiologyPage2, radiologyPage3,
+      selectedLabTests, labTestOtherNotes,
+      selectedRadiologyTests, radiologyTestOtherNotes,
+      ccChecklist, ccNotes, dxChecklist, dxNotes,
+      pmhChecklist, pmhNotes, hpiChecklist, hpiNotes,
+      dhChecklist, dhNotes, fhChecklist, fhNotes,
+      cmChecklist, cmNotes,
+    ]
+  );
+
+  const { status: draftStatus, lastSavedAt, errorMessage: draftError } =
+    useVisitDraftAutoSave({
+      enabled: !!patientId && autoSaveReady,
+      key: draftKey,
+      snapshot: draftSnapshot,
+    });
+
+  // Auto-restore any existing draft on mount. The doctor doesn't have to
+  // choose to resume — they're just dropped back where they left off.
+  useEffect(() => {
+    if (!patientId) return;
+    const existing = loadDraft(draftKey);
+    if (existing) {
+      applyDraft(existing);
+      setRestoredDraft(existing);
+    }
+    // Allow auto-save on the next tick so the apply doesn't immediately
+    // rewrite the draft we just loaded.
+    setAutoSaveReady(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey, patientId]);
+
+  const applyDraft = (draft: VisitDraftEnvelope) => {
+    const d = draft.data as Record<string, unknown>;
+    if (typeof d.visitType === 'string') setVisitType(d.visitType as VisitType);
+    if (typeof d.price === 'string') setPrice(d.price);
+    if (d.formData && typeof d.formData === 'object') {
+      setFormData(d.formData as { bloodPressure: string; temperature: string; weight: string });
+    }
+    if (typeof d.chiefComplaintDrawing === 'string') setChiefComplaintDrawing(d.chiefComplaintDrawing);
+    if (typeof d.diagnosisDrawing === 'string') setDiagnosisDrawing(d.diagnosisDrawing);
+    if (typeof d.prescriptionPage1 === 'string') setPrescriptionPage1(d.prescriptionPage1);
+    if (typeof d.prescriptionPage2 === 'string') setPrescriptionPage2(d.prescriptionPage2);
+    if (typeof d.prescriptionPage3 === 'string') setPrescriptionPage3(d.prescriptionPage3);
+    if (typeof d.pastMedicalHistoryDrawing === 'string') setPastMedicalHistoryDrawing(d.pastMedicalHistoryDrawing);
+    if (typeof d.hpiDrawing === 'string') setHpiDrawing(d.hpiDrawing);
+    if (typeof d.drugHistoryDrawing === 'string') setDrugHistoryDrawing(d.drugHistoryDrawing);
+    if (typeof d.familyHistoryDrawing === 'string') setFamilyHistoryDrawing(d.familyHistoryDrawing);
+    if (typeof d.currentMedicationDrawing === 'string') setCurrentMedicationDrawing(d.currentMedicationDrawing);
+    if (typeof d.radiologyPage1 === 'string') setRadiologyPage1(d.radiologyPage1);
+    if (typeof d.radiologyPage2 === 'string') setRadiologyPage2(d.radiologyPage2);
+    if (typeof d.radiologyPage3 === 'string') setRadiologyPage3(d.radiologyPage3);
+    if (d.selectedLabTests && typeof d.selectedLabTests === 'object') {
+      setSelectedLabTests(d.selectedLabTests as Record<string, boolean>);
+    }
+    if (typeof d.labTestOtherNotes === 'string') setLabTestOtherNotes(d.labTestOtherNotes);
+    if (d.selectedRadiologyTests && typeof d.selectedRadiologyTests === 'object') {
+      setSelectedRadiologyTests(d.selectedRadiologyTests as Record<string, boolean>);
+    }
+    if (typeof d.radiologyTestOtherNotes === 'string') setRadiologyTestOtherNotes(d.radiologyTestOtherNotes);
+    if (d.ccChecklist && typeof d.ccChecklist === 'object') setCcChecklist(d.ccChecklist as Record<string, boolean>);
+    if (typeof d.ccNotes === 'string') setCcNotes(d.ccNotes);
+    if (d.dxChecklist && typeof d.dxChecklist === 'object') setDxChecklist(d.dxChecklist as Record<string, boolean>);
+    if (typeof d.dxNotes === 'string') setDxNotes(d.dxNotes);
+    if (d.pmhChecklist && typeof d.pmhChecklist === 'object') setPmhChecklist(d.pmhChecklist as Record<string, boolean>);
+    if (typeof d.pmhNotes === 'string') setPmhNotes(d.pmhNotes);
+    if (d.hpiChecklist && typeof d.hpiChecklist === 'object') setHpiChecklist(d.hpiChecklist as Record<string, boolean>);
+    if (typeof d.hpiNotes === 'string') setHpiNotes(d.hpiNotes);
+    if (d.dhChecklist && typeof d.dhChecklist === 'object') setDhChecklist(d.dhChecklist as Record<string, boolean>);
+    if (typeof d.dhNotes === 'string') setDhNotes(d.dhNotes);
+    if (d.fhChecklist && typeof d.fhChecklist === 'object') setFhChecklist(d.fhChecklist as Record<string, boolean>);
+    if (typeof d.fhNotes === 'string') setFhNotes(d.fhNotes);
+    if (d.cmChecklist && typeof d.cmChecklist === 'object') setCmChecklist(d.cmChecklist as Record<string, boolean>);
+    if (typeof d.cmNotes === 'string') setCmNotes(d.cmNotes);
+  };
+
+  const handleDiscardDraft = () => {
+    if (!window.confirm(
+      language === 'ar'
+        ? 'سيتم حذف المسودة المحفوظة وتفريغ النموذج. هل تريد المتابعة؟'
+        : 'This will delete the saved draft and clear the form. Continue?'
+    )) return;
+    clearDraft(draftKey);
+    setRestoredDraft(null);
+    // Reset all form fields to defaults
+    setVisitType('new');
+    setPrice(settings ? settings.newVisitPrice.toString() : '');
+    setFormData({ bloodPressure: '', temperature: '', weight: '' });
+    setChiefComplaintDrawing('');
+    setDiagnosisDrawing('');
+    setPrescriptionPage1(''); setPrescriptionPage2(''); setPrescriptionPage3('');
+    setPastMedicalHistoryDrawing(''); setHpiDrawing('');
+    setDrugHistoryDrawing(''); setFamilyHistoryDrawing('');
+    setCurrentMedicationDrawing('');
+    setRadiologyPage1(''); setRadiologyPage2(''); setRadiologyPage3('');
+    setSelectedLabTests({}); setLabTestOtherNotes('');
+    setSelectedRadiologyTests({}); setRadiologyTestOtherNotes('');
+    setCcChecklist({}); setCcNotes('');
+    setDxChecklist({}); setDxNotes('');
+    setPmhChecklist({}); setPmhNotes('');
+    setHpiChecklist({}); setHpiNotes('');
+    setDhChecklist({}); setDhNotes('');
+    setFhChecklist({}); setFhNotes('');
+    setCmChecklist({}); setCmNotes('');
+  };
 
   const isImageFile = (type: string) => type.startsWith('image/');
 
@@ -1258,6 +1435,9 @@ const NewVisitPage: React.FC = () => {
         }
       }
 
+      // Visit was saved to the server — drop the local draft
+      clearDraft(draftKey);
+
       toast({
         title: isEditMode
           ? (language === 'ar' ? 'تم تحديث الزيارة بنجاح' : 'Visit updated successfully')
@@ -1284,20 +1464,80 @@ const NewVisitPage: React.FC = () => {
     );
   }
 
+  // Small helper for the auto-save status pill
+  const renderDraftStatus = () => {
+    if (draftStatus === 'saving') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          {language === 'ar' ? 'جاري الحفظ...' : 'Saving…'}
+        </span>
+      );
+    }
+    if (draftStatus === 'saved' && lastSavedAt) {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs text-green-700">
+          <Save className="w-3 h-3" />
+          {language === 'ar' ? 'تم الحفظ' : 'Draft saved'}
+          <span className="text-muted-foreground">
+            {format(new Date(lastSavedAt), 'HH:mm:ss')}
+          </span>
+        </span>
+      );
+    }
+    if (draftStatus === 'error') {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs text-amber-700">
+          <AlertTriangle className="w-3 h-3" />
+          {draftError ?? (language === 'ar' ? 'فشل الحفظ' : 'Draft save failed')}
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto">
+        {restoredDraft && (
+          <div className="mb-4 p-4 rounded-xl border border-amber-300 bg-amber-50 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-amber-900">
+                {language === 'ar' ? 'تمت استعادة مسودة محفوظة' : 'Restored from saved draft'}
+              </div>
+              <div className="text-sm text-amber-800 mt-1">
+                {language === 'ar'
+                  ? `تم استرجاع عملك السابق من ${format(new Date(restoredDraft.savedAt), 'PPpp', { locale: ar })}. اضغط حفظ الزيارة للتأكيد، أو تجاهل المسودة لبدء من جديد.`
+                  : `Continuing your work from ${format(new Date(restoredDraft.savedAt), 'PPpp', { locale: enUS })}. Save the visit to finalize, or discard to start fresh.`}
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDiscardDraft}
+              className="shrink-0"
+            >
+              {language === 'ar' ? 'تجاهل المسودة' : 'Discard draft'}
+            </Button>
+          </div>
+        )}
+
         <Button variant="ghost" onClick={() => navigate(`/patients/${patientId}`)} className="gap-2 mb-4">
           <BackIcon className="w-4 h-4" />
           {t('common.back')}
         </Button>
 
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold text-foreground">
-            {isEditMode
-              ? (language === 'ar' ? 'تعديل الزيارة' : 'Edit Visit')
-              : t('visits.newVisit')}
-          </h1>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold text-foreground">
+              {isEditMode
+                ? (language === 'ar' ? 'تعديل الزيارة' : 'Edit Visit')
+                : t('visits.newVisit')}
+            </h1>
+            {renderDraftStatus()}
+          </div>
           {/* Global Pen Size Control */}
           <div className="flex items-center gap-2 bg-card rounded-xl px-3 py-2 card-shadow">
             <PenTool className="w-4 h-4 text-muted-foreground" />

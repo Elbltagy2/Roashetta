@@ -428,6 +428,26 @@ class ApiClient {
     );
   }
 
+  async scanToPatientRecord(patientId: string, options?: ScanOptions) {
+    return this.request<{ record: PatientRecord; scanner: { url: string; name: string } }>(
+      `/scanner/scan-to-record/${patientId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(options ?? {}),
+      },
+    );
+  }
+
+  async scanToPreviousInvestigation(patientId: string, options?: ScanOptions) {
+    return this.request<{ investigation: PreviousInvestigation; scanner: { url: string; name: string } }>(
+      `/scanner/scan-to-investigation/${patientId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify(options ?? {}),
+      },
+    );
+  }
+
   // Updates
   async getUpdateInfo() {
     return this.request<UpdateState>('/updates');

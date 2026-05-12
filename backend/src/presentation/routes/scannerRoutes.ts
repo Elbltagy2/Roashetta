@@ -10,5 +10,13 @@ router.use(authMiddleware);
 router.get('/discover', scannerController.discover.bind(scannerController));
 router.post('/default', scannerController.setDefault.bind(scannerController));
 router.post('/quick-scan/:visitId', scannerController.quickScan.bind(scannerController));
+router.post(
+  '/scan-to-record/:patientId',
+  scannerController.scanToPatientRecord.bind(scannerController)
+);
+router.post(
+  '/scan-to-investigation/:patientId',
+  scannerController.scanToPreviousInvestigation.bind(scannerController)
+);
 
 export default router;

@@ -22,6 +22,8 @@ import {
   Image,
   File,
   X,
+  ScanLine,
+  Loader2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -29,7 +31,9 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { pdfToImages } from '@/lib/pdf-to-images';
+import api from '@/services/api';
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,11 +52,14 @@ const PatientDetailPage: React.FC = () => {
     getPreviousInvestigations,
   } = useData();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const investigationFileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
   const [pdfPages, setPdfPages] = useState<string[]>([]);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [scanningRecord, setScanningRecord] = useState(false);
+  const [scanningInvestigation, setScanningInvestigation] = useState(false);
 
   const patient = getPatient(id || '');
   const visits = getPatientVisits(id || '');
@@ -140,6 +147,46 @@ const PatientDetailPage: React.FC = () => {
 
   const handleDeleteInvestigation = (investigationId: string) => {
     deletePreviousInvestigation(investigationId);
+  };
+
+  const handleScanRecord = async () => {
+    if (!patient) return;
+    setScanningRecord(true);
+    try {
+      await api.scanToPatientRecord(patient.id);
+      await loadPatientRecords(patient.id);
+      toast({
+        title: language === 'ar' ? 'تم حفظ المستند الممسوح' : 'Scan saved to records',
+      });
+    } catch (err) {
+      toast({
+        title: language === 'ar' ? 'فشل المسح الضوئي' : 'Scan failed',
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setScanningRecord(false);
+    }
+  };
+
+  const handleScanInvestigation = async () => {
+    if (!patient) return;
+    setScanningInvestigation(true);
+    try {
+      await api.scanToPreviousInvestigation(patient.id);
+      await loadPreviousInvestigations(patient.id);
+      toast({
+        title: language === 'ar' ? 'تم حفظ الفحص الممسوح' : 'Scan saved to investigations',
+      });
+    } catch (err) {
+      toast({
+        title: language === 'ar' ? 'فشل المسح الضوئي' : 'Scan failed',
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setScanningInvestigation(false);
+    }
   };
 
   const isImageFile = (type: string) => type.startsWith('image/');
@@ -293,7 +340,7 @@ const PatientDetailPage: React.FC = () => {
               <Image className="w-5 h-5 text-primary" />
               {language === 'ar' ? 'سجلات المريض' : 'Patient Records'}
             </h2>
-            <div>
+            <div className="flex items-center gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -303,6 +350,20 @@ const PatientDetailPage: React.FC = () => {
                 className="hidden"
                 id="file-upload"
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleScanRecord}
+                disabled={scanningRecord}
+                className="gap-2"
+              >
+                {scanningRecord ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ScanLine className="w-4 h-4" />
+                )}
+                {language === 'ar' ? 'مسح ضوئي' : 'Scan'}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -372,7 +433,7 @@ const PatientDetailPage: React.FC = () => {
               <File className="w-5 h-5 text-primary" />
               {language === 'ar' ? 'الفحوصات السابقة' : 'Previous Investigations'}
             </h2>
-            <div>
+            <div className="flex items-center gap-2">
               <input
                 ref={investigationFileInputRef}
                 type="file"
@@ -382,6 +443,20 @@ const PatientDetailPage: React.FC = () => {
                 className="hidden"
                 id="investigation-file-upload"
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleScanInvestigation}
+                disabled={scanningInvestigation}
+                className="gap-2"
+              >
+                {scanningInvestigation ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ScanLine className="w-4 h-4" />
+                )}
+                {language === 'ar' ? 'مسح ضوئي' : 'Scan'}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"

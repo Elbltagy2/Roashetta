@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 export interface ChecklistCategory {
@@ -42,7 +42,29 @@ const CheckboxRequestForm: React.FC<CheckboxRequestFormProps> = ({
   otherPlaceholder = 'Enter other items...',
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const didInitialExpand = useRef(false);
   const c = colorMap[accentColor];
+
+  // First time we see non-empty data (e.g. from a draft restore or edit-mode
+  // load), auto-expand any category that already has selections so the
+  // doctor doesn't have to manually open each dropdown to find their work.
+  useEffect(() => {
+    if (didInitialExpand.current) return;
+    const hasAnyChecked = Object.values(selectedItems).some((v) => v);
+    const hasOtherText = !!otherText && otherText.trim().length > 0;
+    if (!hasAnyChecked && !hasOtherText) return;
+
+    didInitialExpand.current = true;
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      categories.forEach((cat) => {
+        const anyChecked = cat.tests.some((t) => selectedItems[t.id]);
+        const isOthersWithText = cat.id === 'others' && hasOtherText;
+        if (anyChecked || isOthersWithText) next.add(cat.id);
+      });
+      return next;
+    });
+  }, [selectedItems, otherText, categories]);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {

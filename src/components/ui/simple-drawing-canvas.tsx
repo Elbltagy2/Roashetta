@@ -129,6 +129,32 @@ export const SimpleDrawingCanvas: React.FC<SimpleDrawingCanvasProps> = React.mem
     img.src = initialData;
   }, [initialData]);
 
+  // Sync internal mode/textContent when initialData becomes non-empty after
+  // mount (e.g. a draft restore or edit-mode hydration). Without this, the
+  // canvas mounts with initialData='' and never picks up the prop change,
+  // so the user sees an empty canvas even though their data was restored
+  // into the parent state. Fires once per mount; user actions afterward
+  // produce self-induced prop changes which we intentionally ignore.
+  const initialSyncDoneRef = useRef(false);
+  useEffect(() => {
+    if (initialSyncDoneRef.current) return;
+    if (!initialData) return;
+    if (hasUserDrawnRef.current) return;
+
+    initialSyncDoneRef.current = true;
+    initialDataRef.current = initialData;
+
+    const parsed = parseTextModeData(initialData);
+    if (parsed) {
+      setMode('text');
+      setTextContent(parsed.text);
+    } else {
+      // Draw-mode data — let the canvas re-init so setupCanvas picks
+      // up the new initialDataRef on its next pass.
+      hasLoadedDataRef.current = false;
+    }
+  }, [initialData]);
+
   useEffect(() => {
     if (!isInitializedRef.current || mode !== 'draw') return;
 
