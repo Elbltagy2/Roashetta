@@ -406,48 +406,6 @@ class ApiClient {
     });
   }
 
-  // Scanner
-  async discoverScanners() {
-    return this.request<DiscoveredScanner[]>('/scanner/discover');
-  }
-
-  async setDefaultScanner(data: { url: string; name?: string }) {
-    return this.request<Settings>('/scanner/default', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async quickScan(visitId: string, options?: ScanOptions) {
-    return this.request<{ attachment: VisitAttachment; scanner: { url: string; name: string } }>(
-      `/scanner/quick-scan/${visitId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(options ?? {}),
-      },
-    );
-  }
-
-  async scanToPatientRecord(patientId: string, options?: ScanOptions) {
-    return this.request<{ record: PatientRecord; scanner: { url: string; name: string } }>(
-      `/scanner/scan-to-record/${patientId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(options ?? {}),
-      },
-    );
-  }
-
-  async scanToPreviousInvestigation(patientId: string, options?: ScanOptions) {
-    return this.request<{ investigation: PreviousInvestigation; scanner: { url: string; name: string } }>(
-      `/scanner/scan-to-investigation/${patientId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(options ?? {}),
-      },
-    );
-  }
-
   // Updates
   async getUpdateInfo() {
     return this.request<UpdateState>('/updates');
@@ -777,8 +735,6 @@ export interface Settings {
   doctorId: string;
   newVisitPrice: number;
   followupVisitPrice: number;
-  lastScannerUrl?: string;
-  lastScannerName?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -786,25 +742,6 @@ export interface Settings {
 export interface UpdateSettingsData {
   newVisitPrice?: number;
   followupVisitPrice?: number;
-  lastScannerUrl?: string;
-  lastScannerName?: string;
-}
-
-// Scanner
-export interface DiscoveredScanner {
-  name: string;
-  host: string;
-  port: number;
-  url: string;
-  secure: boolean;
-}
-
-export interface ScanOptions {
-  url?: string;
-  resolution?: number;
-  colorMode?: 'RGB24' | 'Grayscale8' | 'BlackAndWhite1';
-  source?: 'Platen' | 'Feeder';
-  format?: 'image/jpeg' | 'application/pdf';
 }
 
 // Analytics

@@ -3,8 +3,6 @@ export interface Settings {
   doctorId: string;
   newVisitPrice: number;
   followupVisitPrice: number;
-  lastScannerUrl: string;
-  lastScannerName: string;
   createdAt: Date;
   updatedAt: Date;
 }

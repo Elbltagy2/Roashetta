@@ -714,19 +714,6 @@ class MockApiClient {
     setData(STORAGE_KEYS.queue, entries);
   }
 
-  // Scanner — not supported in demo mode
-  async discoverScanners() {
-    throw new Error('Scanner is not available in demo mode');
-  }
-
-  async setDefaultScanner(_data: { url: string; name?: string }) {
-    throw new Error('Scanner is not available in demo mode');
-  }
-
-  async quickScan(_visitId: string, _options?: unknown) {
-    throw new Error('Scanner is not available in demo mode');
-  }
-
   // Updates — not applicable in demo mode (no backend exe to swap)
   async getUpdateInfo() {
     return {

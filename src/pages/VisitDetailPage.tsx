@@ -3,9 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock, DollarSign, Check, X, Pencil, Download, ScanLine } from 'lucide-react';
-import api from '@/services/api';
-import { toast } from 'sonner';
+import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, Activity, Printer, History, Pill, Users, FlaskConical, ChevronDown, Paperclip, Upload, File, Trash2, Loader2, Clock, DollarSign, Check, X, Pencil, Download } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -50,7 +48,6 @@ const VisitDetailPage: React.FC = () => {
   const [attachments, setAttachments] = useState<VisitAttachment[]>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
 
   // Price editing state
   const [isEditingPrice, setIsEditingPrice] = useState(false);
@@ -145,31 +142,6 @@ const VisitDetailPage: React.FC = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleScanAndAttach = async () => {
-    if (!visitId) return;
-    setIsScanning(true);
-    const toastId = toast.loading(
-      language === 'ar' ? 'جاري المسح الضوئي...' : 'Scanning...'
-    );
-    try {
-      await api.quickScan(visitId);
-      const updated = await loadVisitAttachments(visitId);
-      setAttachments(updated);
-      toast.success(
-        language === 'ar' ? 'تم حفظ المسح الضوئي' : 'Scan saved',
-        { id: toastId }
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Scan failed';
-      toast.error(
-        language === 'ar' ? `فشل المسح: ${message}` : `Scan failed: ${message}`,
-        { id: toastId }
-      );
-    } finally {
-      setIsScanning(false);
     }
   };
 
@@ -2170,20 +2142,6 @@ const VisitDetailPage: React.FC = () => {
                         <Upload className="w-4 h-4" />
                       )}
                       {language === 'ar' ? 'رفع مرفق' : 'Upload Attachment'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleScanAndAttach}
-                      disabled={isUploading || isScanning}
-                      className="gap-2"
-                      title={language === 'ar' ? 'استخدام ماسح ضوئي على الشبكة' : 'Use a network (WiFi) scanner'}
-                    >
-                      {isScanning ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ScanLine className="w-4 h-4" />
-                      )}
-                      {language === 'ar' ? 'مسح ضوئي وحفظ' : 'Scan & Attach'}
                     </Button>
                   </div>
 

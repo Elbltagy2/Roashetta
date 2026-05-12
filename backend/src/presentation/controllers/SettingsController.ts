@@ -22,8 +22,6 @@ export class SettingsController {
         doctorId,
         newVisitPrice: 0,
         followupVisitPrice: 0,
-        lastScannerUrl: '',
-        lastScannerName: '',
       };
 
       cache.set(cacheKey, payload);
@@ -36,7 +34,7 @@ export class SettingsController {
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const doctorId = req.doctorId!;
-      const { newVisitPrice, followupVisitPrice, lastScannerUrl, lastScannerName } = req.body;
+      const { newVisitPrice, followupVisitPrice } = req.body;
 
       const existing = await settingsRepository.findByDoctorId(doctorId);
 
@@ -44,8 +42,6 @@ export class SettingsController {
         doctorId,
         newVisitPrice: newVisitPrice ?? existing?.newVisitPrice ?? 0,
         followupVisitPrice: followupVisitPrice ?? existing?.followupVisitPrice ?? 0,
-        lastScannerUrl: lastScannerUrl ?? existing?.lastScannerUrl ?? '',
-        lastScannerName: lastScannerName ?? existing?.lastScannerName ?? '',
       });
 
       cache.delete(cacheKeys.settings(doctorId));

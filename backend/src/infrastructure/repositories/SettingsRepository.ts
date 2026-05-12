@@ -13,15 +13,13 @@ export class SettingsRepository {
     const now = new Date().toISOString();
 
     db.prepare(
-      `INSERT INTO settings (id, doctor_id, new_visit_price, followup_visit_price, last_scanner_url, last_scanner_name, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO settings (id, doctor_id, new_visit_price, followup_visit_price, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.doctorId,
       data.newVisitPrice,
       data.followupVisitPrice,
-      data.lastScannerUrl ?? '',
-      data.lastScannerName ?? '',
       now,
       now,
     );
@@ -41,14 +39,6 @@ export class SettingsRepository {
       fields.push('followup_visit_price = ?');
       values.push(data.followupVisitPrice);
     }
-    if (data.lastScannerUrl !== undefined) {
-      fields.push('last_scanner_url = ?');
-      values.push(data.lastScannerUrl);
-    }
-    if (data.lastScannerName !== undefined) {
-      fields.push('last_scanner_name = ?');
-      values.push(data.lastScannerName);
-    }
 
     if (fields.length > 0) {
       fields.push("updated_at = datetime('now')");
@@ -66,8 +56,6 @@ export class SettingsRepository {
       return this.update(data.doctorId, {
         newVisitPrice: data.newVisitPrice,
         followupVisitPrice: data.followupVisitPrice,
-        lastScannerUrl: data.lastScannerUrl,
-        lastScannerName: data.lastScannerName,
       });
     }
     return this.create(data);
@@ -79,8 +67,6 @@ export class SettingsRepository {
       doctorId: row.doctor_id as string,
       newVisitPrice: typeof row.new_visit_price === 'string' ? parseFloat(row.new_visit_price) : (row.new_visit_price as number) || 0,
       followupVisitPrice: typeof row.followup_visit_price === 'string' ? parseFloat(row.followup_visit_price) : (row.followup_visit_price as number) || 0,
-      lastScannerUrl: (row.last_scanner_url as string) ?? '',
-      lastScannerName: (row.last_scanner_name as string) ?? '',
       createdAt: new Date(row.created_at as string),
       updatedAt: new Date(row.updated_at as string),
     };
