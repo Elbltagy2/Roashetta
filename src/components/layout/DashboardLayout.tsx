@@ -39,7 +39,7 @@ const navItems: NavItem[] = [
   { key: 'expenses', icon: Wallet, path: '/expenses' },
   { key: 'analytics', icon: BarChart3, path: '/analytics', doctorOnly: true },
   { key: 'assistants', icon: UserCog, path: '/assistants', doctorOnly: true },
-  { key: 'settings', icon: Settings, path: '/settings', doctorOnly: true },
+  { key: 'settings', icon: Settings, path: '/settings' },
 ];
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
