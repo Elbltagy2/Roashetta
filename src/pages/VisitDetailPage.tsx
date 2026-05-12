@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getDisplayDataUrl } from '@/lib/drawing-utils';
-import { printHtml, downloadPdf } from '@/lib/download-pdf';
+import { printHtml, downloadPdf, printImage } from '@/lib/download-pdf';
 import { pdfToImages } from '@/lib/pdf-to-images';
 import { LAB_TEST_CATEGORIES } from '@/data/labTests';
 import { RADIOLOGY_TEST_CATEGORIES } from '@/data/radiologyTests';
@@ -2179,8 +2179,27 @@ const VisitDetailPage: React.FC = () => {
                               <span className="text-xs text-muted-foreground">PDF</span>
                             </button>
                           )}
-                          <div className="p-2 flex items-center justify-between">
+                          <div className="p-2 flex items-center justify-between gap-1">
                             <p className="text-xs text-muted-foreground truncate flex-1">{attachment.name}</p>
+                            {isImageFile(attachment.type) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() =>
+                                  printImage({
+                                    dataUrl: attachment.dataUrl,
+                                    title: attachment.name,
+                                    patientName: patient?.name,
+                                    date: visit ? format(visit.date, 'dd/MM/yyyy') : '',
+                                    language,
+                                  })
+                                }
+                                title={language === 'ar' ? 'طباعة' : 'Print'}
+                              >
+                                <Printer className="w-3 h-3 text-primary" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"

@@ -22,6 +22,7 @@ import {
   Image,
   File,
   X,
+  Printer,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { pdfToImages } from '@/lib/pdf-to-images';
+import { printImage } from '@/lib/download-pdf';
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -340,6 +342,23 @@ const PatientDetailPage: React.FC = () => {
                       </span>
                     </div>
                   )}
+                  {isImageFile(record.type) && (
+                    <button
+                      onClick={() =>
+                        printImage({
+                          dataUrl: record.dataUrl,
+                          title: record.name,
+                          patientName: patient.name,
+                          date: new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US'),
+                          language,
+                        })
+                      }
+                      className="absolute top-2 start-2 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={language === 'ar' ? 'طباعة' : 'Print'}
+                    >
+                      <Printer className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteRecord(record.id)}
                     className="absolute top-2 end-2 w-7 h-7 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -418,6 +437,23 @@ const PatientDetailPage: React.FC = () => {
                         {investigation.name}
                       </span>
                     </div>
+                  )}
+                  {isImageFile(investigation.type) && (
+                    <button
+                      onClick={() =>
+                        printImage({
+                          dataUrl: investigation.dataUrl,
+                          title: investigation.name,
+                          patientName: patient.name,
+                          date: new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US'),
+                          language,
+                        })
+                      }
+                      className="absolute top-2 start-2 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      title={language === 'ar' ? 'طباعة' : 'Print'}
+                    >
+                      <Printer className="w-4 h-4" />
+                    </button>
                   )}
                   <button
                     onClick={() => handleDeleteInvestigation(investigation.id)}

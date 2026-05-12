@@ -131,3 +131,92 @@ export function printHtml(html: string) {
   printWindow.document.write(htmlWithPrint);
   printWindow.document.close();
 }
+
+interface PrintImageOptions {
+  dataUrl: string;
+  title: string;
+  patientName?: string;
+  date?: string;
+  language?: 'en' | 'ar';
+}
+
+// Build a print-friendly HTML document wrapping an image with a small
+// header (title + patient + date). Used for printing patient records,
+// previous investigations, and visit attachments.
+export function getImagePrintHtml(opts: PrintImageOptions): string {
+  const {
+    dataUrl,
+    title,
+    patientName = '',
+    date = '',
+    language = 'en',
+  } = opts;
+
+  const patientLabel = language === 'ar' ? 'المريض' : 'Patient';
+  const dateLabel = language === 'ar' ? 'التاريخ' : 'Date';
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+      direction: ${dir};
+      color: #111;
+    }
+    .header {
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .header h1 {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #555;
+    }
+    .photo-wrap {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo {
+      max-width: 100%;
+      max-height: calc(100vh - 80px);
+      object-fit: contain;
+    }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .photo { max-height: 240mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${title}</h1>
+    ${patientName || date ? `
+    <div class="meta">
+      ${patientName ? `<span>${patientLabel}: ${patientName}</span>` : ''}
+      ${date ? `<span>${dateLabel}: ${date}</span>` : ''}
+    </div>` : ''}
+  </div>
+  <div class="photo-wrap">
+    <img class="photo" src="${dataUrl}" />
+  </div>
+</body>
+</html>`;
+}
+
+export function printImage(opts: PrintImageOptions) {
+  printHtml(getImagePrintHtml(opts));
+}
