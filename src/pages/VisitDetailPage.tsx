@@ -1660,13 +1660,16 @@ const VisitDetailPage: React.FC = () => {
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handlePrint(
-                                            attachment.dataUrl,
-                                            language === 'ar' ? `روشتة - ${displayName}` : `Prescription - ${displayName}`
-                                          );
+                                          printImage({
+                                            dataUrl: attachment.dataUrl,
+                                            title: displayName,
+                                            patientName: patient?.name,
+                                            date: visit ? format(visit.date, 'dd/MM/yyyy') : '',
+                                            language,
+                                          });
                                         }}
                                         className="absolute top-1 end-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title={language === 'ar' ? 'طباعة كروشتة' : 'Print as prescription'}
+                                        title={language === 'ar' ? 'طباعة' : 'Print'}
                                       >
                                         <Printer className="w-3 h-3" />
                                       </button>
