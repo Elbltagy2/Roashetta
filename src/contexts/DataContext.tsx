@@ -140,6 +140,7 @@ interface DataContextType {
   getPatient: (id: string) => Patient | undefined;
   addVisit: (visit: Omit<Visit, 'id'>) => Promise<Visit>;
   updateVisit: (visitId: string, visit: Partial<Omit<Visit, 'id' | 'patientId'>>) => Promise<Visit>;
+  deleteVisit: (visitId: string) => Promise<void>;
   updateVisitPrice: (visitId: string, price: number) => Promise<void>;
   getPatientVisits: (patientId: string) => Visit[];
   loadPatientVisits: (patientId: string) => Promise<Visit[]>;
@@ -485,6 +486,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return updatedVisit;
   };
 
+  const deleteVisit = async (visitId: string) => {
+    await api.deleteVisit(visitId);
+    setVisits(prev => prev.filter(v => v.id !== visitId));
+  };
+
   const updateVisitPrice = async (visitId: string, price: number) => {
     const apiVisit = await api.updateVisitPrice(visitId, price);
     const updatedVisit = convertApiVisit(apiVisit);
@@ -735,6 +741,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getPatient,
         addVisit,
         updateVisit,
+        deleteVisit,
         updateVisitPrice,
         getPatientVisits,
         loadPatientVisits,

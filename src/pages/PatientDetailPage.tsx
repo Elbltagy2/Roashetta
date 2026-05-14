@@ -23,6 +23,8 @@ import {
   File,
   X,
   Printer,
+  Pencil,
+  Trash,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -36,7 +38,7 @@ import { printImage } from '@/lib/download-pdf';
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, language, direction } = useLanguage();
-  const { isAssistant } = useAuth();
+  const { isAssistant, isDoctor, hasPermission } = useAuth();
   const {
     getPatient,
     getPatientVisits,
@@ -48,7 +50,12 @@ const PatientDetailPage: React.FC = () => {
     addPreviousInvestigation,
     deletePreviousInvestigation,
     getPreviousInvestigations,
+    deletePatient,
+    deleteVisit,
   } = useData();
+  const canEditPatient = isDoctor || hasPermission('canEditPatients');
+  const canDeletePatient = isDoctor || hasPermission('canDeletePatients');
+  const canDeleteVisit = isDoctor || hasPermission('canDeleteVisits');
   const navigate = useNavigate();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const investigationFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -144,6 +151,35 @@ const PatientDetailPage: React.FC = () => {
     deletePreviousInvestigation(investigationId);
   };
 
+  const handleDeletePatient = async () => {
+    if (!patient) return;
+    const confirmMsg = language === 'ar'
+      ? `هل أنت متأكد من حذف المريض "${patient.name}"؟ سيتم حذف جميع الزيارات والسجلات نهائياً.`
+      : `Delete patient "${patient.name}"? This will permanently delete all their visits and records.`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      await deletePatient(patient.id);
+      navigate('/patients');
+    } catch (err) {
+      window.alert(language === 'ar' ? 'فشل الحذف' : 'Failed to delete');
+      console.error(err);
+    }
+  };
+
+  const handleDeleteVisit = async (visitId: string) => {
+    if (!patient) return;
+    const confirmMsg = language === 'ar'
+      ? 'هل أنت متأكد من حذف هذه الزيارة؟ لا يمكن التراجع عن هذا الإجراء.'
+      : 'Delete this visit? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      await deleteVisit(visitId);
+    } catch (err) {
+      window.alert(language === 'ar' ? 'فشل حذف الزيارة' : 'Failed to delete visit');
+      console.error(err);
+    }
+  };
+
   const isImageFile = (type: string) => type.startsWith('image/');
 
   const dateLocale = language === 'ar' ? ar : enUS;
@@ -193,15 +229,37 @@ const PatientDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {!isAssistant && (
-              <Button
-                onClick={() => navigate(`/patients/${patient.id}/visit/new`)}
-                className="gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                {t('visits.newVisit')}
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {canEditPatient && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/patients/${patient.id}/edit`)}
+                  className="gap-2"
+                >
+                  <Pencil className="w-4 h-4" />
+                  {language === 'ar' ? 'تعديل' : 'Edit'}
+                </Button>
+              )}
+              {canDeletePatient && (
+                <Button
+                  variant="outline"
+                  onClick={handleDeletePatient}
+                  className="gap-2 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
+                >
+                  <Trash className="w-4 h-4" />
+                  {language === 'ar' ? 'حذف المريض' : 'Delete'}
+                </Button>
+              )}
+              {!isAssistant && (
+                <Button
+                  onClick={() => navigate(`/patients/${patient.id}/visit/new`)}
+                  className="gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  {t('visits.newVisit')}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -537,7 +595,7 @@ const PatientDetailPage: React.FC = () => {
                 .map((visit) => (
                   <div
                     key={visit.id}
-                    className="bg-card rounded-2xl card-shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                    className="bg-card rounded-2xl card-shadow p-6 hover:shadow-lg transition-shadow cursor-pointer group relative"
                     onClick={() => navigate(`/patients/${patient.id}/visit/${visit.id}`)}
                   >
                     <div className="flex items-start justify-between mb-4">
@@ -550,12 +608,28 @@ const PatientDetailPage: React.FC = () => {
                           {visit.chiefComplaint}
                         </p>
                       </div>
-                      {(visit.chiefComplaintDrawing || visit.diagnosisDrawing || visit.notesDrawing) && (
-                        <Badge variant="secondary">
-                          <FileText className="w-3 h-3 me-1" />
-                          {language === 'ar' ? 'ملاحظات' : 'Notes'}
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(visit.chiefComplaintDrawing || visit.diagnosisDrawing || visit.notesDrawing) && (
+                          <Badge variant="secondary">
+                            <FileText className="w-3 h-3 me-1" />
+                            {language === 'ar' ? 'ملاحظات' : 'Notes'}
+                          </Badge>
+                        )}
+                        {canDeleteVisit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteVisit(visit.id);
+                            }}
+                            title={language === 'ar' ? 'حذف الزيارة' : 'Delete visit'}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="bg-muted/50 rounded-xl p-3">

@@ -23,6 +23,9 @@ router.put('/:id/price', requirePermission('canEditVisits'), visitController.upd
 // Update full visit - requires canEditVisits permission
 router.put('/:id', requirePermission('canEditVisits'), visitController.update.bind(visitController));
 
+// Delete visit - requires canDeleteVisits permission
+router.delete('/:id', requirePermission('canDeleteVisits'), visitController.delete.bind(visitController));
+
 // Visit Attachments - all authenticated users can view and upload
 router.get('/:visitId/attachments', attachmentController.getByVisitId.bind(attachmentController));
 router.post('/:visitId/attachments', attachmentController.create.bind(attachmentController));

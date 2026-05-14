@@ -28,8 +28,9 @@ type SectionName = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' 
 const VisitDetailPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId: string }>();
   const { t, language, direction } = useLanguage();
-  const { isAssistant } = useAuth();
-  const { getPatient, visits, loadPatientVisits, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit } = useData();
+  const { isAssistant, isDoctor, hasPermission } = useAuth();
+  const { getPatient, visits, loadPatientVisits, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit, deleteVisit } = useData();
+  const canDeleteVisit = isDoctor || hasPermission('canDeleteVisits');
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -153,6 +154,21 @@ const VisitDetailPage: React.FC = () => {
       setAttachments(updated);
     } catch (error) {
       console.error('Failed to delete attachment:', error);
+    }
+  };
+
+  const handleDeleteVisit = async () => {
+    if (!visitId || !patientId) return;
+    const confirmMsg = language === 'ar'
+      ? 'هل أنت متأكد من حذف هذه الزيارة؟ لا يمكن التراجع عن هذا الإجراء.'
+      : 'Delete this visit? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      await deleteVisit(visitId);
+      navigate(`/patients/${patientId}`);
+    } catch (err) {
+      window.alert(language === 'ar' ? 'فشل حذف الزيارة' : 'Failed to delete visit');
+      console.error(err);
     }
   };
 
@@ -1178,6 +1194,16 @@ const VisitDetailPage: React.FC = () => {
                 <Download className="w-4 h-4" />
                 {language === 'ar' ? 'تحميل التقرير' : 'Download Report'}
               </Button>
+              {canDeleteVisit && (
+                <Button
+                  onClick={handleDeleteVisit}
+                  variant="outline"
+                  className="gap-2 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {language === 'ar' ? 'حذف الزيارة' : 'Delete Visit'}
+                </Button>
+              )}
             </div>
           </div>
         </div>

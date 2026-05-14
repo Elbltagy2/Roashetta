@@ -409,6 +409,11 @@ class MockApiClient {
     return visits[index];
   }
 
+  async deleteVisit(visitId: string): Promise<void> {
+    const visits = getData<Visit>(STORAGE_KEYS.visits);
+    setData(STORAGE_KEYS.visits, visits.filter(v => v.id !== visitId));
+  }
+
   // Patient Records
   async getPatientRecords(patientId: string): Promise<PatientRecord[]> {
     const records = getData<PatientRecord>(STORAGE_KEYS.records);

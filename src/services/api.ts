@@ -212,6 +212,10 @@ class ApiClient {
     });
   }
 
+  async deleteVisit(visitId: string) {
+    return this.request<void>(`/visits/${visitId}`, { method: 'DELETE' });
+  }
+
   // Patient Records
   async getPatientRecords(patientId: string) {
     return this.request<PatientRecord[]>(`/patient-records/patient/${patientId}`);

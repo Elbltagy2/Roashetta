@@ -139,4 +139,26 @@ export class VisitController {
       next(error);
     }
   }
+
+  async delete(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const existingVisit = await visitRepository.findById(id);
+      if (!existingVisit) {
+        res.status(404).json({ error: 'Visit not found' });
+        return;
+      }
+
+      if (existingVisit.doctorId !== req.doctorId) {
+        res.status(403).json({ error: 'Not authorized to delete this visit' });
+        return;
+      }
+
+      await visitRepository.delete(id);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
 }

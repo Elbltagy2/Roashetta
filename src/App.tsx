@@ -13,6 +13,7 @@ import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import PatientsPage from "./pages/PatientsPage";
 import NewPatientPage from "./pages/NewPatientPage";
+import EditPatientPage from "./pages/EditPatientPage";
 import PatientDetailPage from "./pages/PatientDetailPage";
 import NewVisitPage from "./pages/NewVisitPage";
 import VisitDetailPage from "./pages/VisitDetailPage";
@@ -68,6 +69,7 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/patients" element={<ProtectedRoute><PatientsPage /></ProtectedRoute>} />
       <Route path="/patients/new" element={<ProtectedRoute><NewPatientPage /></ProtectedRoute>} />
+      <Route path="/patients/:id/edit" element={<ProtectedRoute><EditPatientPage /></ProtectedRoute>} />
       <Route path="/patients/:id" element={<ProtectedRoute><PatientDetailPage /></ProtectedRoute>} />
       <Route path="/patients/:id/visit/new" element={<ProtectedRoute><NewVisitPage /></ProtectedRoute>} />
       <Route path="/patients/:id/visit/:visitId" element={<ProtectedRoute><VisitDetailPage /></ProtectedRoute>} />
