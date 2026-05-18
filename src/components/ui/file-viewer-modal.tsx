@@ -4,10 +4,12 @@ import { pdfToImages } from '@/lib/pdf-to-images';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface ViewerFile {
-  url: string;
-  // 'image' or 'pdf' — the renderer mode. mimeType is the original MIME
-  // for fallback decisions.
-  type: 'image' | 'pdf';
+  // For 'image' and 'pdf' modes, url is the data URL of the single file.
+  // For 'doc' mode, pages is a pre-rendered array of image URLs (one per
+  // page) that should be displayed as a vertically scrollable document.
+  url?: string;
+  type: 'image' | 'pdf' | 'doc';
+  pages?: string[];
   name: string;
   mimeType?: string;
 }
@@ -52,7 +54,7 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
   // Load PDF pages when the current item is a PDF
   useEffect(() => {
     if (!current) return;
-    if (current.type !== 'pdf') {
+    if (current.type !== 'pdf' || !current.url) {
       setPdfPages([]);
       return;
     }
@@ -155,14 +157,42 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
       )}
 
       {/* Body */}
-      {current.type === 'image' ? (
+      {current.type === 'image' && current.url ? (
         <img
           src={current.url}
           alt={current.name}
           className="max-w-[85vw] max-h-[85vh] object-contain rounded-lg"
           onClick={(e) => e.stopPropagation()}
         />
+      ) : current.type === 'doc' ? (
+        // Multi-page document — vertically scrollable. Used to view a whole
+        // previous visit as a "PDF": stacks every page (drawing) into one
+        // tall scrollable surface, then Prev/Next moves to the next visit.
+        <div
+          className="w-full max-w-4xl h-[85vh] rounded-lg bg-white overflow-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {current.pages && current.pages.length > 0 ? (
+            <div className="flex flex-col items-center gap-3 p-3">
+              {current.pages.map((page, i) => (
+                <img
+                  key={i}
+                  src={page}
+                  alt={`${current.name} — page ${i + 1}`}
+                  className="w-full border border-border rounded-md shadow-sm"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">
+                {language === 'ar' ? 'لا توجد صفحات' : 'No pages to show'}
+              </p>
+            </div>
+          )}
+        </div>
       ) : (
+        // PDF mode — render via pdfToImages
         <div
           className="w-full max-w-4xl h-[85vh] rounded-lg bg-white overflow-auto"
           onClick={(e) => e.stopPropagation()}

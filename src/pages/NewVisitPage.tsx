@@ -416,51 +416,52 @@ const NewVisitPage: React.FC = () => {
     setViewerIndex(0);
   };
 
-  // Convert one visit to a flat list of viewable pages (drawings + image
-  // attachments). Used when the doctor wants to scroll through previous
-  // visits like a PDF.
-  const visitToPages = (v: Visit, dateLabel: string): ViewerFile[] => {
-    const pages: ViewerFile[] = [];
-    const push = (label: string, url: string | null | undefined) => {
-      if (url) pages.push({ url, type: 'image', name: `${dateLabel} — ${label}` });
-    };
-    push(language === 'ar' ? 'الشكوى الرئيسية' : 'Chief Complaint', v.chiefComplaintDrawing);
-    push(language === 'ar' ? 'التشخيص' : 'Diagnosis', v.diagnosisDrawing);
-    push(language === 'ar' ? 'التاريخ المرضي السابق' : 'Past Medical History', v.pastMedicalHistoryDrawing);
-    push(language === 'ar' ? 'تاريخ المرض الحالي' : 'HPI', v.hpiDrawing);
-    push(language === 'ar' ? 'تاريخ الأدوية' : 'Drug History', v.drugHistoryDrawing);
-    push(language === 'ar' ? 'التاريخ العائلي' : 'Family History', v.familyHistoryDrawing);
-    push(language === 'ar' ? 'الأدوية الحالية' : 'Current Medication', v.currentMedicationDrawing);
-    push(language === 'ar' ? 'الروشتة ١' : 'Prescription 1', v.notesDrawing);
-    push(language === 'ar' ? 'الروشتة ٢' : 'Prescription 2', v.notesDrawing2);
-    push(language === 'ar' ? 'الروشتة ٣' : 'Prescription 3', v.notesDrawing3);
-    push(language === 'ar' ? 'الأشعة ١' : 'Radiology 1', v.radiologyDrawing);
-    push(language === 'ar' ? 'الأشعة ٢' : 'Radiology 2', v.radiologyDrawing2);
-    push(language === 'ar' ? 'الأشعة ٣' : 'Radiology 3', v.radiologyDrawing3);
-    return pages;
+  // Collect every drawing/page for a visit so it can be shown as one
+  // multi-page document.
+  const visitDrawings = (v: Visit): string[] => {
+    return [
+      v.chiefComplaintDrawing,
+      v.diagnosisDrawing,
+      v.pastMedicalHistoryDrawing,
+      v.hpiDrawing,
+      v.drugHistoryDrawing,
+      v.familyHistoryDrawing,
+      v.currentMedicationDrawing,
+      v.notesDrawing,
+      v.notesDrawing2,
+      v.notesDrawing3,
+      v.radiologyDrawing,
+      v.radiologyDrawing2,
+      v.radiologyDrawing3,
+    ].filter((d): d is string => !!d);
   };
 
-  // Open all previous visits as one big slider — entries are tagged with
-  // the visit date so the doctor knows which visit each page came from.
-  // Starts at the first page of the visit the user clicked.
+  // Open previous visits as a slider of one-doc-per-visit. Each visit's
+  // pages are stacked vertically inside the modal (scrollable like a PDF),
+  // and Prev/Next swipes between visits. Starts on the clicked visit.
   const openPreviousVisitAsPdf = (startVisitId: string) => {
-    const all: ViewerFile[] = [];
-    let startIndex = 0;
-    for (const v of previousVisits) {
-      const dateLabel = format(v.date, 'dd/MM/yyyy');
-      const pages = visitToPages(v, dateLabel);
-      if (v.id === startVisitId && pages.length > 0) {
-        startIndex = all.length;
-      }
-      all.push(...pages);
-    }
-    if (all.length === 0) {
+    const docs: ViewerFile[] = previousVisits
+      .map((v) => ({
+        type: 'doc' as const,
+        name: format(v.date, 'PPP', { locale: dateLocale }),
+        pages: visitDrawings(v),
+      }))
+      .filter((d) => d.pages.length > 0);
+
+    if (docs.length === 0) {
       toast({
         title: language === 'ar' ? 'لا توجد صور في الزيارات السابقة' : 'No drawings in previous visits',
       });
       return;
     }
-    openViewer(all, startIndex);
+
+    const startIndex = Math.max(
+      0,
+      previousVisits
+        .filter((v) => visitDrawings(v).length > 0)
+        .findIndex((v) => v.id === startVisitId)
+    );
+    openViewer(docs, startIndex);
   };
 
   // Global pen size for all drawing canvases
