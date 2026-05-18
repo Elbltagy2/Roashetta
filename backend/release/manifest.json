@@ -1,7 +1,7 @@
 {
-  "version": "1.1.8",
+  "version": "1.1.9",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "32daf7c28a0ca192f82a890f12fd08b7856c9853e9f4dc03c9f4218ce7eb9d61",
-  "releasedAt": "2026-05-18T14:11:54Z",
-  "notes": "Release 1.1.8"
+  "sha256": "1c0226ba5821c4dd080e050a983a0085817c56ebc7e793175cb251dd9e24f764",
+  "releasedAt": "2026-05-18T14:29:10Z",
+  "notes": "Release 1.1.9"
 }
