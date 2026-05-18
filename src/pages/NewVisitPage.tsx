@@ -9,7 +9,6 @@ import {
   Activity,
   Image,
   File,
-  X,
   FileText,
   Upload,
   Trash2,
@@ -32,6 +31,7 @@ import {
   Save,
   AlertTriangle,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -51,12 +51,12 @@ import { DRUG_HISTORY_CATEGORIES } from '@/data/drugHistoryItems';
 import { FAMILY_HISTORY_CATEGORIES } from '@/data/familyHistoryItems';
 import { CURRENT_MEDICATION_CATEGORIES } from '@/data/currentMedicationItems';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useData } from '@/contexts/DataContext';
+import { useData, Visit } from '@/contexts/DataContext';
+import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getDisplayDataUrl } from '@/lib/drawing-utils';
 import { downloadPdf } from '@/lib/download-pdf';
-import { pdfToImages } from '@/lib/pdf-to-images';
 import api, { VisitType, Settings } from '@/services/api';
 import {
   Select,
@@ -402,28 +402,65 @@ const NewVisitPage: React.FC = () => {
   // Prescription attachments (uploaded files in prescription section)
   const [prescriptionAttachments, setPrescriptionAttachments] = useState<Attachment[]>([]);
 
-  // File preview modal
-  const [selectedFile, setSelectedFile] = useState<{ url: string; type: string } | null>(null);
-  const [pdfPages, setPdfPages] = useState<string[]>([]);
-  const [pdfLoading, setPdfLoading] = useState(false);
+  // Slider-style file viewer state (shared FileViewerModal)
+  const [viewerFiles, setViewerFiles] = useState<ViewerFile[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const viewerOpen = viewerFiles.length > 0;
 
-  const handleOpenPdf = async (url: string) => {
-    setSelectedFile({ url, type: 'pdf' });
-    setPdfPages([]);
-    setPdfLoading(true);
-    try {
-      const pages = await pdfToImages(url);
-      setPdfPages(pages);
-    } catch (err) {
-      console.error('Failed to render PDF:', err);
-    } finally {
-      setPdfLoading(false);
-    }
+  const openViewer = (files: ViewerFile[], index: number) => {
+    setViewerFiles(files);
+    setViewerIndex(index);
+  };
+  const closeViewer = () => {
+    setViewerFiles([]);
+    setViewerIndex(0);
   };
 
-  const handleCloseFile = () => {
-    setSelectedFile(null);
-    setPdfPages([]);
+  // Convert one visit to a flat list of viewable pages (drawings + image
+  // attachments). Used when the doctor wants to scroll through previous
+  // visits like a PDF.
+  const visitToPages = (v: Visit, dateLabel: string): ViewerFile[] => {
+    const pages: ViewerFile[] = [];
+    const push = (label: string, url: string | null | undefined) => {
+      if (url) pages.push({ url, type: 'image', name: `${dateLabel} — ${label}` });
+    };
+    push(language === 'ar' ? 'الشكوى الرئيسية' : 'Chief Complaint', v.chiefComplaintDrawing);
+    push(language === 'ar' ? 'التشخيص' : 'Diagnosis', v.diagnosisDrawing);
+    push(language === 'ar' ? 'التاريخ المرضي السابق' : 'Past Medical History', v.pastMedicalHistoryDrawing);
+    push(language === 'ar' ? 'تاريخ المرض الحالي' : 'HPI', v.hpiDrawing);
+    push(language === 'ar' ? 'تاريخ الأدوية' : 'Drug History', v.drugHistoryDrawing);
+    push(language === 'ar' ? 'التاريخ العائلي' : 'Family History', v.familyHistoryDrawing);
+    push(language === 'ar' ? 'الأدوية الحالية' : 'Current Medication', v.currentMedicationDrawing);
+    push(language === 'ar' ? 'الروشتة ١' : 'Prescription 1', v.notesDrawing);
+    push(language === 'ar' ? 'الروشتة ٢' : 'Prescription 2', v.notesDrawing2);
+    push(language === 'ar' ? 'الروشتة ٣' : 'Prescription 3', v.notesDrawing3);
+    push(language === 'ar' ? 'الأشعة ١' : 'Radiology 1', v.radiologyDrawing);
+    push(language === 'ar' ? 'الأشعة ٢' : 'Radiology 2', v.radiologyDrawing2);
+    push(language === 'ar' ? 'الأشعة ٣' : 'Radiology 3', v.radiologyDrawing3);
+    return pages;
+  };
+
+  // Open all previous visits as one big slider — entries are tagged with
+  // the visit date so the doctor knows which visit each page came from.
+  // Starts at the first page of the visit the user clicked.
+  const openPreviousVisitAsPdf = (startVisitId: string) => {
+    const all: ViewerFile[] = [];
+    let startIndex = 0;
+    for (const v of previousVisits) {
+      const dateLabel = format(v.date, 'dd/MM/yyyy');
+      const pages = visitToPages(v, dateLabel);
+      if (v.id === startVisitId && pages.length > 0) {
+        startIndex = all.length;
+      }
+      all.push(...pages);
+    }
+    if (all.length === 0) {
+      toast({
+        title: language === 'ar' ? 'لا توجد صور في الزيارات السابقة' : 'No drawings in previous visits',
+      });
+      return;
+    }
+    openViewer(all, startIndex);
   };
 
   // Global pen size for all drawing canvases
@@ -1576,7 +1613,14 @@ const NewVisitPage: React.FC = () => {
               {language === 'ar' ? 'سجلات المريض' : 'Patient Records'}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {patient.records.map((record) => (
+              {patient.records.map((record, recIdx) => {
+                const recordList: ViewerFile[] = patient.records.map((r) => ({
+                  url: r.dataUrl,
+                  type: isImageFile(r.type) ? 'image' : 'pdf',
+                  name: r.name,
+                  mimeType: r.type,
+                }));
+                return (
                 <div
                   key={record.id}
                   className="rounded-xl overflow-hidden border border-border bg-muted/30"
@@ -1586,12 +1630,12 @@ const NewVisitPage: React.FC = () => {
                       src={record.dataUrl}
                       alt={record.name}
                       className="w-full h-24 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => setSelectedFile({ url: record.dataUrl, type: 'image' })}
+                      onClick={() => openViewer(recordList, recIdx)}
                     />
                   ) : (
                     <div
                       className="w-full h-24 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                      onClick={() => handleOpenPdf(record.dataUrl)}
+                      onClick={() => openViewer(recordList, recIdx)}
                     >
                       <File className="w-8 h-8 text-muted-foreground mb-1" />
                       <span className="text-xs text-muted-foreground text-center px-2 truncate max-w-full">
@@ -1603,7 +1647,8 @@ const NewVisitPage: React.FC = () => {
                     <p className="text-xs text-muted-foreground truncate">{record.name}</p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -1700,20 +1745,36 @@ const NewVisitPage: React.FC = () => {
                     {previousVisits.length > 0 ? (
                       <div className="space-y-3">
                         {previousVisits.map((prevVisit) => (
-                          <button
+                          <div
                             key={prevVisit.id}
-                            type="button"
-                            onClick={() => navigate(`/patients/${patientId}/visit/${prevVisit.id}`)}
-                            className="w-full text-start p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors"
+                            className="w-full p-4 rounded-xl border border-border hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2 text-primary">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/patients/${patientId}/visit/${prevVisit.id}`)}
+                                className="flex items-center gap-2 text-primary hover:underline"
+                              >
                                 <Calendar className="w-4 h-4" />
                                 <span className="font-medium">
                                   {format(prevVisit.date, 'PPP', { locale: dateLocale })}
                                 </span>
+                              </button>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openPreviousVisitAsPdf(prevVisit.id)}
+                                  className="h-8 gap-1"
+                                  title={language === 'ar' ? 'عرض كملف PDF' : 'View as PDF'}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  <span className="text-xs">
+                                    {language === 'ar' ? 'PDF' : 'PDF'}
+                                  </span>
+                                </Button>
                               </div>
-                              <BackIcon className="w-4 h-4 text-muted-foreground rotate-180" />
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
                               <div>
@@ -1735,7 +1796,7 @@ const NewVisitPage: React.FC = () => {
                                 {prevVisit.chiefComplaint}
                               </p>
                             )}
-                          </button>
+                          </div>
                         ))}
                       </div>
                     ) : (
@@ -2231,7 +2292,14 @@ const NewVisitPage: React.FC = () => {
 
                       {prescriptionAttachments.length > 0 ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {prescriptionAttachments.map((attachment) => (
+                          {prescriptionAttachments.map((attachment, attIdx) => {
+                            const list: ViewerFile[] = prescriptionAttachments.map((a) => ({
+                              url: a.dataUrl,
+                              type: isImageFile(a.type) ? 'image' : 'pdf',
+                              name: a.name,
+                              mimeType: a.type,
+                            }));
+                            return (
                             <div
                               key={attachment.id}
                               className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group"
@@ -2241,12 +2309,12 @@ const NewVisitPage: React.FC = () => {
                                   src={attachment.dataUrl}
                                   alt={attachment.name}
                                   className="w-full h-20 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'image' })}
+                                  onClick={() => openViewer(list, attIdx)}
                                 />
                               ) : (
                                 <div
                                   className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                                  onClick={() => handleOpenPdf(attachment.dataUrl)}
+                                  onClick={() => openViewer(list, attIdx)}
                                 >
                                   <File className="w-6 h-6 text-muted-foreground mb-1" />
                                   <span className="text-xs text-muted-foreground">PDF</span>
@@ -2263,7 +2331,8 @@ const NewVisitPage: React.FC = () => {
                                 <p className="text-xs text-muted-foreground truncate">{attachment.name}</p>
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground text-center py-3">
@@ -2407,7 +2476,14 @@ const NewVisitPage: React.FC = () => {
 
                       {radiologyAttachments.length > 0 ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {radiologyAttachments.map((attachment) => (
+                          {radiologyAttachments.map((attachment, attIdx) => {
+                            const list: ViewerFile[] = radiologyAttachments.map((a) => ({
+                              url: a.dataUrl,
+                              type: isImageFile(a.type) ? 'image' : 'pdf',
+                              name: a.name,
+                              mimeType: a.type,
+                            }));
+                            return (
                             <div
                               key={attachment.id}
                               className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group"
@@ -2417,12 +2493,12 @@ const NewVisitPage: React.FC = () => {
                                   src={attachment.dataUrl}
                                   alt={attachment.name}
                                   className="w-full h-20 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'image' })}
+                                  onClick={() => openViewer(list, attIdx)}
                                 />
                               ) : (
                                 <div
                                   className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                                  onClick={() => handleOpenPdf(attachment.dataUrl)}
+                                  onClick={() => openViewer(list, attIdx)}
                                 >
                                   <File className="w-6 h-6 text-muted-foreground mb-1" />
                                   <span className="text-xs text-muted-foreground">PDF</span>
@@ -2439,7 +2515,8 @@ const NewVisitPage: React.FC = () => {
                                 <p className="text-xs text-muted-foreground truncate">{attachment.name}</p>
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground text-center py-3">
@@ -2601,7 +2678,14 @@ const NewVisitPage: React.FC = () => {
 
             {attachments.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                {attachments.map((attachment) => (
+                {attachments.map((attachment, attIdx) => {
+                  const list: ViewerFile[] = attachments.map((a) => ({
+                    url: a.dataUrl,
+                    type: isImageFile(a.type) ? 'image' : 'pdf',
+                    name: a.name,
+                    mimeType: a.type,
+                  }));
+                  return (
                   <div
                     key={attachment.id}
                     className="relative rounded-xl overflow-hidden border border-border bg-muted/30 group"
@@ -2611,12 +2695,12 @@ const NewVisitPage: React.FC = () => {
                         src={attachment.dataUrl}
                         alt={attachment.name}
                         className="w-full h-24 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => setSelectedFile({ url: attachment.dataUrl, type: 'image' })}
+                        onClick={() => openViewer(list, attIdx)}
                       />
                     ) : (
                       <div
                         className="w-full h-24 flex flex-col items-center justify-center bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
-                        onClick={() => handleOpenPdf(attachment.dataUrl)}
+                        onClick={() => openViewer(list, attIdx)}
                       >
                         <File className="w-8 h-8 text-muted-foreground mb-1" />
                         <span className="text-xs text-muted-foreground text-center px-2 truncate max-w-full">
@@ -2635,7 +2719,8 @@ const NewVisitPage: React.FC = () => {
                       <p className="text-xs text-muted-foreground truncate">{attachment.name}</p>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -2657,48 +2742,13 @@ const NewVisitPage: React.FC = () => {
           </div>
         </motion.form>
 
-        {/* File Preview Modal */}
-        {selectedFile && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-            onClick={handleCloseFile}
-          >
-            <button
-              className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10"
-              onClick={handleCloseFile}
-            >
-              <X className="w-6 h-6" />
-            </button>
-            {selectedFile.type === 'image' ? (
-              <img
-                src={selectedFile.url}
-                alt="Preview"
-                className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <div
-                className="w-full max-w-4xl h-[90vh] rounded-lg bg-white overflow-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {pdfLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">Loading PDF...</p>
-                  </div>
-                ) : pdfPages.length > 0 ? (
-                  <div className="flex flex-col items-center gap-2 p-2">
-                    {pdfPages.map((pageImg, i) => (
-                      <img key={i} src={pageImg} alt={`Page ${i + 1}`} className="w-full" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">Failed to load PDF</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Slider-style file viewer (shared component) */}
+        {viewerOpen && (
+          <FileViewerModal
+            files={viewerFiles}
+            initialIndex={viewerIndex}
+            onClose={closeViewer}
+          />
         )}
       </div>
     </DashboardLayout>

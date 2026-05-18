@@ -22,6 +22,7 @@ import { printHtml, downloadPdf, printImage } from '@/lib/download-pdf';
 import { pdfToImages } from '@/lib/pdf-to-images';
 import { LAB_TEST_CATEGORIES } from '@/data/labTests';
 import { RADIOLOGY_TEST_CATEGORIES } from '@/data/radiologyTests';
+import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
 
 type SectionName = 'medical-history' | 'medical-notes' | 'prescription' | 'lab' | 'lab-tests' | 'radiology-request' | 'attachments' | 'previous-visits';
 
@@ -49,6 +50,44 @@ const VisitDetailPage: React.FC = () => {
   const [attachments, setAttachments] = useState<VisitAttachment[]>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Slider-style file viewer state
+  const [viewerFiles, setViewerFiles] = useState<ViewerFile[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const viewerOpen = viewerFiles.length > 0;
+
+  const openViewer = (files: ViewerFile[], index: number) => {
+    setViewerFiles(files);
+    setViewerIndex(index);
+  };
+  const closeViewer = () => {
+    setViewerFiles([]);
+    setViewerIndex(0);
+  };
+
+  // Helper: open an attachment in the slider, finding its index inside
+  // its own category (general / prescription / radiology).
+  const isImage = (type: string) => type.startsWith('image/');
+  const toViewerFile = (a: VisitAttachment): ViewerFile => ({
+    url: a.dataUrl,
+    type: isImage(a.type) ? 'image' : 'pdf',
+    name: a.name.replace('[Prescription] ', '').replace('[Radiology] ', ''),
+    mimeType: a.type,
+  });
+
+  const openAttachment = (attachment: VisitAttachment) => {
+    const isPrescription = attachment.name.startsWith('[Prescription]');
+    const isRadiology = attachment.name.startsWith('[Radiology]');
+    const group = attachments.filter((a) => {
+      const aIsPrescription = a.name.startsWith('[Prescription]');
+      const aIsRadiology = a.name.startsWith('[Radiology]');
+      if (isPrescription) return aIsPrescription;
+      if (isRadiology) return aIsRadiology;
+      return !aIsPrescription && !aIsRadiology;
+    });
+    const idx = group.findIndex((a) => a.id === attachment.id);
+    openViewer(group.map(toViewerFile), Math.max(0, idx));
+  };
 
   // Price editing state
   const [isEditingPrice, setIsEditingPrice] = useState(false);
@@ -206,34 +245,6 @@ const VisitDetailPage: React.FC = () => {
       console.error('Failed to update visit type:', error);
     } finally {
       setIsSavingVisitType(false);
-    }
-  };
-
-  // Open file in new tab - converts data URL to blob for better browser support
-  const openFile = (dataUrl: string, type: string) => {
-    try {
-      // Convert base64 data URL to blob
-      const byteString = atob(dataUrl.split(',')[1]);
-      const mimeType = type || dataUrl.split(',')[0].split(':')[1].split(';')[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const blob = new Blob([ab], { type: mimeType });
-      const blobUrl = URL.createObjectURL(blob);
-
-      // Open in new tab
-      const newWindow = window.open(blobUrl, '_blank');
-
-      // Clean up blob URL after a delay
-      if (newWindow) {
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      }
-    } catch (error) {
-      console.error('Failed to open file:', error);
-      // Fallback: try opening data URL directly
-      window.open(dataUrl, '_blank');
     }
   };
 
@@ -1669,13 +1680,13 @@ const VisitDetailPage: React.FC = () => {
                                         src={attachment.dataUrl}
                                         alt={displayName}
                                         className="w-full h-20 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                        onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                                        onClick={() => openAttachment(attachment)}
                                       />
                                     ) : (
                                       <button
                                         type="button"
                                         className="w-full h-20 flex flex-col items-center justify-center bg-muted/50 hover:bg-muted/70 transition-colors"
-                                        onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                                        onClick={() => openAttachment(attachment)}
                                       >
                                         <File className="w-6 h-6 text-muted-foreground mb-1" />
                                         <span className="text-xs text-muted-foreground">PDF</span>
@@ -1888,7 +1899,7 @@ const VisitDetailPage: React.FC = () => {
                                 <div
                                   key={attachment.id}
                                   className="relative rounded-lg overflow-hidden border border-border bg-muted/30 group cursor-pointer"
-                                  onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                                  onClick={() => openAttachment(attachment)}
                                 >
                                   {isImageFile(attachment.type) ? (
                                     <img
@@ -2212,7 +2223,7 @@ const VisitDetailPage: React.FC = () => {
                           {isImageFile(attachment.type) ? (
                             <button
                               type="button"
-                              onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                              onClick={() => openAttachment(attachment)}
                               className="w-full"
                             >
                               <img
@@ -2224,7 +2235,7 @@ const VisitDetailPage: React.FC = () => {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => openFile(attachment.dataUrl, attachment.type)}
+                              onClick={() => openAttachment(attachment)}
                               className="w-full h-24 flex flex-col items-center justify-center bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                             >
                               <File className="w-8 h-8 text-muted-foreground mb-1" />
@@ -2351,6 +2362,14 @@ const VisitDetailPage: React.FC = () => {
         </div>
 
       </div>
+
+      {viewerOpen && (
+        <FileViewerModal
+          files={viewerFiles}
+          initialIndex={viewerIndex}
+          onClose={closeViewer}
+        />
+      )}
     </DashboardLayout>
   );
 };

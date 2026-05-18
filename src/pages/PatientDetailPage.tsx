@@ -21,7 +21,6 @@ import {
   Trash2,
   Image,
   File,
-  X,
   Printer,
   Pencil,
   Trash,
@@ -32,8 +31,8 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { pdfToImages } from '@/lib/pdf-to-images';
 import { printImage } from '@/lib/download-pdf';
+import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -60,44 +59,14 @@ const PatientDetailPage: React.FC = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const investigationFileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Slider-style file viewer state. Holds the full list of viewable files
-  // (records or investigations) so Prev/Next can navigate within them.
-  type ViewerFile = { url: string; type: string; name: string; mimeType: string };
+  // Shared file-viewer state: which list and which index inside it.
   const [viewerFiles, setViewerFiles] = useState<ViewerFile[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
-  const [pdfPages, setPdfPages] = useState<string[]>([]);
-  const [pdfLoading, setPdfLoading] = useState(false);
-
-  const selectedFile = viewerFiles[viewerIndex] || null;
+  const viewerOpen = viewerFiles.length > 0;
 
   const patient = getPatient(id || '');
   const visits = getPatientVisits(id || '');
   const previousInvestigations = getPreviousInvestigations(id || '');
-
-  // Load PDF pages whenever the current viewer item changes to a PDF
-  useEffect(() => {
-    if (!selectedFile) return;
-    if (selectedFile.type !== 'pdf') {
-      setPdfPages([]);
-      return;
-    }
-    let cancelled = false;
-    setPdfLoading(true);
-    setPdfPages([]);
-    pdfToImages(selectedFile.url)
-      .then((pages) => {
-        if (!cancelled) setPdfPages(pages);
-      })
-      .catch((err) => {
-        console.error('Failed to render PDF:', err);
-      })
-      .finally(() => {
-        if (!cancelled) setPdfLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedFile?.url, selectedFile?.type]);
 
   const openViewer = (files: ViewerFile[], index: number) => {
     setViewerFiles(files);
@@ -107,32 +76,7 @@ const PatientDetailPage: React.FC = () => {
   const handleCloseFile = () => {
     setViewerFiles([]);
     setViewerIndex(0);
-    setPdfPages([]);
   };
-
-  const goPrev = () => {
-    setViewerIndex((i) => (i > 0 ? i - 1 : i));
-  };
-
-  const goNext = () => {
-    setViewerIndex((i) => (i < viewerFiles.length - 1 ? i + 1 : i));
-  };
-
-  // Keyboard navigation while the viewer is open
-  useEffect(() => {
-    if (!selectedFile) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleCloseFile();
-      else if (e.key === 'ArrowLeft') {
-        // In LTR, left arrow = prev; in RTL, left = next
-        direction === 'rtl' ? goNext() : goPrev();
-      } else if (e.key === 'ArrowRight') {
-        direction === 'rtl' ? goPrev() : goNext();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [selectedFile, direction, viewerFiles.length]);
 
   // Build the list of viewable files for each section.
   const recordViewerFiles: ViewerFile[] = (patient?.records || []).map((r) => ({
@@ -596,100 +540,13 @@ const PatientDetailPage: React.FC = () => {
           )}
         </motion.div>
 
-        {/* File Preview Modal — slider through all files in the current list */}
-        {selectedFile && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-            onClick={handleCloseFile}
-          >
-            {/* Close button */}
-            <button
-              className="absolute top-4 end-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10"
-              onClick={handleCloseFile}
-              title={language === 'ar' ? 'إغلاق' : 'Close'}
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            {/* Top bar — filename + counter */}
-            <div className="absolute top-4 start-4 z-10 flex items-center gap-3 text-white/90">
-              <div className="px-3 py-1.5 rounded-full bg-white/10 text-sm font-medium">
-                {viewerIndex + 1} / {viewerFiles.length}
-              </div>
-              <div className="px-3 py-1.5 rounded-full bg-white/10 text-sm truncate max-w-[50vw]">
-                {selectedFile.name}
-              </div>
-            </div>
-
-            {/* Previous button */}
-            {viewerFiles.length > 1 && (
-              <button
-                className="absolute start-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10 disabled:opacity-30 disabled:cursor-not-allowed"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goPrev();
-                }}
-                disabled={viewerIndex === 0}
-                title={language === 'ar' ? 'السابق' : 'Previous'}
-              >
-                {direction === 'rtl' ? (
-                  <ArrowRight className="w-6 h-6" />
-                ) : (
-                  <ArrowLeft className="w-6 h-6" />
-                )}
-              </button>
-            )}
-
-            {/* Next button */}
-            {viewerFiles.length > 1 && (
-              <button
-                className="absolute end-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors z-10 disabled:opacity-30 disabled:cursor-not-allowed"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goNext();
-                }}
-                disabled={viewerIndex === viewerFiles.length - 1}
-                title={language === 'ar' ? 'التالي' : 'Next'}
-              >
-                {direction === 'rtl' ? (
-                  <ArrowLeft className="w-6 h-6" />
-                ) : (
-                  <ArrowRight className="w-6 h-6" />
-                )}
-              </button>
-            )}
-
-            {/* Body — image or PDF */}
-            {selectedFile.type === 'image' ? (
-              <img
-                src={selectedFile.url}
-                alt={selectedFile.name}
-                className="max-w-[85vw] max-h-[85vh] object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <div
-                className="w-full max-w-4xl h-[85vh] rounded-lg bg-white overflow-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {pdfLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">Loading PDF...</p>
-                  </div>
-                ) : pdfPages.length > 0 ? (
-                  <div className="flex flex-col items-center gap-2 p-2">
-                    {pdfPages.map((pageImg, i) => (
-                      <img key={i} src={pageImg} alt={`Page ${i + 1}`} className="w-full" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground">Failed to load PDF</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Slider-style file viewer (shared component) */}
+        {viewerOpen && (
+          <FileViewerModal
+            files={viewerFiles}
+            initialIndex={viewerIndex}
+            onClose={handleCloseFile}
+          />
         )}
 
         {/* Visits History */}
