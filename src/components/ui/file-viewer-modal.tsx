@@ -4,12 +4,14 @@ import { pdfToImages } from '@/lib/pdf-to-images';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface ViewerFile {
-  // For 'image' and 'pdf' modes, url is the data URL of the single file.
-  // For 'doc' mode, pages is a pre-rendered array of image URLs (one per
-  // page) that should be displayed as a vertically scrollable document.
+  // 'image' / 'pdf' use `url` (data URL of the file).
+  // 'doc' uses `pages` (array of pre-rendered image URLs, stacked).
+  // 'html' uses `html` (raw HTML rendered in a scrollable container — used
+  // for showing a visit as a full PDF-style report).
   url?: string;
-  type: 'image' | 'pdf' | 'doc';
+  type: 'image' | 'pdf' | 'doc' | 'html';
   pages?: string[];
+  html?: string;
   name: string;
   mimeType?: string;
 }
@@ -164,6 +166,19 @@ export const FileViewerModal: React.FC<FileViewerModalProps> = ({
           className="max-w-[85vw] max-h-[85vh] object-contain rounded-lg"
           onClick={(e) => e.stopPropagation()}
         />
+      ) : current.type === 'html' ? (
+        // HTML document — render directly in a scrollable A4-ish surface.
+        // Used for the "view previous visit as PDF" feature.
+        <div
+          className="w-full max-w-3xl h-[85vh] rounded-lg bg-white overflow-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="p-6"
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: current.html || '' }}
+          />
+        </div>
       ) : current.type === 'doc' ? (
         // Multi-page document — vertically scrollable. Used to view a whole
         // previous visit as a "PDF": stacks every page (drawing) into one

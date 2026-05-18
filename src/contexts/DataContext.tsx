@@ -144,6 +144,7 @@ interface DataContextType {
   updateVisitPrice: (visitId: string, price: number) => Promise<void>;
   getPatientVisits: (patientId: string) => Visit[];
   loadPatientVisits: (patientId: string) => Promise<Visit[]>;
+  loadFullVisit: (visitId: string) => Promise<Visit>;
   addPatientRecord: (patientId: string, record: Omit<PatientRecord, 'id' | 'uploadedAt'>) => Promise<void>;
   deletePatientRecord: (patientId: string, recordId: string) => Promise<void>;
   loadPatientRecords: (patientId: string) => Promise<PatientRecord[]>;
@@ -407,6 +408,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return convertedVisits;
+  }, []);
+
+  // Fetch a single visit with all drawings/checklists (the list endpoint
+  // strips them for speed). Used by pages that actually need the full
+  // payload — VisitDetailPage, NewVisitPage edit mode, prev-visit PDF.
+  const loadFullVisit = useCallback(async (visitId: string): Promise<Visit> => {
+    const apiVisit = await api.getVisit(visitId);
+    const full = convertApiVisit(apiVisit);
+    // Merge the full visit into the local cache so any other consumer
+    // gets the rich version on next render.
+    setVisits(prev => {
+      const without = prev.filter(v => v.id !== visitId);
+      return [...without, full];
+    });
+    return full;
   }, []);
 
   const addVisit = async (visitData: Omit<Visit, 'id'>): Promise<Visit> => {
@@ -745,6 +761,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateVisitPrice,
         getPatientVisits,
         loadPatientVisits,
+        loadFullVisit,
         addPatientRecord,
         deletePatientRecord,
         loadPatientRecords,

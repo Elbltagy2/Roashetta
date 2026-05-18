@@ -47,6 +47,9 @@ export class MemoryCache {
 export const cache = new MemoryCache(60_000);
 
 export const cacheKeys = {
+  visitsMetaByPatient: (patientId: string) => `visits:meta:${patientId}`,
+  visitsByPatientPrefix: (patientId: string) => `visits:meta:${patientId}`,
+  visitFull: (visitId: string) => `visits:full:${visitId}`,
   patientsAll: (doctorId: string) => `patients:${doctorId}:all`,
   patientsPaginated: (
     doctorId: string,

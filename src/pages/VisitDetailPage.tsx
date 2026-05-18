@@ -30,15 +30,27 @@ const VisitDetailPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId: string }>();
   const { t, language, direction } = useLanguage();
   const { isAssistant, isDoctor, hasPermission } = useAuth();
-  const { getPatient, visits, loadPatientVisits, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit, deleteVisit } = useData();
+  const { getPatient, visits, loadPatientVisits, loadFullVisit, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit, deleteVisit } = useData();
   const canDeleteVisit = isDoctor || hasPermission('canDeleteVisits');
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const patient = getPatient(patientId || '');
-  const visit = visits.find((v) => v.id === visitId);
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
   const dateLocale = language === 'ar' ? ar : enUS;
+
+  // The visit list endpoint now returns meta-only visits (no drawings/
+  // checklists) for speed. For this detail page we need the FULL visit,
+  // so we fetch it once on mount via loadFullVisit (which merges the
+  // result into DataContext so visits.find() returns the rich version).
+  useEffect(() => {
+    if (!visitId) return;
+    loadFullVisit(visitId).catch((err) =>
+      console.error('Failed to load full visit:', err)
+    );
+  }, [visitId, loadFullVisit]);
+
+  const visit = visits.find((v) => v.id === visitId);
 
   // Get previous visits for this patient (excluding current visit), sorted by date descending
   const previousVisits = visits
@@ -2196,7 +2208,7 @@ const VisitDetailPage: React.FC = () => {
                     <Button
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading || isScanning}
+                      disabled={isUploading}
                       className="gap-2"
                     >
                       {isUploading ? (

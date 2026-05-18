@@ -2,12 +2,12 @@ import { Response, NextFunction } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { CreateVisit } from '../../application/use-cases/visit/CreateVisit';
-import { GetVisitsByPatient } from '../../application/use-cases/visit/GetVisitsByPatient';
 import { GetVisitById } from '../../application/use-cases/visit/GetVisitById';
 import { VisitRepository } from '../../infrastructure/repositories/VisitRepository';
 import { PatientRepository } from '../../infrastructure/repositories/PatientRepository';
 import { NotificationRepository } from '../../infrastructure/repositories/NotificationRepository';
 import { NotificationService } from '../../application/services/NotificationService';
+import { cache, cacheKeys } from '../../infrastructure/cache/MemoryCache';
 
 const visitRepository = new VisitRepository();
 const patientRepository = new PatientRepository();
@@ -34,6 +34,10 @@ export class VisitController {
         }
       );
 
+      // Invalidate this patient's visit list cache + the per-visit cache.
+      cache.delete(cacheKeys.visitsMetaByPatient(visit.patientId));
+      cache.delete(cacheKeys.visitFull(visit.id));
+
       res.status(201).json(visit);
     } catch (error) {
       next(error);
@@ -42,9 +46,28 @@ export class VisitController {
 
   async getByPatient(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const getVisitsByPatient = new GetVisitsByPatient(visitRepository, patientRepository);
-      const visits = await getVisitsByPatient.execute(req.params.patientId, req.doctorId!);
+      const { patientId } = req.params;
+      const doctorId = req.doctorId!;
 
+      // Cache: drawings-free visit list keyed per patient
+      const cacheKey = cacheKeys.visitsMetaByPatient(patientId);
+      const cached = cache.get<unknown[]>(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      // Auth: confirm the patient belongs to this doctor
+      const patient = await patientRepository.findById(patientId);
+      if (!patient) {
+        return res.status(404).json({ error: 'Patient not found' });
+      }
+      if (patient.doctorId !== doctorId) {
+        return res.status(403).json({ error: 'Unauthorized' });
+      }
+
+      // Meta-only — no drawings or large JSON blobs.
+      const visits = await visitRepository.findMetaByPatientId(patientId);
+      cache.set(cacheKey, visits);
       res.json(visits);
     } catch (error) {
       next(error);
@@ -53,9 +76,19 @@ export class VisitController {
 
   async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const getVisitById = new GetVisitById(visitRepository);
-      const visit = await getVisitById.execute(req.params.id, req.doctorId!);
+      const { id } = req.params;
+      const doctorId = req.doctorId!;
 
+      const cacheKey = cacheKeys.visitFull(id);
+      const cached = cache.get<unknown>(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      const getVisitById = new GetVisitById(visitRepository);
+      const visit = await getVisitById.execute(id, doctorId);
+
+      cache.set(cacheKey, visit);
       res.json(visit);
     } catch (error) {
       next(error);
@@ -85,6 +118,10 @@ export class VisitController {
       }
 
       const updatedVisit = await visitRepository.update(id, { price });
+
+      cache.delete(cacheKeys.visitsMetaByPatient(updatedVisit.patientId));
+      cache.delete(cacheKeys.visitFull(updatedVisit.id));
+
       res.json(updatedVisit);
     } catch (error) {
       next(error);
@@ -134,6 +171,10 @@ export class VisitController {
       };
 
       const updatedVisit = await visitRepository.update(id, updateData);
+
+      cache.delete(cacheKeys.visitsMetaByPatient(updatedVisit.patientId));
+      cache.delete(cacheKeys.visitFull(updatedVisit.id));
+
       res.json(updatedVisit);
     } catch (error) {
       next(error);
@@ -156,6 +197,10 @@ export class VisitController {
       }
 
       await visitRepository.delete(id);
+
+      cache.delete(cacheKeys.visitsMetaByPatient(existingVisit.patientId));
+      cache.delete(cacheKeys.visitFull(id));
+
       res.status(204).send();
     } catch (error) {
       next(error);

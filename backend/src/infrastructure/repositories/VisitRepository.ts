@@ -31,6 +31,22 @@ export class VisitRepository implements IVisitRepository {
     return Promise.resolve(rows.map(row => this.mapToEntity(row)));
   }
 
+  // SELECT only the small columns — skip the 15+ TEXT columns that store
+  // base64 drawings and big JSON blobs. The Visit entity still requires
+  // those fields, so we fill them with null in mapToMetaEntity.
+  findMetaByPatientId(patientId: string): Promise<Visit[]> {
+    const rows = db.prepare(`
+      SELECT id, patient_id, doctor_id, visit_type, price,
+             chief_complaint, diagnosis, notes,
+             blood_pressure, temperature, weight,
+             visit_date, created_at, updated_at
+      FROM visits
+      WHERE patient_id = ?
+      ORDER BY visit_date DESC
+    `).all(patientId) as Record<string, unknown>[];
+    return Promise.resolve(rows.map(row => this.mapToMetaEntity(row)));
+  }
+
   findByDoctorId(doctorId: string): Promise<Visit[]> {
     const rows = db.prepare('SELECT * FROM visits WHERE doctor_id = ? ORDER BY visit_date DESC').all(doctorId) as Record<string, unknown>[];
     return Promise.resolve(rows.map(row => this.mapToEntity(row)));
@@ -293,6 +309,46 @@ export class VisitRepository implements IVisitRepository {
         bloodPressure: row.blood_pressure as string,
         temperature: row.temperature as number,
         weight: row.weight as number,
+      },
+      createdAt: new Date(row.created_at as string),
+      updatedAt: new Date(row.updated_at as string),
+    };
+  }
+
+  // Like mapToEntity but for rows from findMetaByPatientId — the heavy
+  // drawing/checklist columns weren't SELECT'd, so we fill them with null.
+  // Frontend code that wants drawings should call findById(visitId).
+  private mapToMetaEntity(row: Record<string, unknown>): Visit {
+    return {
+      id: row.id as string,
+      patientId: row.patient_id as string,
+      doctorId: row.doctor_id as string,
+      visitDate: new Date(row.visit_date as string),
+      visitType: (row.visit_type as VisitType) || 'new',
+      price: typeof row.price === 'string' ? parseFloat(row.price) : (row.price as number) || 0,
+      chiefComplaint: (row.chief_complaint as string) || '',
+      chiefComplaintDrawing: null,
+      diagnosis: (row.diagnosis as string) || '',
+      diagnosisDrawing: null,
+      notes: (row.notes as string) || '',
+      notesDrawing: null,
+      notesDrawing2: null,
+      notesDrawing3: null,
+      pastMedicalHistoryDrawing: null,
+      hpiDrawing: null,
+      drugHistoryDrawing: null,
+      familyHistoryDrawing: null,
+      currentMedicationDrawing: null,
+      radiologyDrawing: null,
+      radiologyDrawing2: null,
+      radiologyDrawing3: null,
+      labTestRequest: null,
+      radiologyRequest: null,
+      medicalChecklists: null,
+      vitals: {
+        bloodPressure: (row.blood_pressure as string) || '',
+        temperature: (row.temperature as number) ?? 0,
+        weight: (row.weight as number) ?? 0,
       },
       createdAt: new Date(row.created_at as string),
       updatedAt: new Date(row.updated_at as string),

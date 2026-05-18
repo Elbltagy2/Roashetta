@@ -207,7 +207,7 @@ const SectionHeader = React.memo(({
 const NewVisitPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId?: string }>();
   const { t, language, direction } = useLanguage();
-  const { getPatient, addVisit, updateVisit, uploadVisitAttachment, visits, loadPatientVisits } = useData();
+  const { getPatient, addVisit, updateVisit, uploadVisitAttachment, visits, loadPatientVisits, loadFullVisit } = useData();
   const isEditMode = !!visitId;
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -232,6 +232,17 @@ const NewVisitPage: React.FC = () => {
       loadPatientVisits(patientId);
     }
   }, [patientId, loadPatientVisits]);
+
+  // In edit mode, fetch the FULL visit (visit list now returns meta only).
+  // Once the full visit lands in DataContext.visits, the edit-mode useEffect
+  // below re-fires with the rich data and populates all the drawings.
+  useEffect(() => {
+    if (isEditMode && visitId) {
+      loadFullVisit(visitId).catch((err) =>
+        console.error('Failed to load full visit for editing:', err)
+      );
+    }
+  }, [isEditMode, visitId, loadFullVisit]);
 
   // Load visit data when in edit mode
   useEffect(() => {
@@ -416,52 +427,133 @@ const NewVisitPage: React.FC = () => {
     setViewerIndex(0);
   };
 
-  // Collect every drawing/page for a visit so it can be shown as one
-  // multi-page document.
-  const visitDrawings = (v: Visit): string[] => {
-    return [
-      v.chiefComplaintDrawing,
-      v.diagnosisDrawing,
-      v.pastMedicalHistoryDrawing,
-      v.hpiDrawing,
-      v.drugHistoryDrawing,
-      v.familyHistoryDrawing,
-      v.currentMedicationDrawing,
-      v.notesDrawing,
-      v.notesDrawing2,
-      v.notesDrawing3,
-      v.radiologyDrawing,
-      v.radiologyDrawing2,
-      v.radiologyDrawing3,
-    ].filter((d): d is string => !!d);
+  // Render one visit as a full PDF-style HTML report (patient header,
+  // vitals, chief complaint, diagnosis, then every drawing stacked).
+  const visitToReportHtml = (v: Visit): string => {
+    const dateStr = format(v.date, 'PPP', { locale: dateLocale });
+    const patientName = patient?.name || '';
+    const fileNumber = patient?.fileNumber || '';
+    const isArabic = language === 'ar';
+    const t2 = {
+      patient: isArabic ? 'المريض' : 'Patient',
+      fileNumber: isArabic ? 'رقم الملف' : 'File #',
+      date: isArabic ? 'التاريخ' : 'Date',
+      visitType: isArabic ? 'نوع الكشف' : 'Visit Type',
+      vitals: isArabic ? 'العلامات الحيوية' : 'Vitals',
+      bp: isArabic ? 'ضغط الدم' : 'BP',
+      temp: isArabic ? 'الحرارة' : 'Temp',
+      weight: isArabic ? 'الوزن' : 'Weight',
+      chiefComplaint: isArabic ? 'الشكوى الرئيسية' : 'Chief Complaint',
+      diagnosis: isArabic ? 'التشخيص' : 'Diagnosis',
+      pmh: isArabic ? 'التاريخ المرضي السابق' : 'Past Medical History',
+      hpi: isArabic ? 'تاريخ المرض الحالي' : 'History of Present Illness',
+      drugHistory: isArabic ? 'تاريخ الأدوية' : 'Drug History',
+      familyHistory: isArabic ? 'التاريخ العائلي' : 'Family History',
+      currentMed: isArabic ? 'الأدوية الحالية' : 'Current Medication',
+      prescription: isArabic ? 'الروشتة' : 'Prescription',
+      radiology: isArabic ? 'الأشعة' : 'Radiology',
+    };
+
+    const drawingSection = (label: string, urls: (string | null | undefined)[]) => {
+      const imgs = urls
+        .filter((u): u is string => !!u)
+        .map((u) => `<img src="${u}" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;" />`)
+        .join('');
+      if (!imgs) return '';
+      return `<div style="margin-top:16px;">
+        <h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${label}</h3>
+        ${imgs}
+      </div>`;
+    };
+
+    const dir = isArabic ? 'rtl' : 'ltr';
+    return `<div dir="${dir}" style="font-family:'Cairo','Segoe UI',Tahoma,sans-serif;color:#111;font-size:13px;">
+      <div style="border-bottom:2px solid #333;padding-bottom:10px;margin-bottom:14px;">
+        <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;">${dateStr}</h2>
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:#555;">
+          <span><strong>${t2.patient}:</strong> ${patientName}</span>
+          ${fileNumber ? `<span><strong>${t2.fileNumber}:</strong> ${fileNumber}</span>` : ''}
+          <span><strong>${t2.visitType}:</strong> ${v.visitType === 'new' ? (isArabic ? 'كشف جديد' : 'New') : (isArabic ? 'إعادة كشف' : 'Follow-up')}</span>
+        </div>
+      </div>
+
+      <div style="background:#f9fafb;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+        <h3 style="font-size:14px;font-weight:600;margin:0 0 6px;">${t2.vitals}</h3>
+        <div style="display:flex;gap:16px;font-size:12px;color:#374151;flex-wrap:wrap;">
+          <span><strong>${t2.bp}:</strong> ${v.vitals?.bloodPressure || '-'}</span>
+          <span><strong>${t2.temp}:</strong> ${v.vitals?.temperature ?? '-'}°C</span>
+          <span><strong>${t2.weight}:</strong> ${v.vitals?.weight ?? '-'} kg</span>
+        </div>
+      </div>
+
+      ${v.chiefComplaint ? `<div style="margin-bottom:12px;"><h3 style="font-size:14px;font-weight:600;margin:0 0 4px;">${t2.chiefComplaint}</h3><p style="margin:0;font-size:13px;color:#374151;">${v.chiefComplaint}</p></div>` : ''}
+      ${v.diagnosis ? `<div style="margin-bottom:12px;"><h3 style="font-size:14px;font-weight:600;margin:0 0 4px;">${t2.diagnosis}</h3><p style="margin:0;font-size:13px;color:#374151;">${v.diagnosis}</p></div>` : ''}
+
+      ${drawingSection(t2.chiefComplaint, [v.chiefComplaintDrawing])}
+      ${drawingSection(t2.diagnosis, [v.diagnosisDrawing])}
+      ${drawingSection(t2.pmh, [v.pastMedicalHistoryDrawing])}
+      ${drawingSection(t2.hpi, [v.hpiDrawing])}
+      ${drawingSection(t2.drugHistory, [v.drugHistoryDrawing])}
+      ${drawingSection(t2.familyHistory, [v.familyHistoryDrawing])}
+      ${drawingSection(t2.currentMed, [v.currentMedicationDrawing])}
+      ${drawingSection(t2.prescription, [v.notesDrawing, v.notesDrawing2, v.notesDrawing3])}
+      ${drawingSection(t2.radiology, [v.radiologyDrawing, v.radiologyDrawing2, v.radiologyDrawing3])}
+    </div>`;
   };
 
-  // Open previous visits as a slider of one-doc-per-visit. Each visit's
-  // pages are stacked vertically inside the modal (scrollable like a PDF),
-  // and Prev/Next swipes between visits. Starts on the clicked visit.
-  const openPreviousVisitAsPdf = (startVisitId: string) => {
-    const docs: ViewerFile[] = previousVisits
-      .map((v) => ({
-        type: 'doc' as const,
-        name: format(v.date, 'PPP', { locale: dateLocale }),
-        pages: visitDrawings(v),
-      }))
-      .filter((d) => d.pages.length > 0);
-
-    if (docs.length === 0) {
+  // Open previous visits as a slider. Each visit is rendered as a full
+  // PDF-style report (patient info, vitals, chief complaint, diagnosis,
+  // and all drawings) inside a scrollable container. Prev/Next swipes
+  // between visits.
+  //
+  // The visit list endpoint returns meta only (no drawings), so we
+  // hydrate every previous visit to its full form before building the
+  // HTML. The first time this is clicked, all previous visits are
+  // fetched in parallel; subsequent clicks reuse the cached versions.
+  const [isPreparingPdf, setIsPreparingPdf] = useState(false);
+  const openPreviousVisitAsPdf = async (startVisitId: string) => {
+    if (previousVisits.length === 0) {
       toast({
-        title: language === 'ar' ? 'لا توجد صور في الزيارات السابقة' : 'No drawings in previous visits',
+        title: language === 'ar' ? 'لا توجد زيارات سابقة' : 'No previous visits',
       });
       return;
     }
 
-    const startIndex = Math.max(
-      0,
-      previousVisits
-        .filter((v) => visitDrawings(v).length > 0)
-        .findIndex((v) => v.id === startVisitId)
-    );
-    openViewer(docs, startIndex);
+    setIsPreparingPdf(true);
+    try {
+      const fullVisits = await Promise.all(
+        previousVisits.map(async (v) => {
+          // Already hydrated (any drawing field is non-null) -> use as-is.
+          const hasAnyDrawing =
+            !!v.chiefComplaintDrawing || !!v.diagnosisDrawing ||
+            !!v.notesDrawing || !!v.notesDrawing2 || !!v.notesDrawing3 ||
+            !!v.pastMedicalHistoryDrawing || !!v.hpiDrawing ||
+            !!v.drugHistoryDrawing || !!v.familyHistoryDrawing ||
+            !!v.currentMedicationDrawing ||
+            !!v.radiologyDrawing || !!v.radiologyDrawing2 || !!v.radiologyDrawing3;
+          if (hasAnyDrawing) return v;
+          try {
+            return await loadFullVisit(v.id);
+          } catch {
+            return v;
+          }
+        })
+      );
+
+      const files: ViewerFile[] = fullVisits.map((v) => ({
+        type: 'html' as const,
+        name: format(v.date, 'PPP', { locale: dateLocale }),
+        html: visitToReportHtml(v),
+      }));
+
+      const startIndex = Math.max(
+        0,
+        fullVisits.findIndex((v) => v.id === startVisitId)
+      );
+      openViewer(files, startIndex);
+    } finally {
+      setIsPreparingPdf(false);
+    }
   };
 
   // Global pen size for all drawing canvases
@@ -1767,13 +1859,16 @@ const NewVisitPage: React.FC = () => {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => openPreviousVisitAsPdf(prevVisit.id)}
+                                  disabled={isPreparingPdf}
                                   className="h-8 gap-1"
                                   title={language === 'ar' ? 'عرض كملف PDF' : 'View as PDF'}
                                 >
-                                  <Eye className="w-4 h-4" />
-                                  <span className="text-xs">
-                                    {language === 'ar' ? 'PDF' : 'PDF'}
-                                  </span>
+                                  {isPreparingPdf ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Eye className="w-4 h-4" />
+                                  )}
+                                  <span className="text-xs">PDF</span>
                                 </Button>
                               </div>
                             </div>
