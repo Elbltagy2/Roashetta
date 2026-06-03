@@ -220,6 +220,18 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception — saving database before exit:', err);
+  closeDatabase();
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection — saving database before exit:', reason);
+  closeDatabase();
+  process.exit(1);
+});
+
 // Start the server
 startServer();
 

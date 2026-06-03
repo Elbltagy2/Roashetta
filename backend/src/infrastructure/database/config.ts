@@ -32,13 +32,18 @@ let database: SqlJsDatabase | null = null;
 let saveTimer: NodeJS.Timeout | null = null;
 let hasChanges = false;
 
-// Save database to file
+// Save database to file using atomic write (write to .tmp then rename)
 function saveDatabase() {
-  if (database && hasChanges) {
+  if (!database || !hasChanges) return;
+  try {
     const data = database.export();
     const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
+    const tempPath = dbPath + '.tmp';
+    fs.writeFileSync(tempPath, buffer);
+    fs.renameSync(tempPath, dbPath);
     hasChanges = false;
+  } catch (err) {
+    console.error('Failed to save database:', err);
   }
 }
 
@@ -125,6 +130,10 @@ export async function initializeDatabase(): Promise<void> {
 
   // Create default doctor account for testing
   createDefaultDoctor();
+
+  // Save initial state immediately (schema migrations + default doctor)
+  hasChanges = true;
+  saveDatabase();
 
   // Start auto-save timer (save every 5 seconds if changes)
   saveTimer = setInterval(saveDatabase, 5000);

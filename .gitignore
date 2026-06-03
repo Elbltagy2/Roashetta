@@ -22,6 +22,10 @@ backend/.env
 *.jpg
 *.png
 
+# Database files (runtime data - never commit patient records)
+*.db
+*.db-tmp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
