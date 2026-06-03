@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { spawn } from 'child_process';
 import { APP_VERSION, isNewerVersion } from '../../utils/version';
 
 export interface UpdateManifest {
@@ -205,9 +206,43 @@ class UpdaterClass {
     return this.getState();
   }
 
-  // Schedules a graceful shutdown. The StartRoashetta.bat launcher will see
-  // RoashettaServer.exe.new on disk and swap it in before relaunching.
+  // Exits the process so the update can be applied.
+  // On Windows packaged builds: spawns a detached batch script that waits for
+  // the process to exit, swaps RoashettaServer.exe.new → RoashettaServer.exe,
+  // then relaunches — so it works even without StartRoashetta.bat.
   scheduleRestart(): void {
+    const pending = getPendingExePath();
+    const exePath = getRunningExePath();
+    const isPkg = !!(process as NodeJS.Process & { pkg?: boolean }).pkg;
+
+    if (process.platform === 'win32' && isPkg && fs.existsSync(pending)) {
+      const batPath = path.join(getInstallDir(), '_roashetta_update.bat');
+      const bat = [
+        '@echo off',
+        'timeout /t 3 /nobreak >nul',
+        `move /y "${pending}" "${exePath}"`,
+        'if errorlevel 1 (',
+        '  timeout /t 2 /nobreak >nul',
+        `  move /y "${pending}" "${exePath}"`,
+        ')',
+        `start "" "${exePath}"`,
+        '(del "%~f0")',
+      ].join('\r\n');
+
+      try {
+        fs.writeFileSync(batPath, bat, 'utf8');
+        const child = spawn('cmd.exe', ['/c', batPath], {
+          detached: true,
+          stdio: 'ignore',
+          windowsHide: true,
+        });
+        child.unref();
+        console.log('[Updater] Swap script launched, exiting…');
+      } catch (e) {
+        console.error('[Updater] Failed to launch swap script:', e);
+      }
+    }
+
     setTimeout(() => {
       console.log('[Updater] Restarting to apply update…');
       process.exit(0);
