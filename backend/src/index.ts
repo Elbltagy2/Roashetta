@@ -207,6 +207,11 @@ async function startServer() {
   }
 }
 
+// Always save database on any exit (covers process.exit() calls from updater)
+process.on('exit', () => {
+  closeDatabase();
+});
+
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');
