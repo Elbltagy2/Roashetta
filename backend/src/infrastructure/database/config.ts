@@ -24,15 +24,20 @@ const getDbPath = () => {
 };
 
 const dbPath = getDbPath();
+const backupPath = dbPath + '.bak';
 
 // Database instance (will be initialized async)
 let database: SqlJsDatabase | null = null;
 
-// Auto-save interval (save every 5 seconds if there are changes)
+// Auto-save interval (safety net every 2 seconds)
 let saveTimer: NodeJS.Timeout | null = null;
+// Debounce timer: saves 1 second after the last write, so a burst of
+// concurrent doctor + assistant writes are batched into one disk write.
+let debounceTimer: NodeJS.Timeout | null = null;
 let hasChanges = false;
 
-// Save database to file using atomic write (write to .tmp then rename)
+// Save database to file using atomic write (write to .tmp then rename).
+// Also keeps a .bak copy so a 0-byte crash can be recovered on next startup.
 function saveDatabase() {
   if (!database || !hasChanges) return;
   try {
@@ -41,15 +46,22 @@ function saveDatabase() {
     const tempPath = dbPath + '.tmp';
     fs.writeFileSync(tempPath, buffer);
     fs.renameSync(tempPath, dbPath);
+    // Keep a backup of the last known-good save
+    fs.copyFileSync(dbPath, backupPath);
     hasChanges = false;
   } catch (err) {
     console.error('Failed to save database:', err);
   }
 }
 
-// Mark that changes were made (for auto-save)
+// Mark that changes were made and schedule a quick save.
+// Using a 1-second debounce means a burst of concurrent writes
+// (doctor + assistant at the same time) all land in one disk write,
+// but the save still happens within 1 second of the last change.
 function markChanged() {
   hasChanges = true;
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(saveDatabase, 1000);
 }
 
 // Database wrapper to provide better-sqlite3 like API
@@ -112,12 +124,37 @@ export async function initializeDatabase(): Promise<void> {
     }
   });
 
-  // Load existing database or create new one
+  // Load existing database or create new one.
+  // If the main file is empty/corrupt (crash left 0 bytes), restore from backup.
+  const loadFile = (filePath: string): SqlJsDatabase | null => {
+    try {
+      const buf = fs.readFileSync(filePath);
+      if (buf.length === 0) return null;           // 0-byte = corrupt
+      const db = new SQL.Database(buf);
+      // Quick sanity check: a valid database has at least the sqlite_master table
+      db.run('SELECT count(*) FROM sqlite_master');
+      return db;
+    } catch {
+      return null;
+    }
+  };
+
   if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    database = new SQL.Database(fileBuffer);
-    console.log(`Loaded existing database from ${dbPath}`);
-  } else {
+    database = loadFile(dbPath);
+    if (database) {
+      console.log(`Loaded existing database from ${dbPath}`);
+    } else {
+      console.warn(`Main database file is corrupt or empty — trying backup...`);
+      if (fs.existsSync(backupPath)) {
+        database = loadFile(backupPath);
+        if (database) {
+          console.log(`Restored database from backup ${backupPath}`);
+        }
+      }
+    }
+  }
+
+  if (!database) {
     database = new SQL.Database();
     console.log('Created new database');
   }
@@ -135,8 +172,8 @@ export async function initializeDatabase(): Promise<void> {
   hasChanges = true;
   saveDatabase();
 
-  // Start auto-save timer (save every 5 seconds if changes)
-  saveTimer = setInterval(saveDatabase, 5000);
+  // Safety-net auto-save every 2 seconds (debounce handles most saves sooner)
+  saveTimer = setInterval(saveDatabase, 2000);
 
   console.log('SQLite database initialized successfully');
 }
