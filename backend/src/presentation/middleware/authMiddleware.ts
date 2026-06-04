@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { AssistantPermissions } from '../../domain/entities/Assistant';
+import { db } from '../../infrastructure/database/config';
 
 export type UserRole = 'doctor' | 'assistant';
 
@@ -45,8 +46,18 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       return res.status(401).json({ error: 'Invalid token' });
     }
 
+    // Verify the user still exists in the database.
+    // This catches the case where the database was reset — old tokens would
+    // otherwise let users "log in" to an empty database and see no data.
+    const userId = decoded.id || doctorId;
+    const table = role === 'doctor' ? 'doctors' : 'assistants';
+    const userInDb = db.prepare(`SELECT id FROM ${table} WHERE id = ?`).get(userId);
+    if (!userInDb) {
+      return res.status(401).json({ error: 'Session expired, please log in again' });
+    }
+
     req.user = {
-      id: decoded.id || doctorId,
+      id: userId,
       email: decoded.email,
       name: decoded.name,
       role,
