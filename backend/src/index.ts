@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import os from 'os';
@@ -14,6 +15,48 @@ import { updater } from './infrastructure/updater/Updater';
 import { APP_VERSION } from './utils/version';
 
 dotenv.config();
+
+// ── Single-instance lock ─────────────────────────────────────────────────────
+// Prevents two copies of the exe from running at the same time.
+// Two instances both load the database into memory independently, so whichever
+// saves last silently overwrites the other's data.
+declare const process: NodeJS.Process & { pkg?: boolean };
+
+const lockPath = (() => {
+  if (process.env.DATABASE_PATH)
+    return path.join(path.dirname(path.resolve(process.env.DATABASE_PATH)), 'roashetta.lock');
+  if (process.pkg)
+    return path.join(path.dirname(process.execPath), 'roashetta.lock');
+  return path.join(__dirname, '..', '..', '..', 'roashetta.lock');
+})();
+
+function acquireLock(): void {
+  if (fs.existsSync(lockPath)) {
+    const raw = fs.readFileSync(lockPath, 'utf8').trim();
+    const existingPid = parseInt(raw, 10);
+    if (!isNaN(existingPid)) {
+      try {
+        process.kill(existingPid, 0); // throws if process is gone
+        console.error('\n========================================');
+        console.error('  ❌ ALREADY RUNNING');
+        console.error('========================================');
+        console.error(`\n  Roashetta is already open (PID ${existingPid}).`);
+        console.error('  Close the other window first, then try again.\n');
+        console.error('========================================\n');
+        process.exit(1);
+      } catch {
+        // Stale lock from a previous crash — clean it up and continue
+        console.log('Stale lock file found, starting fresh...');
+      }
+    }
+  }
+  fs.writeFileSync(lockPath, String(process.pid));
+}
+
+function releaseLock(): void {
+  try { fs.unlinkSync(lockPath); } catch { /* ignore */ }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -117,6 +160,8 @@ let licenseInfo: { clinicName: string; expiryDate: string; maxDoctors: number } 
 // Start server
 async function startServer() {
   try {
+    acquireLock();
+
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     // Check license key (skip in development mode)
@@ -207,33 +252,38 @@ async function startServer() {
   }
 }
 
-// Always save database on any exit (covers process.exit() calls from updater)
+// Always save database and release lock on any exit
 process.on('exit', () => {
   closeDatabase();
+  releaseLock();
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');
   closeDatabase();
+  releaseLock();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('\nShutting down gracefully...');
   closeDatabase();
+  releaseLock();
   process.exit(0);
 });
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception — saving database before exit:', err);
   closeDatabase();
+  releaseLock();
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled rejection — saving database before exit:', reason);
   closeDatabase();
+  releaseLock();
   process.exit(1);
 });
 
