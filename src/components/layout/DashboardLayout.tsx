@@ -130,9 +130,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <LogOut className="w-5 h-5" />
           {t('nav.logout')}
         </Button>
-        <p className="text-center text-xs text-sidebar-foreground/40 pb-1">
-          v{appVersion}
-        </p>
+        <div className="flex justify-center pb-1">
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/20 text-white tracking-wide">
+            v{appVersion}
+          </span>
+        </div>
       </div>
     </div>
   );
