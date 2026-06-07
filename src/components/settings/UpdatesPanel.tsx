@@ -31,7 +31,6 @@ export const UpdatesPanel: React.FC = () => {
   const [state, setState] = useState<UpdateState | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
-  const [isRestarting, setIsRestarting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,13 +104,22 @@ export const UpdatesPanel: React.FC = () => {
           description: fresh.downloadStatus.message,
           variant: 'destructive',
         });
-      } else if (fresh.downloadStatus.state === 'downloaded') {
+        return;
+      }
+      if (fresh.downloadStatus.state === 'downloaded') {
         toast({
-          title:
-            language === 'ar'
-              ? 'تم تنزيل التحديث. أعد التشغيل للتطبيق.'
-              : 'Update downloaded. Restart to apply.',
+          title: language === 'ar'
+            ? 'تم التنزيل، جاري إعادة التشغيل...'
+            : 'Downloaded, restarting...',
         });
+        // Auto-restart immediately — no second button needed
+        setTimeout(async () => {
+          try {
+            await api.restartForUpdate();
+          } catch {
+            // Server is restarting — connection drop is expected
+          }
+        }, 1500);
       }
     } catch (err) {
       toast({
@@ -121,35 +129,6 @@ export const UpdatesPanel: React.FC = () => {
       });
     } finally {
       setIsInstalling(false);
-    }
-  };
-
-  const handleRestart = async () => {
-    if (
-      !window.confirm(
-        language === 'ar'
-          ? 'سيتم إغلاق التطبيق وإعادة تشغيله لتطبيق التحديث. هل تريد المتابعة؟'
-          : 'This will close and restart the app to apply the update. Continue?'
-      )
-    ) {
-      return;
-    }
-    setIsRestarting(true);
-    try {
-      await api.restartForUpdate();
-      toast({
-        title:
-          language === 'ar'
-            ? 'جاري إعادة التشغيل... قد تحتاج لتحديث الصفحة بعد لحظات.'
-            : 'Restarting… you may need to refresh this page in a few seconds.',
-      });
-    } catch (err) {
-      setIsRestarting(false);
-      toast({
-        title: language === 'ar' ? 'فشل إعادة التشغيل' : 'Restart failed',
-        description: err instanceof Error ? err.message : String(err),
-        variant: 'destructive',
-      });
     }
   };
 
@@ -306,18 +285,10 @@ export const UpdatesPanel: React.FC = () => {
           )}
 
           {isDownloaded && (
-            <Button
-              onClick={handleRestart}
-              disabled={isRestarting}
-              className="gap-2"
-            >
-              {isRestarting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RotateCw className="w-4 h-4" />
-              )}
-              {language === 'ar' ? 'إعادة تشغيل للتطبيق' : 'Restart to apply'}
-            </Button>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {language === 'ar' ? 'جاري إعادة التشغيل...' : 'Restarting...'}
+            </div>
           )}
         </div>
 
