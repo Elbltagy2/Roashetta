@@ -25,6 +25,8 @@ const getDbPath = () => {
 
 const dbPath = getDbPath();
 const backupPath = dbPath + '.bak';
+const dbDir = path.dirname(path.resolve(dbPath));
+const dbBase = path.basename(dbPath);
 
 // Database instance (will be initialized async)
 let database: SqlJsDatabase | null = null;
@@ -46,11 +48,44 @@ function saveDatabase() {
     const tempPath = dbPath + '.tmp';
     fs.writeFileSync(tempPath, buffer);
     fs.renameSync(tempPath, dbPath);
-    // Keep a backup of the last known-good save
     fs.copyFileSync(dbPath, backupPath);
     hasChanges = false;
   } catch (err) {
     console.error('Failed to save database:', err);
+  }
+}
+
+// 10-minute checkpoint backup — worst-case data loss is 10 minutes.
+// File: roashetta.db.checkpoint
+function saveCheckpoint() {
+  if (!fs.existsSync(dbPath)) return;
+  try {
+    fs.copyFileSync(dbPath, dbPath + '.checkpoint');
+  } catch (err) {
+    console.error('Failed to save checkpoint:', err);
+  }
+}
+
+// Daily backup: keeps one snapshot per day for the last 7 days.
+// Files: roashetta.db.2026-06-07.bak, roashetta.db.2026-06-06.bak, ...
+function saveDailyBackup() {
+  if (!fs.existsSync(dbPath)) return;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const dailyPath = path.join(dbDir, `${dbBase}.${today}.bak`);
+    if (!fs.existsSync(dailyPath)) {
+      fs.copyFileSync(dbPath, dailyPath);
+      console.log(`Daily backup saved: ${dailyPath}`);
+    }
+    // Delete daily backups older than 7 days
+    const pattern = new RegExp(`^${dbBase}\\.\\d{4}-\\d{2}-\\d{2}\\.bak$`);
+    fs.readdirSync(dbDir)
+      .filter(f => pattern.test(f))
+      .sort()
+      .slice(0, -7)
+      .forEach(f => { try { fs.unlinkSync(path.join(dbDir, f)); } catch {} });
+  } catch (err) {
+    console.error('Failed to save daily backup:', err);
   }
 }
 
@@ -139,19 +174,24 @@ export async function initializeDatabase(): Promise<void> {
     }
   };
 
+  const checkpointPath = dbPath + '.checkpoint';
+
+  // Try loading: main → .bak → .checkpoint → new
   if (fs.existsSync(dbPath)) {
     database = loadFile(dbPath);
     if (database) {
       console.log(`Loaded existing database from ${dbPath}`);
-    } else {
-      console.warn(`Main database file is corrupt or empty — trying backup...`);
-      if (fs.existsSync(backupPath)) {
-        database = loadFile(backupPath);
-        if (database) {
-          console.log(`Restored database from backup ${backupPath}`);
-        }
-      }
     }
+  }
+
+  if (!database && fs.existsSync(backupPath)) {
+    database = loadFile(backupPath);
+    if (database) console.warn(`Restored from backup: ${backupPath}`);
+  }
+
+  if (!database && fs.existsSync(checkpointPath)) {
+    database = loadFile(checkpointPath);
+    if (database) console.warn(`Restored from 10-min checkpoint: ${checkpointPath}`);
   }
 
   if (!database) {
@@ -171,6 +211,14 @@ export async function initializeDatabase(): Promise<void> {
   // Save initial state immediately (schema migrations + default doctor)
   hasChanges = true;
   saveDatabase();
+
+  // Checkpoint every 10 minutes (worst-case 10 min data loss)
+  saveCheckpoint();
+  setInterval(saveCheckpoint, 10 * 60 * 1000);
+
+  // Daily backup on startup, then every 24 hours
+  saveDailyBackup();
+  setInterval(saveDailyBackup, 24 * 60 * 60 * 1000);
 
   // Safety-net auto-save every 2 seconds (debounce handles most saves sooner)
   saveTimer = setInterval(saveDatabase, 2000);

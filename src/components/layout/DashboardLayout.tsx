@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import api from '@/services/api';
 import {
   LayoutDashboard,
   Users,
@@ -48,6 +49,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [appVersion, setAppVersion] = useState<string>('...');
+
+  useEffect(() => {
+    api.getUpdateInfo().then(info => setAppVersion(info.currentVersion)).catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -124,6 +130,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <LogOut className="w-5 h-5" />
           {t('nav.logout')}
         </Button>
+        <p className="text-center text-xs text-sidebar-foreground/40 pb-1">
+          v{appVersion}
+        </p>
       </div>
     </div>
   );
