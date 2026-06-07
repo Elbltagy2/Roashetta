@@ -1,5 +1,6 @@
 import express from 'express';
 import http from 'http';
+import net from 'net';
 import path from 'path';
 import fs from 'fs';
 import cors from 'cors';
@@ -157,9 +158,29 @@ function openBrowser(url: string) {
 // License info to display
 let licenseInfo: { clinicName: string; expiryDate: string; maxDoctors: number } | null = null;
 
+function isPortInUse(port: number): Promise<boolean> {
+  return new Promise(resolve => {
+    const tester = net.createServer()
+      .once('error', () => resolve(true))
+      .once('listening', () => { tester.close(); resolve(false); })
+      .listen(port, '127.0.0.1');
+  });
+}
+
 // Start server
 async function startServer() {
   try {
+    // Block if another instance (even old versions without a lock) is already running
+    if (await isPortInUse(PORT)) {
+      console.error('\n========================================');
+      console.error('  ❌ ALREADY RUNNING');
+      console.error('========================================');
+      console.error(`\n  Another Roashetta server is already using port ${PORT}.`);
+      console.error('  Close the other window first, then try again.\n');
+      console.error('========================================\n');
+      process.exit(1);
+    }
+
     acquireLock();
 
     const isDevelopment = process.env.NODE_ENV === 'development';
