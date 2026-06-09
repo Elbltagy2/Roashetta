@@ -202,15 +202,24 @@ export async function initializeDatabase(): Promise<void> {
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
 
-  // Create tables
+  // Create tables / run migrations
   createTables();
+
+  // createTables() calls db.exec() for every DDL statement which triggers
+  // markChanged(). On an existing database none of those statements actually
+  // change data, so cancel the pending debounce and clear the flag before
+  // creating the default doctor — that way we only write to disk if
+  // createDefaultDoctor() actually inserts a new row (fresh install only).
+  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+  hasChanges = false;
 
   // Create default doctor account for testing
   createDefaultDoctor();
 
-  // Save initial state immediately (schema migrations + default doctor)
-  hasChanges = true;
-  saveDatabase();
+  // Only flush to disk when something genuinely changed (fresh install)
+  if (hasChanges) {
+    saveDatabase();
+  }
 
   // Checkpoint every 10 minutes (worst-case 10 min data loss)
   saveCheckpoint();
