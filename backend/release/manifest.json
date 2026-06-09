@@ -1,7 +1,7 @@
 {
-  "version": "1.1.22",
+  "version": "1.1.23",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "d3d7d2ddd456b164b51a3f59facb2483c4ea6e3478d56ca29186752a1bf28a1f",
+  "sha256": "f4193022811f3a23b11f767e6baf7a2cc3118352cad59971c5942c4f584c1a1d",
   "releasedAt": "2026-06-09T00:00:00Z",
-  "notes": "Fix slow startup: skip unnecessary database save on every launch"
+  "notes": "Fix queue page slowness: database saves are now async so HTTP requests are never blocked"
 }

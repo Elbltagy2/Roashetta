@@ -35,7 +35,6 @@ export class QueueController {
         return res.status(400).json({ error: 'patientId is required' });
       }
 
-      // Get patient info
       const patient = db.prepare('SELECT * FROM patients WHERE id = ? AND doctor_id = ?')
         .get(patientId, req.doctorId!) as Record<string, unknown> | undefined;
 
@@ -43,7 +42,6 @@ export class QueueController {
         return res.status(404).json({ error: 'Patient not found' });
       }
 
-      // Check if patient already in today's queue
       const today = new Date().toISOString().split('T')[0];
       const existing = await queueRepository.findByPatientAndDate(req.doctorId!, patientId, today);
       if (existing) {

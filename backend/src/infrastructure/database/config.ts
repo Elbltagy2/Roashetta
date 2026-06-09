@@ -33,15 +33,45 @@ let database: SqlJsDatabase | null = null;
 
 // Auto-save interval (safety net every 2 seconds)
 let saveTimer: NodeJS.Timeout | null = null;
-// Debounce timer: saves 1 second after the last write, so a burst of
-// concurrent doctor + assistant writes are batched into one disk write.
+// Debounce timer: saves 2 seconds after the last write so bursts are batched.
 let debounceTimer: NodeJS.Timeout | null = null;
 let hasChanges = false;
 
-// Save database to file using atomic write (write to .tmp then rename).
-// Also keeps a .bak copy so a 0-byte crash can be recovered on next startup.
-function saveDatabase() {
+// Async save lock — prevents two concurrent async saves from overlapping.
+let isSaving = false;
+let pendingSave = false;
+
+// Async save: export is synchronous (sql.js limitation) but all file I/O is
+// async so the HTTP event loop is not blocked while writing to disk.
+// For large databases with many canvas drawings the sync export is fast
+// (~10-50 ms); the slow part (writeFile on large buffers) is now non-blocking.
+async function saveDatabase() {
   if (!database || !hasChanges) return;
+  if (isSaving) { pendingSave = true; return; }
+  isSaving = true;
+  try {
+    const data = database.export();   // synchronous but fast (<50 ms)
+    hasChanges = false;
+    const buffer = Buffer.from(data);
+    const tempPath = dbPath + '.tmp';
+    await fs.promises.writeFile(tempPath, buffer);
+    await fs.promises.rename(tempPath, dbPath);
+    await fs.promises.copyFile(dbPath, backupPath);
+  } catch (err) {
+    console.error('Failed to save database:', err);
+  } finally {
+    isSaving = false;
+    if (pendingSave) {
+      pendingSave = false;
+      saveDatabase();
+    }
+  }
+}
+
+// Synchronous save used only at process exit, where we must write before the
+// process terminates. Not used during normal operation.
+function saveDatabaseSync() {
+  if (!database) return;
   try {
     const data = database.export();
     const buffer = Buffer.from(data);
@@ -49,18 +79,17 @@ function saveDatabase() {
     fs.writeFileSync(tempPath, buffer);
     fs.renameSync(tempPath, dbPath);
     fs.copyFileSync(dbPath, backupPath);
-    hasChanges = false;
   } catch (err) {
-    console.error('Failed to save database:', err);
+    console.error('Failed to save database on exit:', err);
   }
 }
 
 // 10-minute checkpoint backup — worst-case data loss is 10 minutes.
 // File: roashetta.db.checkpoint
-function saveCheckpoint() {
+async function saveCheckpoint() {
   if (!fs.existsSync(dbPath)) return;
   try {
-    fs.copyFileSync(dbPath, dbPath + '.checkpoint');
+    await fs.promises.copyFile(dbPath, dbPath + '.checkpoint');
   } catch (err) {
     console.error('Failed to save checkpoint:', err);
   }
@@ -68,13 +97,13 @@ function saveCheckpoint() {
 
 // Daily backup: keeps one snapshot per day for the last 7 days.
 // Files: roashetta.db.2026-06-07.bak, roashetta.db.2026-06-06.bak, ...
-function saveDailyBackup() {
+async function saveDailyBackup() {
   if (!fs.existsSync(dbPath)) return;
   try {
     const today = new Date().toISOString().slice(0, 10);
     const dailyPath = path.join(dbDir, `${dbBase}.${today}.bak`);
     if (!fs.existsSync(dailyPath)) {
-      fs.copyFileSync(dbPath, dailyPath);
+      await fs.promises.copyFile(dbPath, dailyPath);
       console.log(`Daily backup saved: ${dailyPath}`);
     }
     // Delete daily backups older than 7 days
@@ -83,20 +112,19 @@ function saveDailyBackup() {
       .filter(f => pattern.test(f))
       .sort()
       .slice(0, -7)
-      .forEach(f => { try { fs.unlinkSync(path.join(dbDir, f)); } catch {} });
+      .forEach(f => { try { fs.unlinkSync(path.join(dbDir, f)); } catch (e) { /* ignore */ } });
   } catch (err) {
     console.error('Failed to save daily backup:', err);
   }
 }
 
 // Mark that changes were made and schedule a quick save.
-// Using a 1-second debounce means a burst of concurrent writes
-// (doctor + assistant at the same time) all land in one disk write,
-// but the save still happens within 1 second of the last change.
+// 2-second debounce batches rapid bursts (e.g. doctor + assistant writing at
+// the same time) into a single disk write.
 function markChanged() {
   hasChanges = true;
   if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(saveDatabase, 1000);
+  debounceTimer = setTimeout(() => { saveDatabase(); }, 2000);
 }
 
 // Database wrapper to provide better-sqlite3 like API
@@ -605,12 +633,11 @@ function createDefaultDoctor() {
   }
 }
 
-// Close database and save
+// Close database and save (synchronous — called on process exit)
 export function closeDatabase() {
-  if (saveTimer) {
-    clearInterval(saveTimer);
-  }
-  saveDatabase(); // Final save
+  if (saveTimer) clearInterval(saveTimer);
+  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+  saveDatabaseSync();
   if (database) {
     database.close();
     database = null;
