@@ -41,10 +41,30 @@ let hasChanges = false;
 let isSaving = false;
 let pendingSave = false;
 
+// Retry helper: Windows Defender briefly locks files after a write while it
+// scans them. We retry up to `attempts` times with `delayMs` between tries.
+async function withRetry<T>(fn: () => Promise<T>, attempts = 5, delayMs = 300): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      lastErr = err;
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === 'EPERM' || code === 'EBUSY' || code === 'EACCES') {
+        await new Promise(r => setTimeout(r, delayMs));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // Async save: export is synchronous (sql.js limitation) but all file I/O is
 // async so the HTTP event loop is not blocked while writing to disk.
-// For large databases with many canvas drawings the sync export is fast
-// (~10-50 ms); the slow part (writeFile on large buffers) is now non-blocking.
+// Rename/copy are retried up to 5× with 300 ms gaps to survive Windows
+// Defender briefly locking the file after the write.
 async function saveDatabase() {
   if (!database || !hasChanges) return;
   if (isSaving) { pendingSave = true; return; }
@@ -54,9 +74,9 @@ async function saveDatabase() {
     hasChanges = false;
     const buffer = Buffer.from(data);
     const tempPath = dbPath + '.tmp';
-    await fs.promises.writeFile(tempPath, buffer);
-    await fs.promises.rename(tempPath, dbPath);
-    await fs.promises.copyFile(dbPath, backupPath);
+    await withRetry(() => fs.promises.writeFile(tempPath, buffer));
+    await withRetry(() => fs.promises.rename(tempPath, dbPath));
+    await withRetry(() => fs.promises.copyFile(dbPath, backupPath));
   } catch (err) {
     console.error('Failed to save database:', err);
   } finally {
