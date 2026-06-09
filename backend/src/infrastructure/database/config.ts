@@ -31,9 +31,14 @@ const dbBase = path.basename(dbPath);
 // Database instance (will be initialized async)
 let database: SqlJsDatabase | null = null;
 
-// Auto-save interval (safety net every 2 seconds)
+// Set to true when the db file at startup exceeds LARGE_DB_THRESHOLD_MB.
+// Large databases: debounce saves are skipped entirely (database.export() on
+// 2 GB blocks the Node.js event loop for 5-20 seconds, freezing all requests).
+// Only the 30-minute interval save and the on-shutdown save run.
+let isLargeDatabase = false;
+const LARGE_DB_THRESHOLD_MB = 200;
+
 let saveTimer: NodeJS.Timeout | null = null;
-// Debounce timer: saves 2 seconds after the last write so bursts are batched.
 let debounceTimer: NodeJS.Timeout | null = null;
 let hasChanges = false;
 
@@ -138,13 +143,14 @@ async function saveDailyBackup() {
   }
 }
 
-// Mark that changes were made and schedule a save.
-// 30-second debounce: batches all writes in a busy period into one disk write.
-// Kept at 30s because database.export() on a large database (1-2 GB) is
-// synchronous and blocks the entire Node.js event loop — running it frequently
-// freezes HTTP responses and disconnects Socket.IO clients.
+// Mark that changes were made and, for small databases, schedule a debounce save.
+// For large databases (> 200 MB) the debounce is skipped entirely: export() on
+// a 2 GB database blocks the Node.js event loop for 5-20 seconds and freezes
+// all HTTP requests. The 30-minute interval save and the on-shutdown save are
+// the only persistence paths for large databases.
 function markChanged() {
   hasChanges = true;
+  if (isLargeDatabase) return;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => { saveDatabase(); }, 30 * 1000);
 }
@@ -271,15 +277,20 @@ export async function initializeDatabase(): Promise<void> {
     saveDatabase();
   }
 
-  // Warn about large databases — export() is synchronous and blocks Node.js
-  // in proportion to database size. 2 GB will block for 5-20 seconds.
+  // Detect large databases and set the flag BEFORE starting any timers.
+  // export() on a large database is synchronous and blocks the event loop.
   const dbStats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
   const dbMB = dbStats ? Math.round(dbStats.size / 1024 / 1024) : 0;
-  if (dbMB > 500) {
-    console.warn(`⚠️  Large database detected: ${dbMB} MB. Saves will be infrequent to avoid blocking.`);
+  if (dbMB > LARGE_DB_THRESHOLD_MB) {
+    isLargeDatabase = true;
+    console.warn(
+      `⚠️  Large database detected: ${dbMB} MB.\n` +
+      `   Debounce saves DISABLED — auto-save runs every 30 minutes instead.\n` +
+      `   Data is always saved on graceful shutdown (SIGTERM / restart).`
+    );
   }
 
-  // Checkpoint every 10 minutes (worst-case 10 min data loss)
+  // Checkpoint every 10 minutes (copies the last-saved file — zero blocking)
   saveCheckpoint();
   setInterval(saveCheckpoint, 10 * 60 * 1000);
 
@@ -287,11 +298,12 @@ export async function initializeDatabase(): Promise<void> {
   saveDailyBackup();
   setInterval(saveDailyBackup, 24 * 60 * 60 * 1000);
 
-  // Safety-net auto-save every 5 minutes.
-  // The 30-second debounce handles most saves; this is only a fallback.
-  // DO NOT set this below 60 seconds — on large databases (1 GB+) each
-  // database.export() call blocks the event loop for several seconds.
-  saveTimer = setInterval(saveDatabase, 5 * 60 * 1000);
+  // Auto-save interval:
+  //   - Small DB  (<200 MB): every 5 minutes  (debounce handles most saves)
+  //   - Large DB (≥200 MB): every 30 minutes  (no debounce, so this is the
+  //     only periodic save — keeps the event-loop freeze to once per 30 min)
+  const autoSaveIntervalMs = isLargeDatabase ? 30 * 60 * 1000 : 5 * 60 * 1000;
+  saveTimer = setInterval(saveDatabase, autoSaveIntervalMs);
 
   console.log('SQLite database initialized successfully');
 }

@@ -1,7 +1,7 @@
 {
-  "version": "1.1.25",
+  "version": "1.1.26",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "08e1155b97b62c5f2b24405ffde0a361ef864d444dde7c0dd074d0895d0e072b",
+  "sha256": "15405b4a2f1f3a242217bd6f2dce047c97a40a43cb34e22dd89794fe9cf7d3bd",
   "releasedAt": "2026-06-09T00:00:00Z",
-  "notes": "Fix large database (1-2 GB) performance: increase save debounce from 2s to 30s and auto-save interval from 2s to 5 minutes — prevents database.export() from blocking the event loop every few seconds"
+  "notes": "Fix patients disappearing: for large databases (>200 MB) debounce saves are disabled — database.export() no longer blocks the event loop every 30 seconds, preventing Socket.IO disconnects and UI flickering"
 }
