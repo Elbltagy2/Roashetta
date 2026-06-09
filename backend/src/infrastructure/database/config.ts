@@ -138,13 +138,15 @@ async function saveDailyBackup() {
   }
 }
 
-// Mark that changes were made and schedule a quick save.
-// 2-second debounce batches rapid bursts (e.g. doctor + assistant writing at
-// the same time) into a single disk write.
+// Mark that changes were made and schedule a save.
+// 30-second debounce: batches all writes in a busy period into one disk write.
+// Kept at 30s because database.export() on a large database (1-2 GB) is
+// synchronous and blocks the entire Node.js event loop — running it frequently
+// freezes HTTP responses and disconnects Socket.IO clients.
 function markChanged() {
   hasChanges = true;
   if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => { saveDatabase(); }, 2000);
+  debounceTimer = setTimeout(() => { saveDatabase(); }, 30 * 1000);
 }
 
 // Database wrapper to provide better-sqlite3 like API
@@ -269,6 +271,14 @@ export async function initializeDatabase(): Promise<void> {
     saveDatabase();
   }
 
+  // Warn about large databases — export() is synchronous and blocks Node.js
+  // in proportion to database size. 2 GB will block for 5-20 seconds.
+  const dbStats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
+  const dbMB = dbStats ? Math.round(dbStats.size / 1024 / 1024) : 0;
+  if (dbMB > 500) {
+    console.warn(`⚠️  Large database detected: ${dbMB} MB. Saves will be infrequent to avoid blocking.`);
+  }
+
   // Checkpoint every 10 minutes (worst-case 10 min data loss)
   saveCheckpoint();
   setInterval(saveCheckpoint, 10 * 60 * 1000);
@@ -277,8 +287,11 @@ export async function initializeDatabase(): Promise<void> {
   saveDailyBackup();
   setInterval(saveDailyBackup, 24 * 60 * 60 * 1000);
 
-  // Safety-net auto-save every 2 seconds (debounce handles most saves sooner)
-  saveTimer = setInterval(saveDatabase, 2000);
+  // Safety-net auto-save every 5 minutes.
+  // The 30-second debounce handles most saves; this is only a fallback.
+  // DO NOT set this below 60 seconds — on large databases (1 GB+) each
+  // database.export() call blocks the event loop for several seconds.
+  saveTimer = setInterval(saveDatabase, 5 * 60 * 1000);
 
   console.log('SQLite database initialized successfully');
 }
