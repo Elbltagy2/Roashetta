@@ -1,7 +1,7 @@
 {
-  "version": "1.1.27",
+  "version": "1.1.29",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "085cd5bcb36c8cbf622e6e6760b38ef295782ce8c3fb3df159c955ccd25853ae",
+  "sha256": "3ef84c928740752d40981e8fb5a9fae54454fa1de7721a3270b8c0a3cf429bd1",
   "releasedAt": "2026-06-10T00:00:00Z",
-  "notes": "Fix database save failing on Windows with EPERM error caused by Windows Defender briefly locking .tmp files during scanning. Rename now retries up to 10 times over 5 seconds, then falls back to copyFile+unlink if still blocked. Also: remove unbounded GET /patients — each page now fetches only what it needs (paginated or by ID), eliminating the full patient list load on login."
+  "notes": "Release v1.1.29"
 }
