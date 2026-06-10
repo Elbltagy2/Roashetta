@@ -175,6 +175,19 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+// Resolve a stored file reference to a displayable URL.
+// After migration, drawing/file columns contain relative paths like
+// "drawings/visitId_col.png" instead of "data:image/png;base64,..." —
+// prefix them with the server origin so browsers can fetch them.
+const _apiBase = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3000/api');
+const _serverOrigin = _apiBase.replace(/\/api$/, '');
+
+function resolveFileUrl(url: string | null | undefined): string | null | undefined {
+  if (!url) return url;
+  if (url.startsWith('data:') || url.startsWith('http') || url.startsWith('/files')) return url;
+  return `${_serverOrigin}/files/${url}`;
+}
+
 // Helper to convert API patient to local format
 const convertApiPatient = (apiPatient: ApiPatient, records: PatientRecord[] = []): Patient => ({
   id: apiPatient.id,
@@ -197,21 +210,21 @@ const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
   visitType: apiVisit.visitType || 'new',
   price: apiVisit.price || 0,
   chiefComplaint: apiVisit.chiefComplaint || '',
-  chiefComplaintDrawing: apiVisit.chiefComplaintDrawing,
+  chiefComplaintDrawing: resolveFileUrl(apiVisit.chiefComplaintDrawing),
   diagnosis: apiVisit.diagnosis || '',
-  diagnosisDrawing: apiVisit.diagnosisDrawing,
+  diagnosisDrawing: resolveFileUrl(apiVisit.diagnosisDrawing),
   notes: apiVisit.notes || '',
-  notesDrawing: apiVisit.notesDrawing,
-  notesDrawing2: apiVisit.notesDrawing2 || null,
-  notesDrawing3: apiVisit.notesDrawing3 || null,
-  pastMedicalHistoryDrawing: apiVisit.pastMedicalHistoryDrawing || null,
-  hpiDrawing: apiVisit.hpiDrawing || null,
-  drugHistoryDrawing: apiVisit.drugHistoryDrawing || null,
-  familyHistoryDrawing: apiVisit.familyHistoryDrawing || null,
-  currentMedicationDrawing: apiVisit.currentMedicationDrawing || null,
-  radiologyDrawing: apiVisit.radiologyDrawing || null,
-  radiologyDrawing2: apiVisit.radiologyDrawing2 || null,
-  radiologyDrawing3: apiVisit.radiologyDrawing3 || null,
+  notesDrawing: resolveFileUrl(apiVisit.notesDrawing),
+  notesDrawing2: resolveFileUrl(apiVisit.notesDrawing2) || null,
+  notesDrawing3: resolveFileUrl(apiVisit.notesDrawing3) || null,
+  pastMedicalHistoryDrawing: resolveFileUrl(apiVisit.pastMedicalHistoryDrawing) || null,
+  hpiDrawing: resolveFileUrl(apiVisit.hpiDrawing) || null,
+  drugHistoryDrawing: resolveFileUrl(apiVisit.drugHistoryDrawing) || null,
+  familyHistoryDrawing: resolveFileUrl(apiVisit.familyHistoryDrawing) || null,
+  currentMedicationDrawing: resolveFileUrl(apiVisit.currentMedicationDrawing) || null,
+  radiologyDrawing: resolveFileUrl(apiVisit.radiologyDrawing) || null,
+  radiologyDrawing2: resolveFileUrl(apiVisit.radiologyDrawing2) || null,
+  radiologyDrawing3: resolveFileUrl(apiVisit.radiologyDrawing3) || null,
   labTestRequest: apiVisit.labTestRequest || null,
   radiologyRequest: apiVisit.radiologyRequest || null,
   medicalChecklists: apiVisit.medicalChecklists || null,
@@ -227,7 +240,7 @@ const convertApiRecord = (apiRecord: ApiPatientRecord): PatientRecord => ({
   id: apiRecord.id,
   name: apiRecord.name,
   type: apiRecord.fileType,
-  dataUrl: apiRecord.fileUrl,
+  dataUrl: resolveFileUrl(apiRecord.fileUrl) ?? '',
   uploadedAt: new Date(apiRecord.uploadedAt),
 });
 
@@ -262,7 +275,7 @@ const convertApiVisitAttachment = (apiAttachment: ApiVisitAttachment): VisitAtta
   visitId: apiAttachment.visitId,
   name: apiAttachment.name,
   type: apiAttachment.type,
-  dataUrl: apiAttachment.dataUrl,
+  dataUrl: resolveFileUrl(apiAttachment.dataUrl) ?? '',
   uploadedBy: apiAttachment.uploadedBy,
   uploaderType: apiAttachment.uploaderType,
   createdAt: new Date(apiAttachment.createdAt),
@@ -274,7 +287,7 @@ const convertApiPreviousInvestigation = (apiInvestigation: ApiPreviousInvestigat
   patientId: apiInvestigation.patientId,
   name: apiInvestigation.name,
   type: apiInvestigation.fileType,
-  dataUrl: apiInvestigation.fileUrl,
+  dataUrl: resolveFileUrl(apiInvestigation.fileUrl) ?? '',
   uploadedAt: new Date(apiInvestigation.uploadedAt),
 });
 
