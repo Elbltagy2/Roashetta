@@ -1,4 +1,4 @@
-import { db } from '../database/config';
+import { db, saveFileToStorage, deleteFileFromStorage } from '../database/config';
 import { VisitAttachment, CreateVisitAttachmentInput } from '../../domain/entities/VisitAttachment';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,25 +16,20 @@ export class VisitAttachmentRepository {
   create(data: CreateVisitAttachmentInput): Promise<VisitAttachment> {
     const id = uuidv4();
     const now = new Date().toISOString();
+    const ext = data.type?.split('/')[1]?.split('+')[0] || 'bin';
+    const storedUrl = saveFileToStorage(data.dataUrl, 'attachments', `${id}.${ext}`) ?? data.dataUrl;
 
     db.prepare(
       `INSERT INTO visit_attachments (id, visit_id, name, type, data_url, uploaded_by, uploader_type, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      data.visitId,
-      data.name,
-      data.type,
-      data.dataUrl,
-      data.uploadedBy,
-      data.uploaderType,
-      now
-    );
+    ).run(id, data.visitId, data.name, data.type, storedUrl, data.uploadedBy, data.uploaderType, now);
 
     return this.findById(id) as Promise<VisitAttachment>;
   }
 
   delete(id: string): Promise<void> {
+    const row = db.prepare('SELECT data_url FROM visit_attachments WHERE id = ?').get(id) as { data_url: string } | undefined;
+    if (row) deleteFileFromStorage(row.data_url);
     db.prepare('DELETE FROM visit_attachments WHERE id = ?').run(id);
     return Promise.resolve();
   }

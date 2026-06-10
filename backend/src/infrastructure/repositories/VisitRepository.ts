@@ -1,4 +1,4 @@
-import { db } from '../database/config';
+import { db, saveFileToStorage } from '../database/config';
 import { IVisitRepository } from '../../domain/repositories/IVisitRepository';
 import { Visit, CreateVisitInput, UpdateVisitInput, VisitType } from '../../domain/entities/Visit';
 import { v4 as uuidv4 } from 'uuid';
@@ -104,6 +104,25 @@ export class VisitRepository implements IVisitRepository {
     return this.findById(id) as Promise<Visit>;
   }
 
+  private saveDrawing(visitId: string, col: string, data: string | null | undefined): string | null | undefined {
+    if (!data) return data;
+    const TEXT_MODE_PREFIX = 'TEXT_MODE:';
+    if (data.startsWith(TEXT_MODE_PREFIX)) {
+      try {
+        const parsed = JSON.parse(data.slice(TEXT_MODE_PREFIX.length)) as { text: string; dataUrl: string };
+        if (parsed.dataUrl?.startsWith('data:')) {
+          const rel = saveFileToStorage(parsed.dataUrl, 'drawings', `${visitId}_${col}.png`);
+          if (rel) return TEXT_MODE_PREFIX + JSON.stringify({ text: parsed.text, dataUrl: rel });
+        }
+      } catch { /* leave as-is */ }
+      return data;
+    }
+    if (data.startsWith('data:')) {
+      return saveFileToStorage(data, 'drawings', `${visitId}_${col}.png`) ?? data;
+    }
+    return data;
+  }
+
   update(id: string, data: UpdateVisitInput): Promise<Visit> {
     const fields: string[] = [];
     const values: unknown[] = [];
@@ -122,7 +141,7 @@ export class VisitRepository implements IVisitRepository {
     }
     if (data.chiefComplaintDrawing !== undefined) {
       fields.push('chief_complaint_drawing = ?');
-      values.push(data.chiefComplaintDrawing);
+      values.push(this.saveDrawing(id, 'chief_complaint_drawing', data.chiefComplaintDrawing));
     }
     if (data.diagnosis !== undefined) {
       fields.push('diagnosis = ?');
@@ -130,7 +149,7 @@ export class VisitRepository implements IVisitRepository {
     }
     if (data.diagnosisDrawing !== undefined) {
       fields.push('diagnosis_drawing = ?');
-      values.push(data.diagnosisDrawing);
+      values.push(this.saveDrawing(id, 'diagnosis_drawing', data.diagnosisDrawing));
     }
     if (data.notes !== undefined) {
       fields.push('notes = ?');
@@ -138,47 +157,47 @@ export class VisitRepository implements IVisitRepository {
     }
     if (data.notesDrawing !== undefined) {
       fields.push('notes_drawing = ?');
-      values.push(data.notesDrawing);
+      values.push(this.saveDrawing(id, 'notes_drawing', data.notesDrawing));
     }
     if (data.notesDrawing2 !== undefined) {
       fields.push('notes_drawing_2 = ?');
-      values.push(data.notesDrawing2);
+      values.push(this.saveDrawing(id, 'notes_drawing_2', data.notesDrawing2));
     }
     if (data.notesDrawing3 !== undefined) {
       fields.push('notes_drawing_3 = ?');
-      values.push(data.notesDrawing3);
+      values.push(this.saveDrawing(id, 'notes_drawing_3', data.notesDrawing3));
     }
     if (data.pastMedicalHistoryDrawing !== undefined) {
       fields.push('past_medical_history_drawing = ?');
-      values.push(data.pastMedicalHistoryDrawing);
+      values.push(this.saveDrawing(id, 'past_medical_history_drawing', data.pastMedicalHistoryDrawing));
     }
     if (data.hpiDrawing !== undefined) {
       fields.push('hpi_drawing = ?');
-      values.push(data.hpiDrawing);
+      values.push(this.saveDrawing(id, 'hpi_drawing', data.hpiDrawing));
     }
     if (data.drugHistoryDrawing !== undefined) {
       fields.push('drug_history_drawing = ?');
-      values.push(data.drugHistoryDrawing);
+      values.push(this.saveDrawing(id, 'drug_history_drawing', data.drugHistoryDrawing));
     }
     if (data.familyHistoryDrawing !== undefined) {
       fields.push('family_history_drawing = ?');
-      values.push(data.familyHistoryDrawing);
+      values.push(this.saveDrawing(id, 'family_history_drawing', data.familyHistoryDrawing));
     }
     if (data.currentMedicationDrawing !== undefined) {
       fields.push('current_medication_drawing = ?');
-      values.push(data.currentMedicationDrawing);
+      values.push(this.saveDrawing(id, 'current_medication_drawing', data.currentMedicationDrawing));
     }
     if (data.radiologyDrawing !== undefined) {
       fields.push('radiology_drawing = ?');
-      values.push(data.radiologyDrawing);
+      values.push(this.saveDrawing(id, 'radiology_drawing', data.radiologyDrawing));
     }
     if (data.radiologyDrawing2 !== undefined) {
       fields.push('radiology_drawing_2 = ?');
-      values.push(data.radiologyDrawing2);
+      values.push(this.saveDrawing(id, 'radiology_drawing_2', data.radiologyDrawing2));
     }
     if (data.radiologyDrawing3 !== undefined) {
       fields.push('radiology_drawing_3 = ?');
-      values.push(data.radiologyDrawing3);
+      values.push(this.saveDrawing(id, 'radiology_drawing_3', data.radiologyDrawing3));
     }
     if (data.labTestRequest !== undefined) {
       fields.push('lab_test_request = ?');

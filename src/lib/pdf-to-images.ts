@@ -5,14 +5,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
-export async function pdfToImages(dataUrl: string): Promise<string[]> {
-  const data = atob(dataUrl.split(',')[1]);
-  const bytes = new Uint8Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    bytes[i] = data.charCodeAt(i);
+// Accepts either a base64 data URL ("data:application/pdf;base64,...")
+// or a relative file path served by the backend ("/files/attachments/abc.pdf").
+export async function pdfToImages(dataUrlOrPath: string): Promise<string[]> {
+  let source: { data: Uint8Array } | { url: string };
+
+  if (dataUrlOrPath.startsWith('data:')) {
+    const base64 = dataUrlOrPath.split(',')[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    source = { data: bytes };
+  } else {
+    // File path — let pdfjs fetch it directly
+    const url = dataUrlOrPath.startsWith('http') ? dataUrlOrPath : dataUrlOrPath;
+    source = { url };
   }
 
-  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const pdf = await pdfjsLib.getDocument(source).promise;
   const images: string[] = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {

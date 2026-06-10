@@ -10,7 +10,7 @@ import { exec } from 'child_process';
 import routes from './presentation/routes';
 import { errorHandler } from './presentation/middleware/errorHandler';
 import { initializeSocketServer } from './infrastructure/socket/socketServer';
-import { initializeDatabase, closeDatabase } from './infrastructure/database/config';
+import { initializeDatabase, closeDatabase, getStorageDir } from './infrastructure/database/config';
 import { validateLicenseKey } from './utils/license';
 import { updater } from './infrastructure/updater/Updater';
 import { APP_VERSION } from './utils/version';
@@ -92,6 +92,9 @@ app.get('/health', (_req, res) => {
 
 // API Routes
 app.use('/api', routes);
+
+// Serve uploaded files (images, PDFs, drawings) stored outside the database
+app.use('/files', express.static(getStorageDir(), { maxAge: '7d', fallthrough: false }));
 
 // Serve frontend static files (for production .exe)
 const frontendPath = path.join(__dirname, '..', 'public');

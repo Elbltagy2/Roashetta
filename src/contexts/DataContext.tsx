@@ -499,7 +499,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: record.name,
       fileType: record.type,
       fileUrl: record.dataUrl,
-      fileSize: record.dataUrl.length,
+      fileSize: record.dataUrl.startsWith('data:') ? Math.round(record.dataUrl.length * 0.75) : 0,
     };
     const apiRecord = await api.uploadPatientRecord(createData);
     return convertApiRecord(apiRecord);
@@ -678,7 +678,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: investigation.name,
       fileType: investigation.type,
       fileUrl: investigation.dataUrl,
-      fileSize: investigation.dataUrl.length,
+      fileSize: investigation.dataUrl.startsWith('data:') ? Math.round(investigation.dataUrl.length * 0.75) : 0,
     };
 
     const apiInvestigation = await api.uploadPreviousInvestigation(createData);

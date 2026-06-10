@@ -1,4 +1,4 @@
-import { db } from '../database/config';
+import { db, saveFileToStorage, deleteFileFromStorage } from '../database/config';
 import { IPatientRecordRepository } from '../../domain/repositories/IPatientRecordRepository';
 import { PatientRecord, CreatePatientRecordInput } from '../../domain/entities/PatientRecord';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,16 +17,21 @@ export class PatientRecordRepository implements IPatientRecordRepository {
   create(data: CreatePatientRecordInput): Promise<PatientRecord> {
     const id = uuidv4();
     const now = new Date().toISOString();
+    const ext = data.fileType?.split('/')[1]?.split('+')[0] || 'bin';
+    const storedUrl = saveFileToStorage(data.fileUrl, 'records', `${id}.${ext}`) ?? data.fileUrl;
+    const fileSize = storedUrl !== data.fileUrl ? data.fileSize : data.fileSize;
 
     db.prepare(
       `INSERT INTO patient_records (id, patient_id, name, file_type, file_url, file_size, uploaded_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(id, data.patientId, data.name, data.fileType, data.fileUrl, data.fileSize, now);
+    ).run(id, data.patientId, data.name, data.fileType, storedUrl, fileSize, now);
 
     return this.findById(id) as Promise<PatientRecord>;
   }
 
   delete(id: string): Promise<void> {
+    const row = db.prepare('SELECT file_url FROM patient_records WHERE id = ?').get(id) as { file_url: string } | undefined;
+    if (row) deleteFileFromStorage(row.file_url);
     db.prepare('DELETE FROM patient_records WHERE id = ?').run(id);
     return Promise.resolve();
   }

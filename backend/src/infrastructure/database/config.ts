@@ -1,4 +1,4 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -11,324 +11,250 @@ declare const process: NodeJS.Process & { pkg?: boolean };
 dotenv.config();
 
 // Database file path - when running from pkg, use exe directory
-const getDbPath = () => {
-  if (process.env.DATABASE_PATH) {
-    return process.env.DATABASE_PATH;
-  }
-  // When running from pkg executable, save db next to the exe
-  if (process.pkg) {
-    return path.join(path.dirname(process.execPath), 'roashetta.db');
-  }
-  // In development, save in backend folder
+const getDbPath = (): string => {
+  if (process.env.DATABASE_PATH) return process.env.DATABASE_PATH;
+  if (process.pkg) return path.join(path.dirname(process.execPath), 'roashetta.db');
   return path.join(__dirname, '..', '..', '..', 'roashetta.db');
 };
 
 const dbPath = getDbPath();
-const backupPath = dbPath + '.bak';
 const dbDir = path.dirname(path.resolve(dbPath));
 const dbBase = path.basename(dbPath);
 
-// Database instance (will be initialized async)
-let database: SqlJsDatabase | null = null;
-
-// Set to true when the db file at startup exceeds LARGE_DB_THRESHOLD_MB.
-// Large databases: debounce saves are skipped entirely (database.export() on
-// 2 GB blocks the Node.js event loop for 5-20 seconds, freezing all requests).
-// Only the 30-minute interval save and the on-shutdown save run.
-let isLargeDatabase = false;
-const LARGE_DB_THRESHOLD_MB = 200;
-
-let saveTimer: NodeJS.Timeout | null = null;
-let debounceTimer: NodeJS.Timeout | null = null;
-let hasChanges = false;
-
-// Async save lock — prevents two concurrent async saves from overlapping.
-let isSaving = false;
-let pendingSave = false;
-
-// Retry helper: Windows Defender briefly locks files after a write while it
-// scans them. We retry up to `attempts` times with `delayMs` between tries.
-async function withRetry<T>(fn: () => Promise<T>, attempts = 5, delayMs = 300): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await fn();
-    } catch (err: unknown) {
-      lastErr = err;
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === 'EPERM' || code === 'EBUSY' || code === 'EACCES') {
-        await new Promise(r => setTimeout(r, delayMs));
-      } else {
-        throw err;
-      }
-    }
-  }
-  throw lastErr;
+// When running from a pkg exe, better-sqlite3's native addon must be loaded
+// from the directory containing the exe (shipped alongside it, like sql-wasm.wasm was).
+const dbOptions: Database.Options = {};
+if (process.pkg) {
+  dbOptions.nativeBinding = path.join(path.dirname(process.execPath), 'better_sqlite3.node');
 }
 
-// Async save: export is synchronous (sql.js limitation) but all file I/O is
-// async so the HTTP event loop is not blocked while writing to disk.
-// On Windows, Defender scans newly written .tmp files for 2-5 seconds, keeping
-// them locked. We try rename first (atomic) with generous retries, then fall
-// back to copyFile+unlink which handles brief locks more gracefully.
-async function saveDatabase() {
-  if (!database || !hasChanges) return;
-  if (isSaving) { pendingSave = true; return; }
-  isSaving = true;
-  try {
-    const data = database.export();   // synchronous but fast (<50 ms)
-    hasChanges = false;
-    const buffer = Buffer.from(data);
-    const tempPath = dbPath + '.tmp';
-    await withRetry(() => fs.promises.writeFile(tempPath, buffer));
-    // Try atomic rename first (10 × 500 ms = up to 5 s wait for Defender).
-    // Fall back to writing the in-memory buffer directly — this avoids any
-    // dependency on the .tmp file which may still be locked (EPERM/EBUSY).
-    try {
-      await withRetry(() => fs.promises.rename(tempPath, dbPath), 10, 500);
-    } catch {
-      await withRetry(() => fs.promises.writeFile(dbPath, buffer), 10, 500);
-      try { await fs.promises.unlink(tempPath); } catch { /* best-effort */ }
-    }
-    try { await withRetry(() => fs.promises.copyFile(dbPath, backupPath)); } catch { /* best-effort */ }
-  } catch (err) {
-    console.error('Failed to save database:', err);
-  } finally {
-    isSaving = false;
-    if (pendingSave) {
-      pendingSave = false;
-      saveDatabase();
-    }
-  }
-}
+// Open (or create) the database. better-sqlite3 works directly with the file —
+// no 2 GiB limit, no in-memory copy, no periodic manual saves needed.
+type DB = InstanceType<typeof Database>;
+const database: DB = new Database(dbPath, dbOptions);
+export const db: DB = database;
 
-// Synchronous save used only at process exit, where we must write before the
-// process terminates. Not used during normal operation.
-function saveDatabaseSync() {
-  if (!database) return;
-  try {
-    const data = database.export();
-    const buffer = Buffer.from(data);
-    const tempPath = dbPath + '.tmp';
-    fs.writeFileSync(tempPath, buffer);
-    try {
-      fs.renameSync(tempPath, dbPath);
-    } catch {
-      // Fallback: write buffer directly — avoids locked .tmp dependency
-      fs.writeFileSync(dbPath, buffer);
-      try { fs.unlinkSync(tempPath); } catch { /* best-effort */ }
-    }
-    try { fs.copyFileSync(dbPath, backupPath); } catch { /* best-effort */ }
-  } catch (err) {
-    console.error('Failed to save database on exit:', err);
-  }
-}
+// ── Daily backup ──────────────────────────────────────────────────────────────
+// Uses better-sqlite3's hot-backup API for a consistent snapshot at any time.
 
-// 10-minute checkpoint backup — worst-case data loss is 10 minutes.
-// File: roashetta.db.checkpoint
-async function saveCheckpoint() {
-  if (!fs.existsSync(dbPath)) return;
-  try {
-    await fs.promises.copyFile(dbPath, dbPath + '.checkpoint');
-  } catch (err) {
-    console.error('Failed to save checkpoint:', err);
-  }
-}
-
-// Daily backup: keeps one snapshot per day for the last 7 days.
-// Files: roashetta.db.2026-06-07.bak, roashetta.db.2026-06-06.bak, ...
 async function saveDailyBackup() {
-  if (!fs.existsSync(dbPath)) return;
   try {
     const today = new Date().toISOString().slice(0, 10);
     const dailyPath = path.join(dbDir, `${dbBase}.${today}.bak`);
     if (!fs.existsSync(dailyPath)) {
-      await fs.promises.copyFile(dbPath, dailyPath);
+      await database.backup(dailyPath);
       console.log(`Daily backup saved: ${dailyPath}`);
     }
-    // Delete daily backups older than 7 days
+    // Keep only last 7 daily backups
     const pattern = new RegExp(`^${dbBase}\\.\\d{4}-\\d{2}-\\d{2}\\.bak$`);
     fs.readdirSync(dbDir)
       .filter(f => pattern.test(f))
       .sort()
       .slice(0, -7)
-      .forEach(f => { try { fs.unlinkSync(path.join(dbDir, f)); } catch (e) { /* ignore */ } });
+      .forEach(f => { try { fs.unlinkSync(path.join(dbDir, f)); } catch { /* ignore */ } });
   } catch (err) {
     console.error('Failed to save daily backup:', err);
   }
 }
 
-// Mark that changes were made and, for small databases, schedule a debounce save.
-// For large databases (> 200 MB) the debounce is skipped entirely: export() on
-// a 2 GB database blocks the Node.js event loop for 5-20 seconds and freezes
-// all HTTP requests. The 30-minute interval save and the on-shutdown save are
-// the only persistence paths for large databases.
-function markChanged() {
-  hasChanges = true;
-  if (isLargeDatabase) return;
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => { saveDatabase(); }, 30 * 1000);
-}
+// ── Initialise ────────────────────────────────────────────────────────────────
 
-// Database wrapper to provide better-sqlite3 like API
-export const db = {
-  prepare(sql: string) {
-    return {
-      run(...params: unknown[]) {
-        if (!database) throw new Error('Database not initialized');
-        database.run(sql, params as any[]);
-        markChanged();
-        return { changes: database.getRowsModified() };
-      },
-      get(...params: unknown[]): Record<string, unknown> | undefined {
-        if (!database) throw new Error('Database not initialized');
-        const stmt = database.prepare(sql);
-        stmt.bind(params as any[]);
-        if (stmt.step()) {
-          const result = stmt.getAsObject() as Record<string, unknown>;
-          stmt.free();
-          return result;
-        }
-        stmt.free();
-        return undefined;
-      },
-      all(...params: unknown[]): Record<string, unknown>[] {
-        if (!database) throw new Error('Database not initialized');
-        const stmt = database.prepare(sql);
-        stmt.bind(params as any[]);
-        const results: Record<string, unknown>[] = [];
-        while (stmt.step()) {
-          results.push(stmt.getAsObject() as Record<string, unknown>);
-        }
-        stmt.free();
-        return results;
-      }
-    };
-  },
-  exec(sql: string) {
-    if (!database) throw new Error('Database not initialized');
-    database.run(sql);
-    markChanged();
-  },
-  pragma(sql: string) {
-    if (!database) throw new Error('Database not initialized');
-    database.run(`PRAGMA ${sql}`);
-  }
-};
-
-// Initialize database
 export async function initializeDatabase(): Promise<void> {
-  // Initialize sql.js with WASM file location for pkg compatibility
-  const SQL = await initSqlJs({
-    locateFile: (file: string) => {
-      // When running from pkg executable, look for WASM in same directory
-      if (process.pkg) {
-        return path.join(path.dirname(process.execPath), file);
-      }
-      // In development, use node_modules
-      return path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file);
-    }
-  });
+  // WAL mode: writes go to a tiny WAL file instead of the main DB.
+  // This eliminates the Windows Defender EBUSY/EPERM locking issues entirely
+  // because the main roashetta.db file is only updated during checkpoints.
+  database.pragma('journal_mode = WAL');
+  database.pragma('foreign_keys = ON');
 
-  // Load existing database or create new one.
-  // If the main file is empty/corrupt (crash left 0 bytes), restore from backup.
-  const loadFile = (filePath: string): SqlJsDatabase | null => {
-    try {
-      const buf = fs.readFileSync(filePath);
-      if (buf.length === 0) {
-        console.warn(`  → ${path.basename(filePath)}: empty file, skipping`);
-        return null;
-      }
-      const db = new SQL.Database(buf);
-      db.run('SELECT count(*) FROM sqlite_master');
-      return db;
-    } catch (err: unknown) {
-      const msg = (err instanceof Error) ? err.message : String(err);
-      console.error(`  → Failed to load ${path.basename(filePath)}: ${msg}`);
-      return null;
-    }
-  };
-
-  const checkpointPath = dbPath + '.checkpoint';
-
-  // Try loading: main → .bak → .checkpoint → new
-  if (fs.existsSync(dbPath)) {
-    console.log(`Loading database from ${dbPath} ...`);
-    database = loadFile(dbPath);
-    if (database) {
-      console.log(`Loaded existing database from ${dbPath}`);
-    }
-  }
-
-  if (!database && fs.existsSync(backupPath)) {
-    console.warn(`Trying backup: ${backupPath} ...`);
-    database = loadFile(backupPath);
-    if (database) console.warn(`Restored from backup: ${backupPath}`);
-  }
-
-  if (!database && fs.existsSync(checkpointPath)) {
-    console.warn(`Trying checkpoint: ${checkpointPath} ...`);
-    database = loadFile(checkpointPath);
-    if (database) console.warn(`Restored from 10-min checkpoint: ${checkpointPath}`);
-  }
-
-  if (!database) {
-    database = new SQL.Database();
-    console.log('Created new database');
-  }
-
-  // Enable foreign keys
-  db.pragma('foreign_keys = ON');
-
-  // Create tables / run migrations
   createTables();
-
-  // createTables() calls db.exec() for every DDL statement which triggers
-  // markChanged(). On an existing database none of those statements actually
-  // change data, so cancel the pending debounce and clear the flag before
-  // creating the default doctor — that way we only write to disk if
-  // createDefaultDoctor() actually inserts a new row (fresh install only).
-  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
-  hasChanges = false;
-
-  // Create default doctor account for testing
   createDefaultDoctor();
 
-  // Only flush to disk when something genuinely changed (fresh install)
-  if (hasChanges) {
-    saveDatabase();
-  }
+  // Migrate existing base64 blobs to files (one-time, skipped if already done)
+  await migrateBase64ToFiles();
 
-  // Detect large databases and set the flag BEFORE starting any timers.
-  // export() on a large database is synchronous and blocks the event loop.
-  const dbStats = fs.existsSync(dbPath) ? fs.statSync(dbPath) : null;
-  const dbMB = dbStats ? Math.round(dbStats.size / 1024 / 1024) : 0;
-  if (dbMB > LARGE_DB_THRESHOLD_MB) {
-    isLargeDatabase = true;
-    console.warn(
-      `⚠️  Large database detected: ${dbMB} MB.\n` +
-      `   Debounce saves DISABLED — auto-save runs every 30 minutes instead.\n` +
-      `   Data is always saved on graceful shutdown (SIGTERM / restart).`
-    );
-  }
-
-  // Checkpoint every 10 minutes (copies the last-saved file — zero blocking)
-  saveCheckpoint();
-  setInterval(saveCheckpoint, 10 * 60 * 1000);
+  // Log database size
+  try {
+    const stats = fs.statSync(dbPath);
+    const dbMB = Math.round(stats.size / 1024 / 1024);
+    if (dbMB > 100) {
+      console.warn(`⚠️  Database size: ${dbMB} MB. Run file migration to reduce it.`);
+    }
+  } catch { /* ignore */ }
 
   // Daily backup on startup, then every 24 hours
   saveDailyBackup();
   setInterval(saveDailyBackup, 24 * 60 * 60 * 1000);
 
-  // Auto-save interval:
-  //   - Small DB  (<200 MB): every 5 minutes  (debounce handles most saves)
-  //   - Large DB (≥200 MB): every 30 minutes  (no debounce, so this is the
-  //     only periodic save — keeps the event-loop freeze to once per 30 min)
-  const autoSaveIntervalMs = isLargeDatabase ? 30 * 60 * 1000 : 5 * 60 * 1000;
-  saveTimer = setInterval(saveDatabase, autoSaveIntervalMs);
-
   console.log('SQLite database initialized successfully');
 }
+
+// ── File migration ────────────────────────────────────────────────────────────
+// Converts existing base64 data URLs stored in the DB to real files on disk.
+// Runs once automatically; subsequent runs are instant (no base64 rows left).
+
+export function getStorageDir(): string {
+  if (process.pkg) return path.join(path.dirname(process.execPath), 'files');
+  return path.join(path.dirname(dbPath), 'files');
+}
+
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+// Saves a base64 data URL to disk. Returns the relative path stored in the DB.
+// Returns null if the value is not a base64 data URL (already migrated or empty).
+function saveDataUrl(dataUrl: string, subdir: string, filename: string): string | null {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return null;
+  try {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+    if (!match) return null;
+    const base64 = match[2];
+    const dir = path.join(getStorageDir(), subdir);
+    ensureDir(dir);
+    const filePath = path.join(dir, filename);
+    fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+    return path.join(subdir, filename).replace(/\\/g, '/');
+  } catch (err) {
+    console.error(`Failed to save file ${filename}:`, err);
+    return null;
+  }
+}
+
+// Handles TEXT_MODE canvas data: extracts the inner dataUrl, saves it, and
+// returns the TEXT_MODE JSON with the path instead of the base64.
+function migrateDrawingData(data: string, subdir: string, filename: string): string | null {
+  if (!data) return null;
+  const TEXT_MODE_PREFIX = 'TEXT_MODE:';
+  if (data.startsWith(TEXT_MODE_PREFIX)) {
+    try {
+      const parsed = JSON.parse(data.slice(TEXT_MODE_PREFIX.length)) as { text: string; dataUrl: string };
+      if (parsed.dataUrl && parsed.dataUrl.startsWith('data:')) {
+        const relPath = saveDataUrl(parsed.dataUrl, subdir, filename);
+        if (relPath) return TEXT_MODE_PREFIX + JSON.stringify({ text: parsed.text, dataUrl: relPath });
+      }
+    } catch { /* leave as-is */ }
+    return null; // already migrated or not a data URL
+  }
+  return saveDataUrl(data, subdir, filename);
+}
+
+async function migrateBase64ToFiles() {
+  const storageDir = getStorageDir();
+  ensureDir(storageDir);
+
+  // ── visit_attachments ──────────────────────────────────────────────────────
+  const attachments = database.prepare(
+    `SELECT id, data_url FROM visit_attachments WHERE data_url LIKE 'data:%' LIMIT 500`
+  ).all() as { id: string; data_url: string }[];
+
+  if (attachments.length > 0) {
+    console.log(`Migrating ${attachments.length} visit attachments to files...`);
+    const updateAttachment = database.prepare(`UPDATE visit_attachments SET data_url = ? WHERE id = ?`);
+    const migrate = database.transaction(() => {
+      for (const row of attachments) {
+        const ext = row.data_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
+        const relPath = saveDataUrl(row.data_url, 'attachments', `${row.id}.${ext}`);
+        if (relPath) updateAttachment.run(relPath, row.id);
+      }
+    });
+    migrate();
+    console.log(`  ✓ ${attachments.length} attachments migrated`);
+  }
+
+  // ── patient_records ────────────────────────────────────────────────────────
+  const records = database.prepare(
+    `SELECT id, file_url FROM patient_records WHERE file_url LIKE 'data:%' LIMIT 500`
+  ).all() as { id: string; file_url: string }[];
+
+  if (records.length > 0) {
+    console.log(`Migrating ${records.length} patient records to files...`);
+    const updateRecord = database.prepare(`UPDATE patient_records SET file_url = ? WHERE id = ?`);
+    const migrate = database.transaction(() => {
+      for (const row of records) {
+        const ext = row.file_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
+        const relPath = saveDataUrl(row.file_url, 'records', `${row.id}.${ext}`);
+        if (relPath) updateRecord.run(relPath, row.id);
+      }
+    });
+    migrate();
+    console.log(`  ✓ ${records.length} records migrated`);
+  }
+
+  // ── previous_investigations ────────────────────────────────────────────────
+  const investigations = database.prepare(
+    `SELECT id, file_url FROM previous_investigations WHERE file_url LIKE 'data:%' LIMIT 500`
+  ).all() as { id: string; file_url: string }[];
+
+  if (investigations.length > 0) {
+    console.log(`Migrating ${investigations.length} investigations to files...`);
+    const updateInv = database.prepare(`UPDATE previous_investigations SET file_url = ? WHERE id = ?`);
+    const migrate = database.transaction(() => {
+      for (const row of investigations) {
+        const ext = row.file_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
+        const relPath = saveDataUrl(row.file_url, 'records', `${row.id}.${ext}`);
+        if (relPath) updateInv.run(relPath, row.id);
+      }
+    });
+    migrate();
+    console.log(`  ✓ ${investigations.length} investigations migrated`);
+  }
+
+  // ── visit drawings (14 columns) ────────────────────────────────────────────
+  const drawingCols = [
+    'chief_complaint_drawing', 'diagnosis_drawing',
+    'notes_drawing', 'notes_drawing_2', 'notes_drawing_3',
+    'past_medical_history_drawing', 'hpi_drawing', 'drug_history_drawing',
+    'family_history_drawing', 'current_medication_drawing',
+    'radiology_drawing', 'radiology_drawing_2', 'radiology_drawing_3',
+    'drawing_data',
+  ];
+
+  for (const col of drawingCols) {
+    let visits: { id: string; [k: string]: string }[];
+    try {
+      visits = database.prepare(
+        `SELECT id, ${col} FROM visits WHERE ${col} LIKE 'data:%' OR ${col} LIKE 'TEXT_MODE:%' LIMIT 500`
+      ).all() as { id: string; [k: string]: string }[];
+    } catch { continue; } // column might not exist yet
+
+    if (visits.length === 0) continue;
+    console.log(`Migrating ${visits.length} rows for visits.${col}...`);
+    const updateVisit = database.prepare(`UPDATE visits SET ${col} = ? WHERE id = ?`);
+    const migrate = database.transaction(() => {
+      for (const row of visits) {
+        const data = row[col];
+        if (!data) continue;
+        const relPath = migrateDrawingData(data, 'drawings', `${row.id}_${col}.png`);
+        if (relPath) updateVisit.run(relPath, row.id);
+      }
+    });
+    migrate();
+    console.log(`  ✓ visits.${col} migrated`);
+  }
+}
+
+// ── Public helper: save a new file (used by repositories) ────────────────────
+
+export function saveFileToStorage(dataUrl: string, subdir: string, filename: string): string | null {
+  return saveDataUrl(dataUrl, subdir, filename);
+}
+
+export function deleteFileFromStorage(relativePath: string) {
+  if (!relativePath || relativePath.startsWith('data:')) return;
+  try {
+    const fullPath = path.join(getStorageDir(), relativePath);
+    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+  } catch { /* best-effort */ }
+}
+
+// ── Close ─────────────────────────────────────────────────────────────────────
+
+export function closeDatabase() {
+  database.close();
+  console.log('Database closed');
+}
+
+// ── Schema ────────────────────────────────────────────────────────────────────
 
 function createTables() {
   // Create doctors table
@@ -698,16 +624,4 @@ function createDefaultDoctor() {
     console.log('========================================');
     console.log('');
   }
-}
-
-// Close database and save (synchronous — called on process exit)
-export function closeDatabase() {
-  if (saveTimer) clearInterval(saveTimer);
-  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
-  saveDatabaseSync();
-  if (database) {
-    database.close();
-    database = null;
-  }
-  console.log('Database closed and saved');
 }
