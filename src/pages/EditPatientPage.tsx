@@ -16,16 +16,22 @@ import {
 } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
+import api from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
 const EditPatientPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, language, direction } = useLanguage();
-  const { getPatient, updatePatient } = useData();
+  const { updatePatient } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const patient = getPatient(id || '');
+  const [patient, setLocalPatient] = useState<{ id: string; fileNumber?: string; name: string; phone: string; age: number; gender: 'male' | 'female'; medicalHistory: string; allergies: string[] } | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    api.getPatient(id).then(p => setLocalPatient(p)).catch(() => {});
+  }, [id]);
 
   const [formData, setFormData] = useState({
     fileNumber: '',

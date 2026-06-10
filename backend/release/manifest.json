@@ -1,7 +1,7 @@
 {
-  "version": "1.1.26",
+  "version": "1.1.27",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "15405b4a2f1f3a242217bd6f2dce047c97a40a43cb34e22dd89794fe9cf7d3bd",
-  "releasedAt": "2026-06-09T00:00:00Z",
-  "notes": "Fix patients disappearing: for large databases (>200 MB) debounce saves are disabled — database.export() no longer blocks the event loop every 30 seconds, preventing Socket.IO disconnects and UI flickering"
+  "sha256": "085cd5bcb36c8cbf622e6e6760b38ef295782ce8c3fb3df159c955ccd25853ae",
+  "releasedAt": "2026-06-10T00:00:00Z",
+  "notes": "Fix database save failing on Windows with EPERM error caused by Windows Defender briefly locking .tmp files during scanning. Rename now retries up to 10 times over 5 seconds, then falls back to copyFile+unlink if still blocked. Also: remove unbounded GET /patients — each page now fetches only what it needs (paginated or by ID), eliminating the full patient list load on login."
 }

@@ -7,7 +7,8 @@ import { ArrowRight, ArrowLeft, Calendar, ClipboardList, Stethoscope, FileText, 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useData, VisitAttachment } from '@/contexts/DataContext';
+import { useData, VisitAttachment, Patient } from '@/contexts/DataContext';
+import api from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
@@ -30,13 +31,24 @@ const VisitDetailPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId: string }>();
   const { t, language, direction } = useLanguage();
   const { isAssistant, isDoctor, hasPermission } = useAuth();
-  const { getPatient, visits, loadPatientVisits, loadFullVisit, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit, deleteVisit } = useData();
+  const { visits, loadPatientVisits, loadFullVisit, loadVisitAttachments, uploadVisitAttachment, deleteVisitAttachment, getVisitAttachments, updateVisitPrice, updateVisit, deleteVisit } = useData();
   const canDeleteVisit = isDoctor || hasPermission('canDeleteVisits');
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const patient = getPatient(patientId || '');
+  const [patient, setLocalPatient] = useState<Patient | null>(null);
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
+
+  useEffect(() => {
+    if (!patientId) return;
+    api.getPatient(patientId).then(p => {
+      setLocalPatient({
+        id: p.id, fileNumber: p.fileNumber || '', name: p.name, phone: p.phone,
+        age: p.age, gender: p.gender, medicalHistory: p.medicalHistory || '',
+        allergies: p.allergies || [], records: [], createdAt: new Date(p.createdAt),
+      });
+    }).catch(() => {});
+  }, [patientId]);
   const dateLocale = language === 'ar' ? ar : enUS;
 
   // The visit list endpoint now returns meta-only visits (no drawings/

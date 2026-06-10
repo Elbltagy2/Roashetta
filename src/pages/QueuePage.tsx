@@ -34,13 +34,14 @@ import { useToast } from '@/hooks/use-toast';
 
 const QueuePage: React.FC = () => {
   const { t, language } = useLanguage();
-  const { patients, setCurrentPatient, currentPatient } = useData();
+  const { setCurrentPatient, currentPatient } = useData();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [queue, setQueue] = useState<QueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState<{ id: string; name: string; phone: string; fileNumber?: string }[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
   const [confirmEntry, setConfirmEntry] = useState<QueueEntry | null>(null);
@@ -66,19 +67,25 @@ const QueuePage: React.FC = () => {
     [queue]
   );
 
-  const filteredPatients = useMemo(() => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase();
-    const queuePatientIds = new Set(queue.map(e => e.patientId));
-    return patients
-      .filter(p =>
-        !queuePatientIds.has(p.id) &&
-        (p.name.toLowerCase().includes(q) ||
-          p.phone.includes(q) ||
-          (p.fileNumber && p.fileNumber.includes(q)))
-      )
-      .slice(0, 8);
-  }, [searchQuery, patients, queue]);
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setPatientSearchResults([]);
+      return;
+    }
+    let cancelled = false;
+    api.searchPatients(trimmed).then(results => {
+      if (cancelled) return;
+      const queuePatientIds = new Set(queue.map(e => e.patientId));
+      setPatientSearchResults(
+        results
+          .filter(p => !queuePatientIds.has(p.id))
+          .slice(0, 8)
+          .map(p => ({ id: p.id, name: p.name, phone: p.phone, fileNumber: p.fileNumber }))
+      );
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [searchQuery, queue]);
 
   const handleAddToQueue = async (patientId: string) => {
     try {
@@ -255,9 +262,9 @@ const QueuePage: React.FC = () => {
               />
             </div>
 
-            {filteredPatients.length > 0 && (
+            {patientSearchResults.length > 0 && (
               <div className="absolute z-20 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-64 overflow-y-auto">
-                {filteredPatients.map(p => (
+                {patientSearchResults.map(p => (
                   <button
                     key={p.id}
                     type="button"
@@ -274,7 +281,7 @@ const QueuePage: React.FC = () => {
               </div>
             )}
 
-            {searchQuery.trim() && filteredPatients.length === 0 && (
+            {searchQuery.trim() && patientSearchResults.length === 0 && (
               <div className="absolute z-20 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg p-4 text-center text-muted-foreground text-sm">
                 {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
               </div>

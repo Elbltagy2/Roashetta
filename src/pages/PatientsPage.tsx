@@ -22,7 +22,7 @@ const PAGE_SIZE = 12;
 
 const PatientsPage: React.FC = () => {
   const { t, language } = useLanguage();
-  const { patients: allPatients } = useData();
+  const { patientsVersion } = useData();
   const navigate = useNavigate();
 
   const [searchInput, setSearchInput] = useState('');
@@ -82,7 +82,7 @@ const PatientsPage: React.FC = () => {
   // change (covers add/update/delete from elsewhere in the app).
   useEffect(() => {
     fetchPage();
-  }, [fetchPage, allPatients.length]);
+  }, [fetchPage, patientsVersion]);
 
   const canPrev = page > 1;
   const canNext = page < totalPages;

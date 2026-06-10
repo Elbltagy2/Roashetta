@@ -29,17 +29,17 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useData } from '@/contexts/DataContext';
+import { useData, Patient } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { printImage } from '@/lib/download-pdf';
 import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
+import api from '@/services/api';
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, language, direction } = useLanguage();
   const { isAssistant, isDoctor, hasPermission } = useAuth();
   const {
-    getPatient,
     getPatientVisits,
     loadPatientVisits,
     loadPatientRecords,
@@ -64,7 +64,7 @@ const PatientDetailPage: React.FC = () => {
   const [viewerIndex, setViewerIndex] = useState(0);
   const viewerOpen = viewerFiles.length > 0;
 
-  const patient = getPatient(id || '');
+  const [patient, setLocalPatient] = useState<Patient | null>(null);
   const visits = getPatientVisits(id || '');
   const previousInvestigations = getPreviousInvestigations(id || '');
 
@@ -93,11 +93,33 @@ const PatientDetailPage: React.FC = () => {
     mimeType: i.type,
   }));
 
+  // Fetch patient from API when ID changes
+  useEffect(() => {
+    if (!id) return;
+    setLocalPatient(null);
+    api.getPatient(id).then(p => {
+      setLocalPatient({
+        id: p.id,
+        fileNumber: p.fileNumber || '',
+        name: p.name,
+        phone: p.phone,
+        age: p.age,
+        gender: p.gender,
+        medicalHistory: p.medicalHistory || '',
+        allergies: p.allergies || [],
+        records: [],
+        createdAt: new Date(p.createdAt),
+      });
+    }).catch(() => setLocalPatient(null));
+  }, [id]);
+
   // Load visits, records, and investigations from API when patient ID changes
   useEffect(() => {
     if (id) {
       loadPatientVisits(id);
-      loadPatientRecords(id);
+      loadPatientRecords(id).then(records => {
+        setLocalPatient(prev => prev ? { ...prev, records } : null);
+      });
       loadPreviousInvestigations(id);
     }
   }, [id, loadPatientVisits, loadPatientRecords, loadPreviousInvestigations]);
@@ -108,13 +130,14 @@ const PatientDetailPage: React.FC = () => {
 
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
-        addPatientRecord(patient.id, {
+        const newRecord = await addPatientRecord(patient.id, {
           name: file.name,
           type: file.type,
           dataUrl,
         });
+        setLocalPatient(prev => prev ? { ...prev, records: [...prev.records, newRecord] } : null);
       };
       reader.readAsDataURL(file);
     });
@@ -126,9 +149,9 @@ const PatientDetailPage: React.FC = () => {
   };
 
   const handleDeleteRecord = (recordId: string) => {
-    if (patient) {
-      deletePatientRecord(patient.id, recordId);
-    }
+    if (!patient) return;
+    deletePatientRecord(patient.id, recordId);
+    setLocalPatient(prev => prev ? { ...prev, records: prev.records.filter(r => r.id !== recordId) } : null);
   };
 
   const handleInvestigationFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

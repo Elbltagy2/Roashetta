@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, Calendar, FileText, UserPlus, TrendingUp, User, Phone, AlertTriangle, UserX, CheckCircle } from 'lucide-react';
@@ -9,15 +9,37 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
+import { Patient } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { staggerContainer, staggerItem } from '@/lib/animations';
+import api from '@/services/api';
 
 const DashboardPage: React.FC = () => {
   const { t, language } = useLanguage();
   const { isAssistant } = useAuth();
-  const { patients, visits, currentPatient, clearCurrentPatient } = useData();
+  const { patientsVersion, visits, currentPatient, clearCurrentPatient } = useData();
   const navigate = useNavigate();
   const [isFinishing, setIsFinishing] = useState(false);
+  const [totalPatients, setTotalPatients] = useState(0);
+  const [recentPatients, setRecentPatients] = useState<Patient[]>([]);
+
+  useEffect(() => {
+    api.getPatientsPaginated({ page: 1, limit: 5 }).then(res => {
+      setTotalPatients(res.total);
+      setRecentPatients(res.data.map(p => ({
+        id: p.id,
+        fileNumber: p.fileNumber || '',
+        name: p.name,
+        phone: p.phone,
+        age: p.age,
+        gender: p.gender,
+        medicalHistory: p.medicalHistory || '',
+        allergies: p.allergies || [],
+        records: [],
+        createdAt: new Date(p.createdAt),
+      })));
+    }).catch(() => {});
+  }, [patientsVersion]);
 
   const handleFinishPatient = async () => {
     setIsFinishing(true);
@@ -43,9 +65,6 @@ const DashboardPage: React.FC = () => {
 
   const prescriptionsCount = visits.filter((v) => v.prescription).length;
 
-  const recentPatients = [...patients]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 5);
 
   return (
     <DashboardLayout>
@@ -177,7 +196,7 @@ const DashboardPage: React.FC = () => {
           <motion.div variants={staggerItem}>
             <StatCard
               title={t('dashboard.totalPatients')}
-              value={patients.length}
+              value={totalPatients}
               icon={<Users className="w-6 h-6" />}
             />
           </motion.div>

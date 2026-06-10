@@ -68,8 +68,9 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 5, delayMs = 300): 
 
 // Async save: export is synchronous (sql.js limitation) but all file I/O is
 // async so the HTTP event loop is not blocked while writing to disk.
-// Rename/copy are retried up to 5× with 300 ms gaps to survive Windows
-// Defender briefly locking the file after the write.
+// On Windows, Defender scans newly written .tmp files for 2-5 seconds, keeping
+// them locked. We try rename first (atomic) with generous retries, then fall
+// back to copyFile+unlink which handles brief locks more gracefully.
 async function saveDatabase() {
   if (!database || !hasChanges) return;
   if (isSaving) { pendingSave = true; return; }
@@ -80,7 +81,15 @@ async function saveDatabase() {
     const buffer = Buffer.from(data);
     const tempPath = dbPath + '.tmp';
     await withRetry(() => fs.promises.writeFile(tempPath, buffer));
-    await withRetry(() => fs.promises.rename(tempPath, dbPath));
+    // Try atomic rename first (10 × 500 ms = up to 5 s wait for Defender).
+    // Fall back to copyFile+unlink if rename keeps failing — copyFile overwrites
+    // the destination even when the source is briefly locked for scanning.
+    try {
+      await withRetry(() => fs.promises.rename(tempPath, dbPath), 10, 500);
+    } catch {
+      await withRetry(() => fs.promises.copyFile(tempPath, dbPath), 5, 500);
+      try { await fs.promises.unlink(tempPath); } catch { /* best-effort */ }
+    }
     await withRetry(() => fs.promises.copyFile(dbPath, backupPath));
   } catch (err) {
     console.error('Failed to save database:', err);
@@ -102,7 +111,13 @@ function saveDatabaseSync() {
     const buffer = Buffer.from(data);
     const tempPath = dbPath + '.tmp';
     fs.writeFileSync(tempPath, buffer);
-    fs.renameSync(tempPath, dbPath);
+    try {
+      fs.renameSync(tempPath, dbPath);
+    } catch {
+      // Fallback on Windows if rename fails (Defender lock)
+      fs.copyFileSync(tempPath, dbPath);
+      try { fs.unlinkSync(tempPath); } catch { /* best-effort */ }
+    }
     fs.copyFileSync(dbPath, backupPath);
   } catch (err) {
     console.error('Failed to save database on exit:', err);

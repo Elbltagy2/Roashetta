@@ -51,7 +51,7 @@ import { DRUG_HISTORY_CATEGORIES } from '@/data/drugHistoryItems';
 import { FAMILY_HISTORY_CATEGORIES } from '@/data/familyHistoryItems';
 import { CURRENT_MEDICATION_CATEGORIES } from '@/data/currentMedicationItems';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useData, Visit } from '@/contexts/DataContext';
+import { useData, Visit, Patient } from '@/contexts/DataContext';
 import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -207,7 +207,7 @@ const SectionHeader = React.memo(({
 const NewVisitPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId?: string }>();
   const { t, language, direction } = useLanguage();
-  const { getPatient, addVisit, updateVisit, uploadVisitAttachment, visits, loadPatientVisits, loadFullVisit } = useData();
+  const { addVisit, updateVisit, uploadVisitAttachment, visits, loadPatientVisits, loadFullVisit } = useData();
   const isEditMode = !!visitId;
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -217,8 +217,19 @@ const NewVisitPage: React.FC = () => {
   const prescriptionRef = useRef<HTMLDivElement>(null);
   const labRequestRef = useRef<HTMLDivElement>(null);
 
-  const patient = getPatient(patientId || '');
+  const [patient, setLocalPatient] = useState<Patient | null>(null);
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
+
+  useEffect(() => {
+    if (!patientId) return;
+    api.getPatient(patientId).then(p => {
+      setLocalPatient({
+        id: p.id, fileNumber: p.fileNumber || '', name: p.name, phone: p.phone,
+        age: p.age, gender: p.gender, medicalHistory: p.medicalHistory || '',
+        allergies: p.allergies || [], records: [], createdAt: new Date(p.createdAt),
+      });
+    }).catch(() => {});
+  }, [patientId]);
   const dateLocale = language === 'ar' ? ar : enUS;
 
   // Get previous visits for this patient, sorted by date descending
