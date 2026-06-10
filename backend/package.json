@@ -8,7 +8,7 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "build:exe:win": "npx @yao-pkg/pkg . --targets node22-win-x64 --options max-old-space-size=4096 --output release/RoashettaServer.exe",
+    "build:exe:win": "npx @yao-pkg/pkg . --targets node22-win-x64 --options max-old-space-size=4096 --no-bytecode --public-packages \"*\" --public --output release/RoashettaServer.exe",
     "build:exe:mac": "npx @yao-pkg/pkg . --targets node22-macos-x64 --options max-old-space-size=4096 --output release/RoashettaServer",
     "build:exe:linux": "npx @yao-pkg/pkg . --targets node22-linux-x64 --options max-old-space-size=4096 --output release/RoashettaServer"
   },

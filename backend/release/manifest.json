@@ -1,7 +1,7 @@
 {
-  "version": "1.1.31",
+  "version": "1.1.32",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "6803c4d8d350b560e1a9922ea7e2e201e3215768e1626b5420f4d04aef53c193",
+  "sha256": "75fa2e8bed825b4de8325ca76c518df05bd002b8878473e1e9e7071728869e5c",
   "releasedAt": "2026-06-10T00:00:00Z",
-  "notes": "Fix: replace macOS native addon with correct Windows x64 binary. Switch pkg target to Node.js v22 (required by better-sqlite3 v12.x prebuilds)."
+  "notes": "Fix cross-platform bytecode error on Windows. Build with --no-bytecode to avoid V8 bytecode mismatch when exe is built on macOS and run on Windows."
 }
