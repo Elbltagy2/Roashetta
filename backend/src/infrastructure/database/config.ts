@@ -82,12 +82,12 @@ async function saveDatabase() {
     const tempPath = dbPath + '.tmp';
     await withRetry(() => fs.promises.writeFile(tempPath, buffer));
     // Try atomic rename first (10 × 500 ms = up to 5 s wait for Defender).
-    // Fall back to copyFile+unlink if rename keeps failing — copyFile overwrites
-    // the destination even when the source is briefly locked for scanning.
+    // Fall back to writing the in-memory buffer directly — this avoids any
+    // dependency on the .tmp file which may still be locked (EPERM/EBUSY).
     try {
       await withRetry(() => fs.promises.rename(tempPath, dbPath), 10, 500);
     } catch {
-      await withRetry(() => fs.promises.copyFile(tempPath, dbPath), 5, 500);
+      await withRetry(() => fs.promises.writeFile(dbPath, buffer), 10, 500);
       try { await fs.promises.unlink(tempPath); } catch { /* best-effort */ }
     }
     await withRetry(() => fs.promises.copyFile(dbPath, backupPath));

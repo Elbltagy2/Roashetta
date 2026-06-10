@@ -8,9 +8,9 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "build:exe:win": "npx pkg . --targets node18-win-x64 --output release/RoashettaServer.exe",
-    "build:exe:mac": "npx pkg . --targets node18-macos-x64 --output release/RoashettaServer",
-    "build:exe:linux": "npx pkg . --targets node18-linux-x64 --output release/RoashettaServer"
+    "build:exe:win": "npx pkg . --targets node18-win-x64 --options max_old_space_size=4096 --output release/RoashettaServer.exe",
+    "build:exe:mac": "npx pkg . --targets node18-macos-x64 --options max_old_space_size=4096 --output release/RoashettaServer",
+    "build:exe:linux": "npx pkg . --targets node18-linux-x64 --options max_old_space_size=4096 --output release/RoashettaServer"
   },
   "pkg": {
     "assets": [
