@@ -90,7 +90,7 @@ async function saveDatabase() {
       await withRetry(() => fs.promises.writeFile(dbPath, buffer), 10, 500);
       try { await fs.promises.unlink(tempPath); } catch { /* best-effort */ }
     }
-    await withRetry(() => fs.promises.copyFile(dbPath, backupPath));
+    try { await withRetry(() => fs.promises.copyFile(dbPath, backupPath)); } catch { /* best-effort */ }
   } catch (err) {
     console.error('Failed to save database:', err);
   } finally {
@@ -114,11 +114,11 @@ function saveDatabaseSync() {
     try {
       fs.renameSync(tempPath, dbPath);
     } catch {
-      // Fallback on Windows if rename fails (Defender lock)
-      fs.copyFileSync(tempPath, dbPath);
+      // Fallback: write buffer directly — avoids locked .tmp dependency
+      fs.writeFileSync(dbPath, buffer);
       try { fs.unlinkSync(tempPath); } catch { /* best-effort */ }
     }
-    fs.copyFileSync(dbPath, backupPath);
+    try { fs.copyFileSync(dbPath, backupPath); } catch { /* best-effort */ }
   } catch (err) {
     console.error('Failed to save database on exit:', err);
   }
@@ -235,12 +235,16 @@ export async function initializeDatabase(): Promise<void> {
   const loadFile = (filePath: string): SqlJsDatabase | null => {
     try {
       const buf = fs.readFileSync(filePath);
-      if (buf.length === 0) return null;           // 0-byte = corrupt
+      if (buf.length === 0) {
+        console.warn(`  → ${path.basename(filePath)}: empty file, skipping`);
+        return null;
+      }
       const db = new SQL.Database(buf);
-      // Quick sanity check: a valid database has at least the sqlite_master table
       db.run('SELECT count(*) FROM sqlite_master');
       return db;
-    } catch {
+    } catch (err: unknown) {
+      const msg = (err instanceof Error) ? err.message : String(err);
+      console.error(`  → Failed to load ${path.basename(filePath)}: ${msg}`);
       return null;
     }
   };
@@ -249,6 +253,7 @@ export async function initializeDatabase(): Promise<void> {
 
   // Try loading: main → .bak → .checkpoint → new
   if (fs.existsSync(dbPath)) {
+    console.log(`Loading database from ${dbPath} ...`);
     database = loadFile(dbPath);
     if (database) {
       console.log(`Loaded existing database from ${dbPath}`);
@@ -256,11 +261,13 @@ export async function initializeDatabase(): Promise<void> {
   }
 
   if (!database && fs.existsSync(backupPath)) {
+    console.warn(`Trying backup: ${backupPath} ...`);
     database = loadFile(backupPath);
     if (database) console.warn(`Restored from backup: ${backupPath}`);
   }
 
   if (!database && fs.existsSync(checkpointPath)) {
+    console.warn(`Trying checkpoint: ${checkpointPath} ...`);
     database = loadFile(checkpointPath);
     if (database) console.warn(`Restored from 10-min checkpoint: ${checkpointPath}`);
   }
