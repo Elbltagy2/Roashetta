@@ -1,7 +1,7 @@
 {
-  "version": "1.1.30",
+  "version": "1.1.31",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "015353075deaba4e40a342fc0dccf778375bc499b1c7f4e1da7f3da5e6c70240",
+  "sha256": "6803c4d8d350b560e1a9922ea7e2e201e3215768e1626b5420f4d04aef53c193",
   "releasedAt": "2026-06-10T00:00:00Z",
-  "notes": "Switch to better-sqlite3: no 2 GiB database limit. Migrates existing PDFs and images from database to files folder automatically on startup. New files saved to disk going forward."
+  "notes": "Fix: replace macOS native addon with correct Windows x64 binary. Switch pkg target to Node.js v22 (required by better-sqlite3 v12.x prebuilds)."
 }

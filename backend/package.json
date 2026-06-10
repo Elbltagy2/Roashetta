@@ -8,9 +8,9 @@
     "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "build:exe:win": "npx pkg . --targets node18-win-x64 --options max-old-space-size=4096 --output release/RoashettaServer.exe",
-    "build:exe:mac": "npx pkg . --targets node18-macos-x64 --options max-old-space-size=4096 --output release/RoashettaServer",
-    "build:exe:linux": "npx pkg . --targets node18-linux-x64 --options max-old-space-size=4096 --output release/RoashettaServer"
+    "build:exe:win": "npx @yao-pkg/pkg . --targets node22-win-x64 --options max-old-space-size=4096 --output release/RoashettaServer.exe",
+    "build:exe:mac": "npx @yao-pkg/pkg . --targets node22-macos-x64 --options max-old-space-size=4096 --output release/RoashettaServer",
+    "build:exe:linux": "npx @yao-pkg/pkg . --targets node22-linux-x64 --options max-old-space-size=4096 --output release/RoashettaServer"
   },
   "pkg": {
     "assets": [
@@ -40,7 +40,7 @@
     "@types/node": "^20.10.0",
     "@types/sql.js": "^1.4.9",
     "@types/uuid": "^9.0.7",
-    "pkg": "^5.8.1",
+    "@yao-pkg/pkg": "^6.20.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.2"
