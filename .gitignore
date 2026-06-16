@@ -25,6 +25,10 @@ backend/.env
 # Database files (runtime data - never commit patient records)
 *.db
 *.db-tmp
+*.db-shm
+*.db-wal
+*.bak
+*.checkpoint
 
 # Editor directories and files
 .vscode/*
