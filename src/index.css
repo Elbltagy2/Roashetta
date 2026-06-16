@@ -255,3 +255,45 @@
     visibility: visible !important;
   }
 }
+
+/* Patients grid: staggered entrance + hover lift */
+@keyframes pc-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pc-anim-grid > .pc-anim-cell {
+  animation: pc-card-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--pc-i, 0) * 78ms);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pc-anim-grid > .pc-anim-cell:nth-child(1) { --pc-i: 0; }
+.pc-anim-grid > .pc-anim-cell:nth-child(2) { --pc-i: 1; }
+.pc-anim-grid > .pc-anim-cell:nth-child(3) { --pc-i: 2; }
+.pc-anim-grid > .pc-anim-cell:nth-child(4) { --pc-i: 3; }
+.pc-anim-grid > .pc-anim-cell:nth-child(5) { --pc-i: 4; }
+.pc-anim-grid > .pc-anim-cell:nth-child(6) { --pc-i: 5; }
+.pc-anim-grid > .pc-anim-cell:nth-child(7) { --pc-i: 6; }
+.pc-anim-grid > .pc-anim-cell:nth-child(8) { --pc-i: 7; }
+.pc-anim-grid > .pc-anim-cell:nth-child(9) { --pc-i: 8; }
+.pc-anim-grid > .pc-anim-cell:nth-child(n + 10) { --pc-i: 9; }
+
+.pc-anim-grid > .pc-anim-cell:hover {
+  transform: translateY(-3.5px);
+  filter: drop-shadow(0 15px 21px rgba(29, 41, 48, 0.16));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-anim-grid > .pc-anim-cell {
+    animation: none;
+    transition: none;
+  }
+}

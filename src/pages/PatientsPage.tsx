@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Search, UserPlus, Filter, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PatientCard } from '@/components/patients/PatientCard';
@@ -16,7 +15,6 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData, Patient } from '@/contexts/DataContext';
 import api from '@/services/api';
-import { staggerContainer, staggerItem } from '@/lib/animations';
 
 const PAGE_SIZE = 12;
 
@@ -136,18 +134,13 @@ const PatientsPage: React.FC = () => {
         {/* Patients Grid */}
         {results.length > 0 ? (
           <>
-            <motion.div
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pc-anim-grid">
               {results.map((patient) => (
-                <motion.div key={patient.id} variants={staggerItem}>
+                <div key={patient.id} className="pc-anim-cell">
                   <PatientCard patient={patient} />
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

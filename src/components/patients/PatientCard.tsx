@@ -87,6 +87,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
 
   return (
     <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+
       <div className="p-6">
         <div className="flex items-start gap-4">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -123,6 +124,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({ patient, compact = fal
           <span>{formatDate(patient.createdAt)}</span>
         </div>
       </div>
+
 
       <div className="px-6 py-4 bg-muted/50 border-t border-border space-y-2">
         <Button
