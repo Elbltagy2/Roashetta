@@ -30,6 +30,13 @@ backend/.env
 *.bak
 *.checkpoint
 
+# Local tooling (not shared)
+.agents/
+.claude/
+.impeccable/
+graphify-out/
+skills-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
