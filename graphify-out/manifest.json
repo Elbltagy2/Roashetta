@@ -1,0 +1,1907 @@
+{
+  "/Users/ahmedelbltagy/Roashetta/.claude/settings.json": {
+    "mtime": 1781565382.5641623,
+    "ast_hash": "e1073342e958ac9f00716938c8f165e3",
+    "semantic_hash": "e1073342e958ac9f00716938c8f165e3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/settings.local.json": {
+    "mtime": 1781109288.387302,
+    "ast_hash": "a4f6dccf68f5133f75fd66178eb72cd4",
+    "semantic_hash": "a4f6dccf68f5133f75fd66178eb72cd4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/command-metadata.json": {
+    "mtime": 1781448128.0497355,
+    "ast_hash": "883d1962f87b23b4a0f6229e1aadd484",
+    "semantic_hash": "883d1962f87b23b4a0f6229e1aadd484"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/context-signals.mjs": {
+    "mtime": 1781448128.0499656,
+    "ast_hash": "ed7a5fe15dbaebb1513d5e6db09cc32c",
+    "semantic_hash": "ed7a5fe15dbaebb1513d5e6db09cc32c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/context.mjs": {
+    "mtime": 1781448128.0501094,
+    "ast_hash": "26b624040ebbd99d4828a523cdd188b1",
+    "semantic_hash": "26b624040ebbd99d4828a523cdd188b1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/critique-storage.mjs": {
+    "mtime": 1781448128.050251,
+    "ast_hash": "942bbd0169358eecab57d82ad9c29f18",
+    "semantic_hash": "942bbd0169358eecab57d82ad9c29f18"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detect-csp.mjs": {
+    "mtime": 1781448128.0504801,
+    "ast_hash": "02c5a9a8ad69f87d23af72bf580fd3f4",
+    "semantic_hash": "02c5a9a8ad69f87d23af72bf580fd3f4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detect.mjs": {
+    "mtime": 1781448128.050722,
+    "ast_hash": "11dbeb9341477d06d1a24c3ad1f37ac9",
+    "semantic_hash": "11dbeb9341477d06d1a24c3ad1f37ac9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/browser/injected/index.mjs": {
+    "mtime": 1781448128.051097,
+    "ast_hash": "c4846ef42ab73951d7de2fdfb28a25f6",
+    "semantic_hash": "c4846ef42ab73951d7de2fdfb28a25f6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/cli/main.mjs": {
+    "mtime": 1781448128.0513163,
+    "ast_hash": "5208183c07f839d8ff178d4614b0a5e8",
+    "semantic_hash": "5208183c07f839d8ff178d4614b0a5e8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/detect-antipatterns-browser.js": {
+    "mtime": 1781448128.0514417,
+    "ast_hash": "b972b4c90fd7eb235c76c38acbfcad57",
+    "semantic_hash": "b972b4c90fd7eb235c76c38acbfcad57"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/detect-antipatterns.mjs": {
+    "mtime": 1781448128.0515547,
+    "ast_hash": "1ee45163c27e086f43af1a3bb6b76504",
+    "semantic_hash": "1ee45163c27e086f43af1a3bb6b76504"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/engines/browser/detect-url.mjs": {
+    "mtime": 1781448128.051873,
+    "ast_hash": "f9a37e92021f13b178b860eb52a33f98",
+    "semantic_hash": "f9a37e92021f13b178b860eb52a33f98"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/engines/regex/detect-text.mjs": {
+    "mtime": 1781448128.0520587,
+    "ast_hash": "6b0ed87b67a79c69db3a4208a5d47e93",
+    "semantic_hash": "6b0ed87b67a79c69db3a4208a5d47e93"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/engines/static-html/css-cascade.mjs": {
+    "mtime": 1781448128.052231,
+    "ast_hash": "689ec9d7f83a11443141c48b0f6514e8",
+    "semantic_hash": "689ec9d7f83a11443141c48b0f6514e8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/engines/static-html/detect-html.mjs": {
+    "mtime": 1781448128.0523834,
+    "ast_hash": "48549abcbb3e1fee4f93f07661d77ac0",
+    "semantic_hash": "48549abcbb3e1fee4f93f07661d77ac0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/engines/visual/screenshot-contrast.mjs": {
+    "mtime": 1781448128.0526824,
+    "ast_hash": "6312c6dbc048c4445f50e69f167a297d",
+    "semantic_hash": "6312c6dbc048c4445f50e69f167a297d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/findings.mjs": {
+    "mtime": 1781448128.0527918,
+    "ast_hash": "f7f3de6f00121150c4762809df00df9f",
+    "semantic_hash": "f7f3de6f00121150c4762809df00df9f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/node/file-system.mjs": {
+    "mtime": 1781448128.053222,
+    "ast_hash": "21d55d864c78f1a6c20794551e3901d5",
+    "semantic_hash": "21d55d864c78f1a6c20794551e3901d5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/profile/profiler.mjs": {
+    "mtime": 1781448128.0535183,
+    "ast_hash": "88c5d2027852842be578edf349a0f9c8",
+    "semantic_hash": "88c5d2027852842be578edf349a0f9c8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/registry/antipatterns.mjs": {
+    "mtime": 1781448128.0536904,
+    "ast_hash": "30ed4f1a91098bf96a2dd2e0582a8162",
+    "semantic_hash": "30ed4f1a91098bf96a2dd2e0582a8162"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/rules/checks.mjs": {
+    "mtime": 1781448128.053878,
+    "ast_hash": "c0df66beab10180beaff8fd9e222b8bc",
+    "semantic_hash": "c0df66beab10180beaff8fd9e222b8bc"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/shared/color.mjs": {
+    "mtime": 1781448128.0541768,
+    "ast_hash": "2363d500ccf490f9ff285119b613276d",
+    "semantic_hash": "2363d500ccf490f9ff285119b613276d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/shared/constants.mjs": {
+    "mtime": 1781448128.0544086,
+    "ast_hash": "5700477c8a86d876b90de9d6eb63f191",
+    "semantic_hash": "5700477c8a86d876b90de9d6eb63f191"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/detector/shared/page.mjs": {
+    "mtime": 1781448128.0545304,
+    "ast_hash": "ab3a243b690b4f70c4ef639cdf970d82",
+    "semantic_hash": "ab3a243b690b4f70c4ef639cdf970d82"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/hook-admin.mjs": {
+    "mtime": 1781448128.0546517,
+    "ast_hash": "3aea59154e75752c27c311d33b90d267",
+    "semantic_hash": "3aea59154e75752c27c311d33b90d267"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/hook-before-edit.mjs": {
+    "mtime": 1781448128.0547695,
+    "ast_hash": "368ee9ae5b14613f0a6d80dff97c1e11",
+    "semantic_hash": "368ee9ae5b14613f0a6d80dff97c1e11"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/hook-lib.mjs": {
+    "mtime": 1781448128.0548716,
+    "ast_hash": "9a2f4fd41afa67f569d300f72aca9375",
+    "semantic_hash": "9a2f4fd41afa67f569d300f72aca9375"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/hook.mjs": {
+    "mtime": 1781448128.0549731,
+    "ast_hash": "b17a38c988ec5694067ec8b042813315",
+    "semantic_hash": "b17a38c988ec5694067ec8b042813315"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/lib/design-parser.mjs": {
+    "mtime": 1781448128.0551448,
+    "ast_hash": "77bbd8593cdea6e08a0b3e7870e93fc8",
+    "semantic_hash": "77bbd8593cdea6e08a0b3e7870e93fc8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/lib/impeccable-paths.mjs": {
+    "mtime": 1781448128.0553582,
+    "ast_hash": "2dd4310d900b4e7678f8b3620e634687",
+    "semantic_hash": "2dd4310d900b4e7678f8b3620e634687"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/lib/is-generated.mjs": {
+    "mtime": 1781448128.0554602,
+    "ast_hash": "edd718b1a4737edbf9631ff7f6f512ef",
+    "semantic_hash": "edd718b1a4737edbf9631ff7f6f512ef"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-accept.mjs": {
+    "mtime": 1781448128.0575879,
+    "ast_hash": "63a98882c6e9cee6155ec14f0541cf6b",
+    "semantic_hash": "63a98882c6e9cee6155ec14f0541cf6b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-browser-dom.js": {
+    "mtime": 1781448128.0578125,
+    "ast_hash": "b96db5b10874366237a40305c5dc72a1",
+    "semantic_hash": "b96db5b10874366237a40305c5dc72a1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-browser-session.js": {
+    "mtime": 1781448128.057905,
+    "ast_hash": "5dec3dae6158050d69762fb79facaf48",
+    "semantic_hash": "5dec3dae6158050d69762fb79facaf48"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-browser.js": {
+    "mtime": 1781448128.0580635,
+    "ast_hash": "8bdf3884b3a1ac8a44da83d521469ba5",
+    "semantic_hash": "8bdf3884b3a1ac8a44da83d521469ba5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-commit-manual-edits.mjs": {
+    "mtime": 1781448128.058183,
+    "ast_hash": "866079c1dea82be936f92cf11adf01d3",
+    "semantic_hash": "866079c1dea82be936f92cf11adf01d3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-complete.mjs": {
+    "mtime": 1781448128.0583003,
+    "ast_hash": "18ddd6db2567d7d385291b813d310518",
+    "semantic_hash": "18ddd6db2567d7d385291b813d310518"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-copy-edit-agent.mjs": {
+    "mtime": 1781448128.0584261,
+    "ast_hash": "1c4926b56d5442775dab0138bf71a790",
+    "semantic_hash": "1c4926b56d5442775dab0138bf71a790"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-discard-manual-edits.mjs": {
+    "mtime": 1781448128.058525,
+    "ast_hash": "bbd49a16f77178fc8e778759653dd4c5",
+    "semantic_hash": "bbd49a16f77178fc8e778759653dd4c5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-inject.mjs": {
+    "mtime": 1781448128.0586226,
+    "ast_hash": "953ad604895fa47278b7a98c0195b4b7",
+    "semantic_hash": "953ad604895fa47278b7a98c0195b4b7"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-insert.mjs": {
+    "mtime": 1781448128.0587716,
+    "ast_hash": "a0ce4a29836987cc67cad70e630d5dcf",
+    "semantic_hash": "a0ce4a29836987cc67cad70e630d5dcf"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-manual-edit-evidence.mjs": {
+    "mtime": 1781448128.058924,
+    "ast_hash": "aafd35ccb714ec883362d7dde83f61d1",
+    "semantic_hash": "aafd35ccb714ec883362d7dde83f61d1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-poll.mjs": {
+    "mtime": 1781448128.0590816,
+    "ast_hash": "765dd3974cce3c380200bde3c3cb9426",
+    "semantic_hash": "765dd3974cce3c380200bde3c3cb9426"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-resume.mjs": {
+    "mtime": 1781448128.059478,
+    "ast_hash": "0791b79bb824ffc6b52fcec25c6982a7",
+    "semantic_hash": "0791b79bb824ffc6b52fcec25c6982a7"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-server.mjs": {
+    "mtime": 1781448128.0595872,
+    "ast_hash": "59d8a8437f1dec1597a2285f602d09ba",
+    "semantic_hash": "59d8a8437f1dec1597a2285f602d09ba"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-status.mjs": {
+    "mtime": 1781448128.0596826,
+    "ast_hash": "039529830229f091246f26baabaaa0dd",
+    "semantic_hash": "039529830229f091246f26baabaaa0dd"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live-wrap.mjs": {
+    "mtime": 1781448128.0597801,
+    "ast_hash": "bc09a57b1adf3f796e57055f702df208",
+    "semantic_hash": "bc09a57b1adf3f796e57055f702df208"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live.mjs": {
+    "mtime": 1781448128.0599215,
+    "ast_hash": "20c20abb6254d328f575e6ee62e83e97",
+    "semantic_hash": "20c20abb6254d328f575e6ee62e83e97"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/browser-script-parts.mjs": {
+    "mtime": 1781448128.0556502,
+    "ast_hash": "f04f047fda5e9b2a3b1e510983da153d",
+    "semantic_hash": "f04f047fda5e9b2a3b1e510983da153d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/completion.mjs": {
+    "mtime": 1781448128.0557528,
+    "ast_hash": "77185bc6cced6322e6892af8e05839f0",
+    "semantic_hash": "77185bc6cced6322e6892af8e05839f0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/event-validation.mjs": {
+    "mtime": 1781448128.0560794,
+    "ast_hash": "97a304ab4b04080bcdbaf3816d3ee968",
+    "semantic_hash": "97a304ab4b04080bcdbaf3816d3ee968"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/insert-ui.mjs": {
+    "mtime": 1781448128.056245,
+    "ast_hash": "b6c5c82e14218c0c1b1e66f0851bff3f",
+    "semantic_hash": "b6c5c82e14218c0c1b1e66f0851bff3f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/manual-apply.mjs": {
+    "mtime": 1781448128.056344,
+    "ast_hash": "043d0a1a7a4a373178648502bbe7da81",
+    "semantic_hash": "043d0a1a7a4a373178648502bbe7da81"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/manual-edit-routes.mjs": {
+    "mtime": 1781448128.0565064,
+    "ast_hash": "5f801f9370461d1faa9ae4cde85a96be",
+    "semantic_hash": "5f801f9370461d1faa9ae4cde85a96be"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/manual-edits-buffer.mjs": {
+    "mtime": 1781448128.0567284,
+    "ast_hash": "a36834f2a77dd6a81ee324ef4f6f8baa",
+    "semantic_hash": "a36834f2a77dd6a81ee324ef4f6f8baa"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/session-store.mjs": {
+    "mtime": 1781448128.0568807,
+    "ast_hash": "1f464fe28989247246d53927a1698265",
+    "semantic_hash": "1f464fe28989247246d53927a1698265"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/svelte-component.mjs": {
+    "mtime": 1781448128.0569983,
+    "ast_hash": "b23495379a1527dbb9c7c3171041819e",
+    "semantic_hash": "b23495379a1527dbb9c7c3171041819e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/sveltekit-adapter.mjs": {
+    "mtime": 1781448128.0571485,
+    "ast_hash": "66e07d2c07827af6099ce81a442bd66e",
+    "semantic_hash": "66e07d2c07827af6099ce81a442bd66e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/ui-core.mjs": {
+    "mtime": 1781448128.0573754,
+    "ast_hash": "fd7d2bdbdab291957cffacfce95a19d1",
+    "semantic_hash": "fd7d2bdbdab291957cffacfce95a19d1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/live/vocabulary.mjs": {
+    "mtime": 1781448128.057483,
+    "ast_hash": "e7e5650764fceb61f2197769c7f5864e",
+    "semantic_hash": "e7e5650764fceb61f2197769c7f5864e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/modern-screenshot.umd.js": {
+    "mtime": 1781448128.0600228,
+    "ast_hash": "4fe5f9e490ab4f107afc707d7eafc819",
+    "semantic_hash": "4fe5f9e490ab4f107afc707d7eafc819"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/palette.mjs": {
+    "mtime": 1781448128.060127,
+    "ast_hash": "adbc82e1e9021b4948901b21563277a2",
+    "semantic_hash": "adbc82e1e9021b4948901b21563277a2"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/scripts/pin.mjs": {
+    "mtime": 1781448128.0603502,
+    "ast_hash": "867ca7fdded9987e84a128a3b4fb6bab",
+    "semantic_hash": "867ca7fdded9987e84a128a3b4fb6bab"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.impeccable/design.json": {
+    "mtime": 1781449814.7708323,
+    "ast_hash": "c3cbc69895039d08501cbc44ea803094",
+    "semantic_hash": "c3cbc69895039d08501cbc44ea803094"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.impeccable/live/config.json": {
+    "mtime": 1781448639.6040637,
+    "ast_hash": "db3f47aa64932b4c922bce752e0e6e0c",
+    "semantic_hash": "db3f47aa64932b4c922bce752e0e6e0c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.impeccable/live/sessions/3aae1f3f.snapshot.json": {
+    "mtime": 1781566143.0694363,
+    "ast_hash": "d52cb822bb2f5f95bfe819f2020585ec",
+    "semantic_hash": "d52cb822bb2f5f95bfe819f2020585ec"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/package.json": {
+    "mtime": 1781114487.2396007,
+    "ast_hash": "7d62976342816d8c61654bda53347989",
+    "semantic_hash": "7d62976342816d8c61654bda53347989"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/assets/index-CeovZX9O.js": {
+    "mtime": 1781115462.7957807,
+    "ast_hash": "a2397e0e95da1389c297a164256b2e33",
+    "semantic_hash": "a2397e0e95da1389c297a164256b2e33"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/assets/index.es-CURQOF4g.js": {
+    "mtime": 1781115462.7979023,
+    "ast_hash": "17358039040410b7e305123e27e2a991",
+    "semantic_hash": "17358039040410b7e305123e27e2a991"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/assets/pdf.worker.min-wgc6bjNh.mjs": {
+    "mtime": 1781115462.7934344,
+    "ast_hash": "1393e76d3d3c826e3702fd2bb9cf4033",
+    "semantic_hash": "1393e76d3d3c826e3702fd2bb9cf4033"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/assets/purify.es-C5KSVp3G.js": {
+    "mtime": 1781115462.7924035,
+    "ast_hash": "e364c0bf79eb3e46499f7622c4800be2",
+    "semantic_hash": "e364c0bf79eb3e46499f7622c4800be2"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/manifest.json": {
+    "mtime": 1781115462.8004162,
+    "ast_hash": "e6d55c0dea918f5a20276028ad57ab26",
+    "semantic_hash": "e6d55c0dea918f5a20276028ad57ab26"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/release/manifest.example.json": {
+    "mtime": 1778524121.2863555,
+    "ast_hash": "fdf434c4bbf2460279e21f4eca8c23ae",
+    "semantic_hash": "fdf434c4bbf2460279e21f4eca8c23ae"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/release/manifest.json": {
+    "mtime": 1781115507.371105,
+    "ast_hash": "2ad7e5604d4414dfaa542828430de0b6",
+    "semantic_hash": "2ad7e5604d4414dfaa542828430de0b6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/services/NotificationService.ts": {
+    "mtime": 1767702406.9894338,
+    "ast_hash": "97f051e7713e13fbc8782cc25c92a1d0",
+    "semantic_hash": "97f051e7713e13fbc8782cc25c92a1d0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/assistant/CreateAssistant.ts": {
+    "mtime": 1767295680.0106432,
+    "ast_hash": "5e45a248193472e0aca0815409b1c92c",
+    "semantic_hash": "5e45a248193472e0aca0815409b1c92c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/assistant/DeleteAssistant.ts": {
+    "mtime": 1767295680.0107846,
+    "ast_hash": "609439c8ada105af0a529ef4617afb17",
+    "semantic_hash": "609439c8ada105af0a529ef4617afb17"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/assistant/GetAssistants.ts": {
+    "mtime": 1767295680.0109348,
+    "ast_hash": "deb55d79a444111646a47706fa31d2b3",
+    "semantic_hash": "deb55d79a444111646a47706fa31d2b3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/assistant/UpdateAssistant.ts": {
+    "mtime": 1767295680.0110917,
+    "ast_hash": "86f71b3043c3dd230c31da71bfee53ad",
+    "semantic_hash": "86f71b3043c3dd230c31da71bfee53ad"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/auth/LoginAssistant.ts": {
+    "mtime": 1768149025.2069395,
+    "ast_hash": "956aafe85892ef1b76c180f2ffa08fdd",
+    "semantic_hash": "956aafe85892ef1b76c180f2ffa08fdd"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/auth/LoginDoctor.ts": {
+    "mtime": 1768149025.207315,
+    "ast_hash": "9224d9bfbdd7a57b04f3f2b6b0e7de83",
+    "semantic_hash": "9224d9bfbdd7a57b04f3f2b6b0e7de83"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/auth/RegisterDoctor.ts": {
+    "mtime": 1767295680.0117023,
+    "ast_hash": "006581314f7803e4031f8131a97c7f60",
+    "semantic_hash": "006581314f7803e4031f8131a97c7f60"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/expense/CreateExpense.ts": {
+    "mtime": 1767297728.7692778,
+    "ast_hash": "208b8f9b1f339abc53f3b1da3f1a8261",
+    "semantic_hash": "208b8f9b1f339abc53f3b1da3f1a8261"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/expense/DeleteExpense.ts": {
+    "mtime": 1767297728.7695508,
+    "ast_hash": "345208887a71bf8eea842e9f85974e62",
+    "semantic_hash": "345208887a71bf8eea842e9f85974e62"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/expense/GetExpenses.ts": {
+    "mtime": 1767297728.7698643,
+    "ast_hash": "e10a1d4dd12ab9bfab9c46ab6cef013e",
+    "semantic_hash": "e10a1d4dd12ab9bfab9c46ab6cef013e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/expense/UpdateExpense.ts": {
+    "mtime": 1767297728.7700212,
+    "ast_hash": "d981be106dc07a7b5f567a16bf75ce73",
+    "semantic_hash": "d981be106dc07a7b5f567a16bf75ce73"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/index.ts": {
+    "mtime": 1770235631.446104,
+    "ast_hash": "294ab4c022d00bd872800a7143f3373c",
+    "semantic_hash": "294ab4c022d00bd872800a7143f3373c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/lab-result/CreateLabResult.ts": {
+    "mtime": 1767644355.7705889,
+    "ast_hash": "25ec3fcdacd5f1921fe33983e19296b1",
+    "semantic_hash": "25ec3fcdacd5f1921fe33983e19296b1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/lab-result/DeleteLabResult.ts": {
+    "mtime": 1767644355.7707212,
+    "ast_hash": "86cdfcf41efbd9d7afd06ee798a5aa3a",
+    "semantic_hash": "86cdfcf41efbd9d7afd06ee798a5aa3a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/lab-result/GetLabResults.ts": {
+    "mtime": 1767644355.7708623,
+    "ast_hash": "c3c56714c2ccc1854e1eefedb8f1c376",
+    "semantic_hash": "c3c56714c2ccc1854e1eefedb8f1c376"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/lab-result/UpdateLabResult.ts": {
+    "mtime": 1767644355.7709997,
+    "ast_hash": "12a5113d05dcfd3fd9fcc1879ca9495c",
+    "semantic_hash": "12a5113d05dcfd3fd9fcc1879ca9495c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient-record/DeletePatientRecord.ts": {
+    "mtime": 1767295680.0119681,
+    "ast_hash": "810fc9fd47c1971842fbd111da8030d1",
+    "semantic_hash": "810fc9fd47c1971842fbd111da8030d1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient-record/GetPatientRecords.ts": {
+    "mtime": 1767295680.0122821,
+    "ast_hash": "1e6251f06fe0fc946192817e14cf4111",
+    "semantic_hash": "1e6251f06fe0fc946192817e14cf4111"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient-record/UploadPatientRecord.ts": {
+    "mtime": 1767295680.0124478,
+    "ast_hash": "32c1bfcfe67444eed045c9a40fe22a80",
+    "semantic_hash": "32c1bfcfe67444eed045c9a40fe22a80"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient/CreatePatient.ts": {
+    "mtime": 1768850669.8741617,
+    "ast_hash": "53dc5d64aa58b1172c033e7ca737c328",
+    "semantic_hash": "53dc5d64aa58b1172c033e7ca737c328"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient/DeletePatient.ts": {
+    "mtime": 1767295680.012773,
+    "ast_hash": "345a815d37fe53763c35ef1defa607f9",
+    "semantic_hash": "345a815d37fe53763c35ef1defa607f9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient/GetPatientById.ts": {
+    "mtime": 1767295680.0129144,
+    "ast_hash": "e73189ff7edb6c99201b4ca131d779d6",
+    "semantic_hash": "e73189ff7edb6c99201b4ca131d779d6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient/GetPatients.ts": {
+    "mtime": 1767295680.013047,
+    "ast_hash": "35e80feb02edba96cd86eb83ab01e0df",
+    "semantic_hash": "35e80feb02edba96cd86eb83ab01e0df"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient/SearchPatients.ts": {
+    "mtime": 1767295680.0132747,
+    "ast_hash": "3db1542a3e2d7537090b9e92f3c2920f",
+    "semantic_hash": "3db1542a3e2d7537090b9e92f3c2920f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/patient/UpdatePatient.ts": {
+    "mtime": 1767702406.9896243,
+    "ast_hash": "2f75c09cdfa8f95c1edd571aee94afc0",
+    "semantic_hash": "2f75c09cdfa8f95c1edd571aee94afc0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/previous-investigation/DeletePreviousInvestigation.ts": {
+    "mtime": 1770235582.8572896,
+    "ast_hash": "f73a7c8cc24216b24e290728a69b3b2a",
+    "semantic_hash": "f73a7c8cc24216b24e290728a69b3b2a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/previous-investigation/GetPreviousInvestigations.ts": {
+    "mtime": 1770235581.8468754,
+    "ast_hash": "beaee42589e6bc7e6abacf5303ce28d3",
+    "semantic_hash": "beaee42589e6bc7e6abacf5303ce28d3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/previous-investigation/UploadPreviousInvestigation.ts": {
+    "mtime": 1770235580.8363442,
+    "ast_hash": "f8846417240057a2db968b1f686d8ae8",
+    "semantic_hash": "f8846417240057a2db968b1f686d8ae8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/visit/CreateVisit.ts": {
+    "mtime": 1767702406.989821,
+    "ast_hash": "744c4828c57cf3c13701935c8377a7a7",
+    "semantic_hash": "744c4828c57cf3c13701935c8377a7a7"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/visit/GetVisitById.ts": {
+    "mtime": 1767295680.0138779,
+    "ast_hash": "e278ab73a3fb3308e6ae591917e13803",
+    "semantic_hash": "e278ab73a3fb3308e6ae591917e13803"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/application/use-cases/visit/GetVisitsByPatient.ts": {
+    "mtime": 1767295680.0140293,
+    "ast_hash": "e78abc117af608ed34d536cf6c63ff21",
+    "semantic_hash": "e78abc117af608ed34d536cf6c63ff21"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Assistant.ts": {
+    "mtime": 1767295680.0142145,
+    "ast_hash": "c6058a40ed6fb8fc6c3c95b3ad766a74",
+    "semantic_hash": "c6058a40ed6fb8fc6c3c95b3ad766a74"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Doctor.ts": {
+    "mtime": 1767295680.0143583,
+    "ast_hash": "8b3a1adf1fb8fa5316d4c066aea44e88",
+    "semantic_hash": "8b3a1adf1fb8fa5316d4c066aea44e88"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Expense.ts": {
+    "mtime": 1767297728.7702012,
+    "ast_hash": "cd51ffbc22727065281344c419fc115f",
+    "semantic_hash": "cd51ffbc22727065281344c419fc115f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/LabResult.ts": {
+    "mtime": 1767644355.7711468,
+    "ast_hash": "c18a1fd9fc12564e65499424bd8a510c",
+    "semantic_hash": "c18a1fd9fc12564e65499424bd8a510c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Notification.ts": {
+    "mtime": 1767702406.9899755,
+    "ast_hash": "210281b19cf5a920847586926b2bb5b2",
+    "semantic_hash": "210281b19cf5a920847586926b2bb5b2"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Patient.ts": {
+    "mtime": 1768906612.5481384,
+    "ast_hash": "a98d98773c88e37d68a4e487c9631a4f",
+    "semantic_hash": "a98d98773c88e37d68a4e487c9631a4f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/PatientRecord.ts": {
+    "mtime": 1767295680.014625,
+    "ast_hash": "08e7b1aa39a9c5da1dc3f398a607ada5",
+    "semantic_hash": "08e7b1aa39a9c5da1dc3f398a607ada5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/PreviousInvestigation.ts": {
+    "mtime": 1770235553.08209,
+    "ast_hash": "a1bb130e1f3c9c2cea427662077679d5",
+    "semantic_hash": "a1bb130e1f3c9c2cea427662077679d5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/QueueEntry.ts": {
+    "mtime": 1778524085.1133528,
+    "ast_hash": "f312cef7f94136ea89a6d466b966b3bd",
+    "semantic_hash": "f312cef7f94136ea89a6d466b966b3bd"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Settings.ts": {
+    "mtime": 1778607833.5882473,
+    "ast_hash": "c63eefc11cae4a2d5e0fce235dd3135f",
+    "semantic_hash": "c63eefc11cae4a2d5e0fce235dd3135f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/Visit.ts": {
+    "mtime": 1778524121.2124648,
+    "ast_hash": "04eb821e65cebe458fd58d386750721b",
+    "semantic_hash": "04eb821e65cebe458fd58d386750721b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/VisitAttachment.ts": {
+    "mtime": 1768841206.7068932,
+    "ast_hash": "10ee4c1d3700bf0f06b44263970d8e06",
+    "semantic_hash": "10ee4c1d3700bf0f06b44263970d8e06"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/entities/index.ts": {
+    "mtime": 1770235615.1022935,
+    "ast_hash": "99bf744009dd8b45e98ea43bc0580aee",
+    "semantic_hash": "99bf744009dd8b45e98ea43bc0580aee"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IAssistantRepository.ts": {
+    "mtime": 1767295680.0150309,
+    "ast_hash": "ebc5a199276355e7e68569a8af221929",
+    "semantic_hash": "ebc5a199276355e7e68569a8af221929"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IDoctorRepository.ts": {
+    "mtime": 1767295680.015242,
+    "ast_hash": "2b2e05830aedd6fdf28af190b91eeb06",
+    "semantic_hash": "2b2e05830aedd6fdf28af190b91eeb06"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IExpenseRepository.ts": {
+    "mtime": 1767297728.7706695,
+    "ast_hash": "6f3a39db5dfae5eecb95a4d51c3006d3",
+    "semantic_hash": "6f3a39db5dfae5eecb95a4d51c3006d3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/ILabResultRepository.ts": {
+    "mtime": 1767644355.77148,
+    "ast_hash": "7e14a1cd3071b76da2b1e2ea2864c220",
+    "semantic_hash": "7e14a1cd3071b76da2b1e2ea2864c220"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/INotificationRepository.ts": {
+    "mtime": 1767702406.9901233,
+    "ast_hash": "807775552fc830073d864d0ea56722b4",
+    "semantic_hash": "807775552fc830073d864d0ea56722b4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IPatientRecordRepository.ts": {
+    "mtime": 1767295680.0153801,
+    "ast_hash": "54e43bddc48a405781f1a8f3328b2096",
+    "semantic_hash": "54e43bddc48a405781f1a8f3328b2096"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IPatientRepository.ts": {
+    "mtime": 1778524120.9452407,
+    "ast_hash": "c04e58a5138334d05205d23fdcd52335",
+    "semantic_hash": "c04e58a5138334d05205d23fdcd52335"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IPreviousInvestigationRepository.ts": {
+    "mtime": 1770235554.0970092,
+    "ast_hash": "4ab56a616cac9bb200c19736515f3b53",
+    "semantic_hash": "4ab56a616cac9bb200c19736515f3b53"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IQueueRepository.ts": {
+    "mtime": 1778524085.1137896,
+    "ast_hash": "bea2406c08148b9ec50e2f0283b2f323",
+    "semantic_hash": "bea2406c08148b9ec50e2f0283b2f323"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/IVisitRepository.ts": {
+    "mtime": 1779117375.7434304,
+    "ast_hash": "d774a91ff927e27febe564871602f7c6",
+    "semantic_hash": "d774a91ff927e27febe564871602f7c6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/domain/repositories/index.ts": {
+    "mtime": 1770235616.1235385,
+    "ast_hash": "f7d9b48cc05653cfbe6f914bcc325ecd",
+    "semantic_hash": "f7d9b48cc05653cfbe6f914bcc325ecd"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/index.ts": {
+    "mtime": 1781112151.1338198,
+    "ast_hash": "b27d6a79c1c8d4d04bc3e6d405d1962b",
+    "semantic_hash": "b27d6a79c1c8d4d04bc3e6d405d1962b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/cache/MemoryCache.ts": {
+    "mtime": 1779117492.4695656,
+    "ast_hash": "81b7c548e7be2df4fe7cc230ca91bdef",
+    "semantic_hash": "81b7c548e7be2df4fe7cc230ca91bdef"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/config.ts": {
+    "mtime": 1781111928.528503,
+    "ast_hash": "877315a40e2c0bf3a8bc20bcd73113bc",
+    "semantic_hash": "877315a40e2c0bf3a8bc20bcd73113bc"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/001_create_doctors_table.sql": {
+    "mtime": 1767295680.0161695,
+    "ast_hash": "f55f5280be7191a2d96c7152ebe3fde4",
+    "semantic_hash": "f55f5280be7191a2d96c7152ebe3fde4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/002_create_patients_table.sql": {
+    "mtime": 1767295680.0163033,
+    "ast_hash": "b13e44414a09bf06309c8554885a996a",
+    "semantic_hash": "b13e44414a09bf06309c8554885a996a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/003_create_visits_table.sql": {
+    "mtime": 1767295680.0164194,
+    "ast_hash": "9c1bb5c345bce9076f13a20bd82ce6c2",
+    "semantic_hash": "9c1bb5c345bce9076f13a20bd82ce6c2"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/004_create_prescriptions_table.sql": {
+    "mtime": 1767295680.0165586,
+    "ast_hash": "c2198e5bf4306409ce414117154adb11",
+    "semantic_hash": "c2198e5bf4306409ce414117154adb11"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/005_create_patient_records_table.sql": {
+    "mtime": 1767295680.0166779,
+    "ast_hash": "31eb856fdf0215b99c0922a610fe530d",
+    "semantic_hash": "31eb856fdf0215b99c0922a610fe530d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/006_create_assistants_table.sql": {
+    "mtime": 1767295680.016801,
+    "ast_hash": "83f030fc36bdda9c3c6579b8eafd14ad",
+    "semantic_hash": "83f030fc36bdda9c3c6579b8eafd14ad"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/007_add_drawing_to_visits.sql": {
+    "mtime": 1767295680.0169249,
+    "ast_hash": "e4027bd542ce3c1e7f4653b74c5dc1c9",
+    "semantic_hash": "e4027bd542ce3c1e7f4653b74c5dc1c9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/008_create_expenses_table.sql": {
+    "mtime": 1767297728.77116,
+    "ast_hash": "3cce63fb3b175966a097a248ccb3e054",
+    "semantic_hash": "3cce63fb3b175966a097a248ccb3e054"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/009_add_current_patient_to_doctors.sql": {
+    "mtime": 1767644355.7720838,
+    "ast_hash": "14d451fcfcec8e06ca077895e0c3fe4e",
+    "semantic_hash": "14d451fcfcec8e06ca077895e0c3fe4e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/009_create_lab_results_table.sql": {
+    "mtime": 1767644355.7722683,
+    "ast_hash": "cc27a959262e96ebc4895956ace7f780",
+    "semantic_hash": "cc27a959262e96ebc4895956ace7f780"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/010_create_notifications_table.sql": {
+    "mtime": 1767702406.9905436,
+    "ast_hash": "c7ccaf2454748f6cfd8970f0e7cc277d",
+    "semantic_hash": "c7ccaf2454748f6cfd8970f0e7cc277d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/011_add_medical_history_to_visits.sql": {
+    "mtime": 1768746850.7128518,
+    "ast_hash": "70b2f26264db6af80a6f44be7254847f",
+    "semantic_hash": "70b2f26264db6af80a6f44be7254847f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/database/migrations/012_create_visit_attachments_table.sql": {
+    "mtime": 1768746872.069682,
+    "ast_hash": "73c0c579b16752cf3c3e77ee4228bd08",
+    "semantic_hash": "73c0c579b16752cf3c3e77ee4228bd08"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/AssistantRepository.ts": {
+    "mtime": 1768385708.2810793,
+    "ast_hash": "8d44955b00e5e984490d79aecb64884c",
+    "semantic_hash": "8d44955b00e5e984490d79aecb64884c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/DoctorRepository.ts": {
+    "mtime": 1768385708.2813017,
+    "ast_hash": "4eccab52c8e4ff70934873d7538e2b95",
+    "semantic_hash": "4eccab52c8e4ff70934873d7538e2b95"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/ExpenseRepository.ts": {
+    "mtime": 1768385708.281535,
+    "ast_hash": "197940bd817e8326cc56fb8aabac9c82",
+    "semantic_hash": "197940bd817e8326cc56fb8aabac9c82"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/LabResultRepository.ts": {
+    "mtime": 1768385708.2818334,
+    "ast_hash": "8faf152a38a4eb145c27ff85b47bffee",
+    "semantic_hash": "8faf152a38a4eb145c27ff85b47bffee"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/NotificationRepository.ts": {
+    "mtime": 1768385708.2822104,
+    "ast_hash": "ede7cffa0d0a71e94e39a58587186365",
+    "semantic_hash": "ede7cffa0d0a71e94e39a58587186365"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/PatientRecordRepository.ts": {
+    "mtime": 1781112067.0863638,
+    "ast_hash": "5c238cba6715b49badab79b0e36797e9",
+    "semantic_hash": "5c238cba6715b49badab79b0e36797e9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/PatientRepository.ts": {
+    "mtime": 1778524120.9461792,
+    "ast_hash": "08c1cf5e897814389f1d796c70ba7f07",
+    "semantic_hash": "08c1cf5e897814389f1d796c70ba7f07"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/PreviousInvestigationRepository.ts": {
+    "mtime": 1781112083.2908611,
+    "ast_hash": "1b4c471314f996fd61f62a07865ec66f",
+    "semantic_hash": "1b4c471314f996fd61f62a07865ec66f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/QueueRepository.ts": {
+    "mtime": 1778524085.1145399,
+    "ast_hash": "0e4fcfbd397d7170b4c26788f1e4cbc0",
+    "semantic_hash": "0e4fcfbd397d7170b4c26788f1e4cbc0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/SettingsRepository.ts": {
+    "mtime": 1778607847.0903277,
+    "ast_hash": "950039c570722bd9f3f0792b11fa92c5",
+    "semantic_hash": "950039c570722bd9f3f0792b11fa92c5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/VisitAttachmentRepository.ts": {
+    "mtime": 1781112052.333095,
+    "ast_hash": "7b0948552b1f1a4942fcd2068689769b",
+    "semantic_hash": "7b0948552b1f1a4942fcd2068689769b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/VisitRepository.ts": {
+    "mtime": 1781112126.4089787,
+    "ast_hash": "11ff2d2bf821343582f5337a36a0f0ac",
+    "semantic_hash": "11ff2d2bf821343582f5337a36a0f0ac"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/repositories/index.ts": {
+    "mtime": 1770235630.4304585,
+    "ast_hash": "9adad16056a043c9fbee89397ea5edf9",
+    "semantic_hash": "9adad16056a043c9fbee89397ea5edf9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/socket/socketServer.ts": {
+    "mtime": 1768385708.2831366,
+    "ast_hash": "9a367305bd63070f656f08fba490d3ae",
+    "semantic_hash": "9a367305bd63070f656f08fba490d3ae"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/infrastructure/updater/Updater.ts": {
+    "mtime": 1780516277.6614926,
+    "ast_hash": "b6e1b65453bbd93cbff1e2bf1c0dab2b",
+    "semantic_hash": "b6e1b65453bbd93cbff1e2bf1c0dab2b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/AnalyticsController.ts": {
+    "mtime": 1770237676.468759,
+    "ast_hash": "6e56a24ce671edb1412e250da60b3f7a",
+    "semantic_hash": "6e56a24ce671edb1412e250da60b3f7a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/AssistantController.ts": {
+    "mtime": 1767295680.0182245,
+    "ast_hash": "d7cc332d8fdf776f6a4ab5f4e62a5c48",
+    "semantic_hash": "d7cc332d8fdf776f6a4ab5f4e62a5c48"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/AuthController.ts": {
+    "mtime": 1767295680.018366,
+    "ast_hash": "5fde7b07d5bfe37b46a50a258f01e45c",
+    "semantic_hash": "5fde7b07d5bfe37b46a50a258f01e45c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/CurrentPatientController.ts": {
+    "mtime": 1778524120.9465628,
+    "ast_hash": "e855c437da6f9b67c6cc53175c6a6565",
+    "semantic_hash": "e855c437da6f9b67c6cc53175c6a6565"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/ExpenseController.ts": {
+    "mtime": 1767297728.772044,
+    "ast_hash": "1c3842f733728b05d7f336e0e5b4efb8",
+    "semantic_hash": "1c3842f733728b05d7f336e0e5b4efb8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/LabResultController.ts": {
+    "mtime": 1767644355.773189,
+    "ast_hash": "639abcd8a1b79e869463a57ec52c9ec3",
+    "semantic_hash": "639abcd8a1b79e869463a57ec52c9ec3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/NotificationController.ts": {
+    "mtime": 1767702406.9913697,
+    "ast_hash": "7bfcad9fb3403e73770b92071c06e313",
+    "semantic_hash": "7bfcad9fb3403e73770b92071c06e313"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/PatientController.ts": {
+    "mtime": 1778524120.9471157,
+    "ast_hash": "fa019fab48a096ebadbb400d618bc1e3",
+    "semantic_hash": "fa019fab48a096ebadbb400d618bc1e3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/PatientRecordController.ts": {
+    "mtime": 1768149025.2095127,
+    "ast_hash": "1fffe9bc888cf4a472be3c4810194256",
+    "semantic_hash": "1fffe9bc888cf4a472be3c4810194256"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/PreviousInvestigationController.ts": {
+    "mtime": 1770235600.3192668,
+    "ast_hash": "dfcf7ca8efcb2f3a2b1f0ba52143603b",
+    "semantic_hash": "dfcf7ca8efcb2f3a2b1f0ba52143603b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/QueueController.ts": {
+    "mtime": 1781017292.3844895,
+    "ast_hash": "69e1a775cb3f0d5c29136cbba94fc2ed",
+    "semantic_hash": "69e1a775cb3f0d5c29136cbba94fc2ed"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/SettingsController.ts": {
+    "mtime": 1778607871.0242178,
+    "ast_hash": "33086f7ba4604ce5f2e31298b49e5f77",
+    "semantic_hash": "33086f7ba4604ce5f2e31298b49e5f77"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/UpdateController.ts": {
+    "mtime": 1778524121.3960705,
+    "ast_hash": "44b7eb5faa241b1ddc50cb4e61f4a49f",
+    "semantic_hash": "44b7eb5faa241b1ddc50cb4e61f4a49f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/VisitAttachmentController.ts": {
+    "mtime": 1768841257.63328,
+    "ast_hash": "95260e3cf4557fb542add4f2178b2f4b",
+    "semantic_hash": "95260e3cf4557fb542add4f2178b2f4b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/controllers/VisitController.ts": {
+    "mtime": 1779117681.7901032,
+    "ast_hash": "ca755326e8eb0129fce2c70cf2da1883",
+    "semantic_hash": "ca755326e8eb0129fce2c70cf2da1883"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/middleware/authMiddleware.ts": {
+    "mtime": 1780566308.3097067,
+    "ast_hash": "311948da5b6356a499d5278ab0995f13",
+    "semantic_hash": "311948da5b6356a499d5278ab0995f13"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/middleware/errorHandler.ts": {
+    "mtime": 1767295680.019185,
+    "ast_hash": "e3eb350afca35d643daf2a263f884d63",
+    "semantic_hash": "e3eb350afca35d643daf2a263f884d63"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/analyticsRoutes.ts": {
+    "mtime": 1768846473.0649433,
+    "ast_hash": "db25f2a3fdde008c17ec68da042e0898",
+    "semantic_hash": "db25f2a3fdde008c17ec68da042e0898"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/assistantRoutes.ts": {
+    "mtime": 1767295680.0193782,
+    "ast_hash": "5f015ba32664ba7c3cd8fb187c9f4fe9",
+    "semantic_hash": "5f015ba32664ba7c3cd8fb187c9f4fe9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/authRoutes.ts": {
+    "mtime": 1767295680.0195122,
+    "ast_hash": "ad9343be86bdfb6941cd50f961498a89",
+    "semantic_hash": "ad9343be86bdfb6941cd50f961498a89"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/currentPatientRoutes.ts": {
+    "mtime": 1767644355.773388,
+    "ast_hash": "6f80ea76002422ff2a728a648e090ddb",
+    "semantic_hash": "6f80ea76002422ff2a728a648e090ddb"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/expenseRoutes.ts": {
+    "mtime": 1767297728.7722626,
+    "ast_hash": "f6cf5a91fdea27526587e34c13930073",
+    "semantic_hash": "f6cf5a91fdea27526587e34c13930073"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/index.ts": {
+    "mtime": 1778607824.368871,
+    "ast_hash": "f62440e10374121603463e24c71289fb",
+    "semantic_hash": "f62440e10374121603463e24c71289fb"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/labResultRoutes.ts": {
+    "mtime": 1767644355.7738128,
+    "ast_hash": "d21d35dd00f22cc228dec152bf1c9e1e",
+    "semantic_hash": "d21d35dd00f22cc228dec152bf1c9e1e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/notificationRoutes.ts": {
+    "mtime": 1767702406.992525,
+    "ast_hash": "bebd30449ce5badd99ea492b33cd6ea4",
+    "semantic_hash": "bebd30449ce5badd99ea492b33cd6ea4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/patientRecordRoutes.ts": {
+    "mtime": 1768149025.2101252,
+    "ast_hash": "65ee8c9d039a5efdb9aae695f762dff6",
+    "semantic_hash": "65ee8c9d039a5efdb9aae695f762dff6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/patientRoutes.ts": {
+    "mtime": 1767295680.019996,
+    "ast_hash": "339068faa05cc22ef4fd2cb44d9c548e",
+    "semantic_hash": "339068faa05cc22ef4fd2cb44d9c548e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/previousInvestigationRoutes.ts": {
+    "mtime": 1770235601.3322616,
+    "ast_hash": "4f71f54be53842d0f18dbc430e5ad54b",
+    "semantic_hash": "4f71f54be53842d0f18dbc430e5ad54b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/queueRoutes.ts": {
+    "mtime": 1778524085.1153054,
+    "ast_hash": "7a4be6d43e25b9126830e581f6550c0c",
+    "semantic_hash": "7a4be6d43e25b9126830e581f6550c0c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/settingsRoutes.ts": {
+    "mtime": 1768846472.03245,
+    "ast_hash": "57ab35c4deb4592010d0aa6ef6752ed2",
+    "semantic_hash": "57ab35c4deb4592010d0aa6ef6752ed2"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/updateRoutes.ts": {
+    "mtime": 1778524121.396896,
+    "ast_hash": "8a280c057591a421a6ae59c08f6c161d",
+    "semantic_hash": "8a280c057591a421a6ae59c08f6c161d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/presentation/routes/visitRoutes.ts": {
+    "mtime": 1778775052.6497836,
+    "ast_hash": "dca29e706effdded7a8b7a720f4f292e",
+    "semantic_hash": "dca29e706effdded7a8b7a720f4f292e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/types/sql.js.d.ts": {
+    "mtime": 1768385708.2838902,
+    "ast_hash": "2d5a5b023afdcf8d9c559d2f17e17ae8",
+    "semantic_hash": "2d5a5b023afdcf8d9c559d2f17e17ae8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/utils/license.ts": {
+    "mtime": 1770239360.2626705,
+    "ast_hash": "63fc158129820b4c379132d0226e0c10",
+    "semantic_hash": "63fc158129820b4c379132d0226e0c10"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/src/utils/version.ts": {
+    "mtime": 1781115466.2634463,
+    "ast_hash": "d1da57d63def3b90273a0a168f5a8010",
+    "semantic_hash": "d1da57d63def3b90273a0a168f5a8010"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/tools/generate-license.ts": {
+    "mtime": 1770239384.2667153,
+    "ast_hash": "9e1a0636c4c7d1af1675618578851fbb",
+    "semantic_hash": "9e1a0636c4c7d1af1675618578851fbb"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/tsconfig.json": {
+    "mtime": 1767295680.0203102,
+    "ast_hash": "36ddc665f0e2b6df0e91b32348b5423c",
+    "semantic_hash": "36ddc665f0e2b6df0e91b32348b5423c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/build-exe.sh": {
+    "mtime": 1768385708.284246,
+    "ast_hash": "51ba7f49e0d4c598d894d2555e48589d",
+    "semantic_hash": "51ba7f49e0d4c598d894d2555e48589d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/components.json": {
+    "mtime": 1766929864.4865298,
+    "ast_hash": "a547944ace00dc5d5373aaca70a40bc4",
+    "semantic_hash": "a547944ace00dc5d5373aaca70a40bc4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/eslint.config.js": {
+    "mtime": 1766929864.4866111,
+    "ast_hash": "31c0881fdd8500aa4d0aa963079713ae",
+    "semantic_hash": "31c0881fdd8500aa4d0aa963079713ae"
+  },
+  "/Users/ahmedelbltagy/Roashetta/package.json": {
+    "mtime": 1778524085.1167963,
+    "ast_hash": "9a0ff66cd4ec9cf232d73f81b25d51a3",
+    "semantic_hash": "9a0ff66cd4ec9cf232d73f81b25d51a3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/postcss.config.js": {
+    "mtime": 1766929864.4871647,
+    "ast_hash": "c735540bb63936a123bc867d950c9f69",
+    "semantic_hash": "c735540bb63936a123bc867d950c9f69"
+  },
+  "/Users/ahmedelbltagy/Roashetta/public/manifest.json": {
+    "mtime": 1767295680.0220072,
+    "ast_hash": "e6d55c0dea918f5a20276028ad57ab26",
+    "semantic_hash": "e6d55c0dea918f5a20276028ad57ab26"
+  },
+  "/Users/ahmedelbltagy/Roashetta/release.sh": {
+    "mtime": 1778524121.398572,
+    "ast_hash": "af275d9b312d2dfe026af9b9676bd95b",
+    "semantic_hash": "af275d9b312d2dfe026af9b9676bd95b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/App.tsx": {
+    "mtime": 1778775321.7206192,
+    "ast_hash": "70a8debf71a45a0ebdff06b685b7e717",
+    "semantic_hash": "70a8debf71a45a0ebdff06b685b7e717"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/NavLink.tsx": {
+    "mtime": 1766929864.4877687,
+    "ast_hash": "8f7c178b4776787e58e1011855ca28f6",
+    "semantic_hash": "8f7c178b4776787e58e1011855ca28f6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/dashboard/StatCard.tsx": {
+    "mtime": 1766929864.48789,
+    "ast_hash": "4b411952736d770bb3f9797205737213",
+    "semantic_hash": "4b411952736d770bb3f9797205737213"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/layout/DashboardLayout.tsx": {
+    "mtime": 1781566118.5894973,
+    "ast_hash": "bae1fc40ab06d5e3ed6a0ca9b0b4bd8a",
+    "semantic_hash": "bae1fc40ab06d5e3ed6a0ca9b0b4bd8a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/notifications/NotificationBell.tsx": {
+    "mtime": 1767702406.9951162,
+    "ast_hash": "55f1a3c3bb693c3688c7cd6adfffd8a9",
+    "semantic_hash": "55f1a3c3bb693c3688c7cd6adfffd8a9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/notifications/NotificationItem.tsx": {
+    "mtime": 1767702406.9952626,
+    "ast_hash": "8fe04bd0137f273b52d9c0be432f5fb9",
+    "semantic_hash": "8fe04bd0137f273b52d9c0be432f5fb9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/notifications/NotificationList.tsx": {
+    "mtime": 1767702406.9954088,
+    "ast_hash": "d12ca321f0be26de240d582368b665d2",
+    "semantic_hash": "d12ca321f0be26de240d582368b665d2"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/patients/PatientCard.tsx": {
+    "mtime": 1768907019.3103523,
+    "ast_hash": "a619f1ca8cad33a4ce7c02e810d038b9",
+    "semantic_hash": "a619f1ca8cad33a4ce7c02e810d038b9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/settings/UpdatesPanel.tsx": {
+    "mtime": 1780851740.8133674,
+    "ast_hash": "02f23f8e7e2ddd087115e5c1cf0cab13",
+    "semantic_hash": "02f23f8e7e2ddd087115e5c1cf0cab13"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/accordion-section.tsx": {
+    "mtime": 1768747238.405472,
+    "ast_hash": "468169ffedeb26a63690474306473595",
+    "semantic_hash": "468169ffedeb26a63690474306473595"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/accordion.tsx": {
+    "mtime": 1766929864.4884832,
+    "ast_hash": "f9ebb6ee913b44e5f3e06fe1d9679784",
+    "semantic_hash": "f9ebb6ee913b44e5f3e06fe1d9679784"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/alert-dialog.tsx": {
+    "mtime": 1766929864.4885693,
+    "ast_hash": "2ee6c5e5e070315114319bc060d17a52",
+    "semantic_hash": "2ee6c5e5e070315114319bc060d17a52"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/alert.tsx": {
+    "mtime": 1766929864.488629,
+    "ast_hash": "354d0206f924d48bcebbb023c3940a6b",
+    "semantic_hash": "354d0206f924d48bcebbb023c3940a6b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/aspect-ratio.tsx": {
+    "mtime": 1766929864.488685,
+    "ast_hash": "c5c364545e1b25a94e9e752cd67ad048",
+    "semantic_hash": "c5c364545e1b25a94e9e752cd67ad048"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/avatar.tsx": {
+    "mtime": 1766929864.488746,
+    "ast_hash": "53921dca0903c74cd72fada89388d9f8",
+    "semantic_hash": "53921dca0903c74cd72fada89388d9f8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/badge.tsx": {
+    "mtime": 1766929864.4888134,
+    "ast_hash": "8db4e6d330f88f4041f81e7cde43782b",
+    "semantic_hash": "8db4e6d330f88f4041f81e7cde43782b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/breadcrumb.tsx": {
+    "mtime": 1766929864.4888835,
+    "ast_hash": "c200fc41e9b214ebb6ccd19a300c42c5",
+    "semantic_hash": "c200fc41e9b214ebb6ccd19a300c42c5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/button.tsx": {
+    "mtime": 1766929864.4889536,
+    "ast_hash": "b59f5a3c54b63cf3ea4eb2523151f617",
+    "semantic_hash": "b59f5a3c54b63cf3ea4eb2523151f617"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/calendar.tsx": {
+    "mtime": 1766929864.4890316,
+    "ast_hash": "1da7a387f28cdb11722da319c0295a6c",
+    "semantic_hash": "1da7a387f28cdb11722da319c0295a6c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/card.tsx": {
+    "mtime": 1766929864.4891052,
+    "ast_hash": "202402023747c80d975f48b906e6eb1b",
+    "semantic_hash": "202402023747c80d975f48b906e6eb1b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/carousel.tsx": {
+    "mtime": 1766929864.4891953,
+    "ast_hash": "63a7442a3088b58113c8a8cfc1defe26",
+    "semantic_hash": "63a7442a3088b58113c8a8cfc1defe26"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/chart.tsx": {
+    "mtime": 1766929864.4893155,
+    "ast_hash": "29cfd7470f3197deccd58b2b4f00fbae",
+    "semantic_hash": "29cfd7470f3197deccd58b2b4f00fbae"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/checkbox.tsx": {
+    "mtime": 1766929864.4893904,
+    "ast_hash": "cb12d2f3410761f7a678add95c90ac5d",
+    "semantic_hash": "cb12d2f3410761f7a678add95c90ac5d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/collapsible.tsx": {
+    "mtime": 1766929864.4894664,
+    "ast_hash": "934b00582dae08af749fb55469081de6",
+    "semantic_hash": "934b00582dae08af749fb55469081de6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/command.tsx": {
+    "mtime": 1766929864.4895744,
+    "ast_hash": "e911f182b4136a63c601c3fc48b2e9c7",
+    "semantic_hash": "e911f182b4136a63c601c3fc48b2e9c7"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/context-menu.tsx": {
+    "mtime": 1766929864.4896846,
+    "ast_hash": "9b8e8efdf0456cd542e32d341b071cac",
+    "semantic_hash": "9b8e8efdf0456cd542e32d341b071cac"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/dialog.tsx": {
+    "mtime": 1766929864.4897668,
+    "ast_hash": "fc3a9626ba52435552c93ac3a74374ec",
+    "semantic_hash": "fc3a9626ba52435552c93ac3a74374ec"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/drawer.tsx": {
+    "mtime": 1766929864.4898355,
+    "ast_hash": "05e2b536fe11649e9b4c6e73678e32a6",
+    "semantic_hash": "05e2b536fe11649e9b4c6e73678e32a6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/drawing-canvas.tsx": {
+    "mtime": 1778524085.11815,
+    "ast_hash": "e41870a45dbbcdff3fb47aa1eafd84d5",
+    "semantic_hash": "e41870a45dbbcdff3fb47aa1eafd84d5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/dropdown-menu.tsx": {
+    "mtime": 1766929864.4899466,
+    "ast_hash": "f308eb98a2e21bf8bd1e30dbcb741dc0",
+    "semantic_hash": "f308eb98a2e21bf8bd1e30dbcb741dc0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/file-viewer-modal.tsx": {
+    "mtime": 1779115980.9800391,
+    "ast_hash": "3504af0987b6d17fa8ebaddab1ead500",
+    "semantic_hash": "3504af0987b6d17fa8ebaddab1ead500"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/form.tsx": {
+    "mtime": 1766929864.490038,
+    "ast_hash": "4bb820d59aad3ee5bc78097596298ace",
+    "semantic_hash": "4bb820d59aad3ee5bc78097596298ace"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/hover-card.tsx": {
+    "mtime": 1766929864.49012,
+    "ast_hash": "f77f80ed64ff8f3549e5d7e9d837e08e",
+    "semantic_hash": "f77f80ed64ff8f3549e5d7e9d837e08e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/input-otp.tsx": {
+    "mtime": 1766929864.4901967,
+    "ast_hash": "3fb5994635434d5168bee869689fc2aa",
+    "semantic_hash": "3fb5994635434d5168bee869689fc2aa"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/input.tsx": {
+    "mtime": 1766929864.4902635,
+    "ast_hash": "b8279d768c2a1ce78a05a369a0502877",
+    "semantic_hash": "b8279d768c2a1ce78a05a369a0502877"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/label.tsx": {
+    "mtime": 1766929864.4903305,
+    "ast_hash": "cd2b2255bbe519cb0865dfeaa6615797",
+    "semantic_hash": "cd2b2255bbe519cb0865dfeaa6615797"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/menubar.tsx": {
+    "mtime": 1766929864.4904318,
+    "ast_hash": "163c3fa58a2b4ea2caa00166f4d862c7",
+    "semantic_hash": "163c3fa58a2b4ea2caa00166f4d862c7"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/navigation-menu.tsx": {
+    "mtime": 1766929864.490525,
+    "ast_hash": "77e94b0c299d10c3763d2755bf556916",
+    "semantic_hash": "77e94b0c299d10c3763d2755bf556916"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/pagination.tsx": {
+    "mtime": 1766929864.490593,
+    "ast_hash": "a3ced9f9b19826b467d788b1bf01746f",
+    "semantic_hash": "a3ced9f9b19826b467d788b1bf01746f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/popover.tsx": {
+    "mtime": 1766929864.4906752,
+    "ast_hash": "c056d22288a642b756b77c7691ad4532",
+    "semantic_hash": "c056d22288a642b756b77c7691ad4532"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/progress.tsx": {
+    "mtime": 1766929864.4907491,
+    "ast_hash": "9a8b05beca19e008a562a10e489f5968",
+    "semantic_hash": "9a8b05beca19e008a562a10e489f5968"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/radio-group.tsx": {
+    "mtime": 1766929864.49082,
+    "ast_hash": "3773798b5b2f334a5db0dc9c8d06f1b8",
+    "semantic_hash": "3773798b5b2f334a5db0dc9c8d06f1b8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/resizable.tsx": {
+    "mtime": 1766929864.490896,
+    "ast_hash": "ec681e92cbe705b5571ded11b5227a2a",
+    "semantic_hash": "ec681e92cbe705b5571ded11b5227a2a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/scroll-area.tsx": {
+    "mtime": 1766929864.49097,
+    "ast_hash": "cfbc224001af0e6daba676de225a2a47",
+    "semantic_hash": "cfbc224001af0e6daba676de225a2a47"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/select.tsx": {
+    "mtime": 1766929864.4910688,
+    "ast_hash": "25de64d0126624cbd8efa50cfb64bd21",
+    "semantic_hash": "25de64d0126624cbd8efa50cfb64bd21"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/separator.tsx": {
+    "mtime": 1766929864.4911501,
+    "ast_hash": "ed1101f185e9dc801712593e3330a75d",
+    "semantic_hash": "ed1101f185e9dc801712593e3330a75d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/sheet.tsx": {
+    "mtime": 1766929864.491244,
+    "ast_hash": "3660be09e2e40467a22fd46b354c1b50",
+    "semantic_hash": "3660be09e2e40467a22fd46b354c1b50"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/sidebar.tsx": {
+    "mtime": 1766929864.4913416,
+    "ast_hash": "9eab1256b1ffe3f1336eebfd07b319c9",
+    "semantic_hash": "9eab1256b1ffe3f1336eebfd07b319c9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/simple-drawing-canvas.tsx": {
+    "mtime": 1778601644.1186335,
+    "ast_hash": "3acd6245be269d8c6c0ac98de2021de1",
+    "semantic_hash": "3acd6245be269d8c6c0ac98de2021de1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/skeleton.tsx": {
+    "mtime": 1766929864.4914205,
+    "ast_hash": "c55f76f4faa1d6e888dbc51d41eaa586",
+    "semantic_hash": "c55f76f4faa1d6e888dbc51d41eaa586"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/slider.tsx": {
+    "mtime": 1766929864.491494,
+    "ast_hash": "e3bf7b6116ddbdbe8c7b3597d07daee0",
+    "semantic_hash": "e3bf7b6116ddbdbe8c7b3597d07daee0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/sonner.tsx": {
+    "mtime": 1766929864.4915695,
+    "ast_hash": "88644703cc00886c56e0e3b7df0e21d8",
+    "semantic_hash": "88644703cc00886c56e0e3b7df0e21d8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/switch.tsx": {
+    "mtime": 1766929864.4916463,
+    "ast_hash": "eccd8c41c46e782eaaa1f8be0111e089",
+    "semantic_hash": "eccd8c41c46e782eaaa1f8be0111e089"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/table.tsx": {
+    "mtime": 1766929864.491717,
+    "ast_hash": "d0ff87c4734c23839337811378ad07df",
+    "semantic_hash": "d0ff87c4734c23839337811378ad07df"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/tabs.tsx": {
+    "mtime": 1766929864.491784,
+    "ast_hash": "26b15e1ffce0f831be4da95b8f8a43df",
+    "semantic_hash": "26b15e1ffce0f831be4da95b8f8a43df"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/textarea.tsx": {
+    "mtime": 1766929864.4918516,
+    "ast_hash": "29ab470ee59e9da5070d4fba251bce81",
+    "semantic_hash": "29ab470ee59e9da5070d4fba251bce81"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/toast.tsx": {
+    "mtime": 1766929864.4919484,
+    "ast_hash": "7c08b5cb6026058514672a4ebc53847e",
+    "semantic_hash": "7c08b5cb6026058514672a4ebc53847e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/toaster.tsx": {
+    "mtime": 1766929864.4920235,
+    "ast_hash": "1903846ab268620de6356ef667e3fa21",
+    "semantic_hash": "1903846ab268620de6356ef667e3fa21"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/toggle-group.tsx": {
+    "mtime": 1766929864.4921026,
+    "ast_hash": "e82bf234e3877ad708ea3d1dba614def",
+    "semantic_hash": "e82bf234e3877ad708ea3d1dba614def"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/toggle.tsx": {
+    "mtime": 1766929864.492179,
+    "ast_hash": "ff7a7deebff23c3488e79ad72ee47e4b",
+    "semantic_hash": "ff7a7deebff23c3488e79ad72ee47e4b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/tooltip.tsx": {
+    "mtime": 1766929864.49226,
+    "ast_hash": "d7e923341b9e91d77db45ba5f2fa0cf9",
+    "semantic_hash": "d7e923341b9e91d77db45ba5f2fa0cf9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/ui/use-toast.ts": {
+    "mtime": 1766929864.492323,
+    "ast_hash": "4f094014a1315ca1081cbdc7f78d55cc",
+    "semantic_hash": "4f094014a1315ca1081cbdc7f78d55cc"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/visit/CheckboxRequestForm.tsx": {
+    "mtime": 1778601411.8508642,
+    "ast_hash": "2a8e4e042a60930d6cb6952b1beba0e5",
+    "semantic_hash": "2a8e4e042a60930d6cb6952b1beba0e5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/visit/LabTestRequestForm.tsx": {
+    "mtime": 1778524121.2162693,
+    "ast_hash": "3d738217d40a333c2507276ad39a7c3d",
+    "semantic_hash": "3d738217d40a333c2507276ad39a7c3d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/components/visit/RadiologyRequestForm.tsx": {
+    "mtime": 1778524121.2164514,
+    "ast_hash": "7070d5b60e8a146d74b710d6d58d6eb8",
+    "semantic_hash": "7070d5b60e8a146d74b710d6d58d6eb8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/contexts/AuthContext.tsx": {
+    "mtime": 1770239750.3599298,
+    "ast_hash": "d999a65e0fcbfc10f2a5525a7d43be5e",
+    "semantic_hash": "d999a65e0fcbfc10f2a5525a7d43be5e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/contexts/DataContext.tsx": {
+    "mtime": 1781115441.54797,
+    "ast_hash": "aae86fcbbe13730563cee7ae7ae67597",
+    "semantic_hash": "aae86fcbbe13730563cee7ae7ae67597"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/contexts/LanguageContext.tsx": {
+    "mtime": 1778524085.1190443,
+    "ast_hash": "e35e8ca4a917cd2549a37d3d2f5a8f53",
+    "semantic_hash": "e35e8ca4a917cd2549a37d3d2f5a8f53"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/contexts/NotificationContext.tsx": {
+    "mtime": 1767702406.9958436,
+    "ast_hash": "b0032de7c1237b40a4c22da926daf534",
+    "semantic_hash": "b0032de7c1237b40a4c22da926daf534"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/chiefComplaintItems.ts": {
+    "mtime": 1778524121.2172012,
+    "ast_hash": "c0ecf37b298f1524c1d51eaeb77a419f",
+    "semantic_hash": "c0ecf37b298f1524c1d51eaeb77a419f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/currentMedicationItems.ts": {
+    "mtime": 1778524121.2175043,
+    "ast_hash": "ee5902babef8091a9f7c021f7c38a4b8",
+    "semantic_hash": "ee5902babef8091a9f7c021f7c38a4b8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/diagnosisItems.ts": {
+    "mtime": 1778524121.2177846,
+    "ast_hash": "dfdfeb26fcfd4178a69a1d0a7a8cd37b",
+    "semantic_hash": "dfdfeb26fcfd4178a69a1d0a7a8cd37b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/drugHistoryItems.ts": {
+    "mtime": 1778524121.2181551,
+    "ast_hash": "3bbbe345392195b92f5e439e6d38422b",
+    "semantic_hash": "3bbbe345392195b92f5e439e6d38422b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/familyHistoryItems.ts": {
+    "mtime": 1778524121.2187219,
+    "ast_hash": "9fc224ec07036531838d6c7b29c56f6e",
+    "semantic_hash": "9fc224ec07036531838d6c7b29c56f6e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/hpiItems.ts": {
+    "mtime": 1778524121.2190897,
+    "ast_hash": "d78b28baf21b8e8da7100f3c326fc03a",
+    "semantic_hash": "d78b28baf21b8e8da7100f3c326fc03a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/labTests.ts": {
+    "mtime": 1770237025.831675,
+    "ast_hash": "810200ed4981def88440acf12d0d708f",
+    "semantic_hash": "810200ed4981def88440acf12d0d708f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/medicalData.ts": {
+    "mtime": 1767295680.0243163,
+    "ast_hash": "d281b9d7c65fc9b55641d1b4eb124987",
+    "semantic_hash": "d281b9d7c65fc9b55641d1b4eb124987"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/pastMedicalHistoryItems.ts": {
+    "mtime": 1778524121.2194262,
+    "ast_hash": "025443038d9adc2d485d100476c18520",
+    "semantic_hash": "025443038d9adc2d485d100476c18520"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/data/radiologyTests.ts": {
+    "mtime": 1778524121.2197652,
+    "ast_hash": "921c8e7bfbbde9b811dd15c4398a7603",
+    "semantic_hash": "921c8e7bfbbde9b811dd15c4398a7603"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/hooks/use-mobile.tsx": {
+    "mtime": 1766929864.4929068,
+    "ast_hash": "c0a0bdd4638c391a1dd06ac82074e60b",
+    "semantic_hash": "c0a0bdd4638c391a1dd06ac82074e60b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/hooks/use-toast.ts": {
+    "mtime": 1766929864.492976,
+    "ast_hash": "e706bc004c87e17db559a113637eddea",
+    "semantic_hash": "e706bc004c87e17db559a113637eddea"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/hooks/useVisitDraftAutoSave.ts": {
+    "mtime": 1778539843.6438284,
+    "ast_hash": "13d3b219e182e594d3a09ed39d98843b",
+    "semantic_hash": "13d3b219e182e594d3a09ed39d98843b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/lib/animations.ts": {
+    "mtime": 1766929864.4931934,
+    "ast_hash": "07d72d0eb257e23d9d6cc3036613170c",
+    "semantic_hash": "07d72d0eb257e23d9d6cc3036613170c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/lib/download-pdf.ts": {
+    "mtime": 1778610267.0743785,
+    "ast_hash": "adfc879f266404c955926cb6f2492051",
+    "semantic_hash": "adfc879f266404c955926cb6f2492051"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/lib/drawing-utils.ts": {
+    "mtime": 1778524085.1196594,
+    "ast_hash": "68aaa5facb6f3e0b0b74e5818131e3ac",
+    "semantic_hash": "68aaa5facb6f3e0b0b74e5818131e3ac"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/lib/pdf-to-images.ts": {
+    "mtime": 1781112165.7847311,
+    "ast_hash": "c35d684e72b551c918ab29a82b7b8010",
+    "semantic_hash": "c35d684e72b551c918ab29a82b7b8010"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/lib/utils.ts": {
+    "mtime": 1766929864.4933012,
+    "ast_hash": "d9837f38cc05303254571985e3164050",
+    "semantic_hash": "d9837f38cc05303254571985e3164050"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/lib/visit-draft.ts": {
+    "mtime": 1778539832.5704706,
+    "ast_hash": "e7810883a846bfd40453cac0d6ca1197",
+    "semantic_hash": "e7810883a846bfd40453cac0d6ca1197"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/main.tsx": {
+    "mtime": 1766929864.4933648,
+    "ast_hash": "092c6937f28c1dff19a7d561f5f98360",
+    "semantic_hash": "092c6937f28c1dff19a7d561f5f98360"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/AnalyticsPage.tsx": {
+    "mtime": 1768847391.391264,
+    "ast_hash": "d4eb54873d8ac34386d4ad295ddb29ec",
+    "semantic_hash": "d4eb54873d8ac34386d4ad295ddb29ec"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/AssistantsPage.tsx": {
+    "mtime": 1767295680.0247464,
+    "ast_hash": "3d24125fd58f4f67609e4ee59fb7b77a",
+    "semantic_hash": "3d24125fd58f4f67609e4ee59fb7b77a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/DashboardPage.tsx": {
+    "mtime": 1781027648.4359717,
+    "ast_hash": "ae6d64ec0393899a24df3992c689647d",
+    "semantic_hash": "ae6d64ec0393899a24df3992c689647d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/EditPatientPage.tsx": {
+    "mtime": 1781027791.0088596,
+    "ast_hash": "d2fd7a1245d985f164caacab1ed9a413",
+    "semantic_hash": "d2fd7a1245d985f164caacab1ed9a413"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/ExpensesPage.tsx": {
+    "mtime": 1768386176.6337729,
+    "ast_hash": "b4cd2017697e21eb41a06a08bdc92d3a",
+    "semantic_hash": "b4cd2017697e21eb41a06a08bdc92d3a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/Index.tsx": {
+    "mtime": 1766929864.4935918,
+    "ast_hash": "63680c181c2a92e346fe348a5353fd39",
+    "semantic_hash": "63680c181c2a92e346fe348a5353fd39"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/LoginPage.tsx": {
+    "mtime": 1767295680.0250108,
+    "ast_hash": "263aebc658012502c9df5d8d3057595c",
+    "semantic_hash": "263aebc658012502c9df5d8d3057595c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/NewPatientPage.tsx": {
+    "mtime": 1768906789.8737326,
+    "ast_hash": "4938932fd5fc29caf4714ba58e5c5dc6",
+    "semantic_hash": "4938932fd5fc29caf4714ba58e5c5dc6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/NewVisitPage.tsx": {
+    "mtime": 1781027816.9875197,
+    "ast_hash": "637b58ca4f5436dc2112f99a6946342b",
+    "semantic_hash": "637b58ca4f5436dc2112f99a6946342b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/NotFound.tsx": {
+    "mtime": 1766929864.4940302,
+    "ast_hash": "233617e24ded7876ea905f003f0f2889",
+    "semantic_hash": "233617e24ded7876ea905f003f0f2889"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/PatientDetailPage.tsx": {
+    "mtime": 1781565931.8862672,
+    "ast_hash": "a661d520b29d7c2b38a43893e627f986",
+    "semantic_hash": "a661d520b29d7c2b38a43893e627f986"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/PatientsPage.tsx": {
+    "mtime": 1781027616.7383773,
+    "ast_hash": "be6eb94042b70856aebfa5c72d975681",
+    "semantic_hash": "be6eb94042b70856aebfa5c72d975681"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/QueuePage.tsx": {
+    "mtime": 1781027674.1410704,
+    "ast_hash": "f4f4cdddd0554b7b5d0542655001f96e",
+    "semantic_hash": "f4f4cdddd0554b7b5d0542655001f96e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/SettingsPage.tsx": {
+    "mtime": 1778608175.6393595,
+    "ast_hash": "187570196f16b511e64b4c59bd20bfb9",
+    "semantic_hash": "187570196f16b511e64b4c59bd20bfb9"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/SignupPage.tsx": {
+    "mtime": 1767295680.0258434,
+    "ast_hash": "a9e43a03525148841236ac03cb622807",
+    "semantic_hash": "a9e43a03525148841236ac03cb622807"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/pages/VisitDetailPage.tsx": {
+    "mtime": 1781027779.9070432,
+    "ast_hash": "c413d8dd445f9afbdcb45daba8941964",
+    "semantic_hash": "c413d8dd445f9afbdcb45daba8941964"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/services/api.ts": {
+    "mtime": 1778775096.7274003,
+    "ast_hash": "79693ccd57a6434dd8cceb75afd2d9ca",
+    "semantic_hash": "79693ccd57a6434dd8cceb75afd2d9ca"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/services/mockApi.ts": {
+    "mtime": 1778775128.8658419,
+    "ast_hash": "157ef1e7df1f380e20ca26a4cb48db39",
+    "semantic_hash": "157ef1e7df1f380e20ca26a4cb48db39"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/services/socket.ts": {
+    "mtime": 1768385708.2846508,
+    "ast_hash": "047ab99ce5d8ccfd95046060626e0821",
+    "semantic_hash": "047ab99ce5d8ccfd95046060626e0821"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/types/notification.ts": {
+    "mtime": 1767702406.9964156,
+    "ast_hash": "9d301ad1cd879d97746085663170f1c6",
+    "semantic_hash": "9d301ad1cd879d97746085663170f1c6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/vite-env.d.ts": {
+    "mtime": 1766929864.4945116,
+    "ast_hash": "0352474ba2918efe13895edbc3780d94",
+    "semantic_hash": "0352474ba2918efe13895edbc3780d94"
+  },
+  "/Users/ahmedelbltagy/Roashetta/tailwind.config.ts": {
+    "mtime": 1766929864.4945838,
+    "ast_hash": "00116fd000150a2968f039164bc6e0d1",
+    "semantic_hash": "00116fd000150a2968f039164bc6e0d1"
+  },
+  "/Users/ahmedelbltagy/Roashetta/tsconfig.app.json": {
+    "mtime": 1766929864.4946551,
+    "ast_hash": "ffe0e5efeba4bb692e7cf562160c6c5e",
+    "semantic_hash": "ffe0e5efeba4bb692e7cf562160c6c5e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/tsconfig.json": {
+    "mtime": 1766929864.4947245,
+    "ast_hash": "3951bfe500c7b5ca84cceded3c114a24",
+    "semantic_hash": "3951bfe500c7b5ca84cceded3c114a24"
+  },
+  "/Users/ahmedelbltagy/Roashetta/tsconfig.node.json": {
+    "mtime": 1766929864.4947975,
+    "ast_hash": "1417fb05378a1d1102f085e60b20db0e",
+    "semantic_hash": "1417fb05378a1d1102f085e60b20db0e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/vercel.json": {
+    "mtime": 1770627268.8988652,
+    "ast_hash": "75410dfe9a32a605a6cf8ed02d12f137",
+    "semantic_hash": "75410dfe9a32a605a6cf8ed02d12f137"
+  },
+  "/Users/ahmedelbltagy/Roashetta/vite.config.ts": {
+    "mtime": 1766929864.4948683,
+    "ast_hash": "eea8e578ebca550761c5c0e19be01385",
+    "semantic_hash": "eea8e578ebca550761c5c0e19be01385"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/CLAUDE.md": {
+    "mtime": 1781565382.5620024,
+    "ast_hash": "db73b0edd7ffbc61ceac177130730865",
+    "semantic_hash": "db73b0edd7ffbc61ceac177130730865"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/SKILL.md": {
+    "mtime": 1781565382.5616496,
+    "ast_hash": "97c2755905a5a0e53b96b31c725a7010",
+    "semantic_hash": "97c2755905a5a0e53b96b31c725a7010"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/add-watch.md": {
+    "mtime": 1781561608.9812856,
+    "ast_hash": "0df0589623217ca38a12bdcabfb42f4c",
+    "semantic_hash": "0df0589623217ca38a12bdcabfb42f4c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/exports.md": {
+    "mtime": 1781561608.9813976,
+    "ast_hash": "c04ddf8f1f5ef5e262ebec491a523c74",
+    "semantic_hash": "c04ddf8f1f5ef5e262ebec491a523c74"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1781561608.9815528,
+    "ast_hash": "24808b03abfeaf5f6435bb69c0125b2c",
+    "semantic_hash": "24808b03abfeaf5f6435bb69c0125b2c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1781561608.9816854,
+    "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
+    "semantic_hash": "cde13df085e4c492aeb7ba298a996d0d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/hooks.md": {
+    "mtime": 1781561608.9817927,
+    "ast_hash": "3f545db6ce646650bb9de588f5512a27",
+    "semantic_hash": "3f545db6ce646650bb9de588f5512a27"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/query.md": {
+    "mtime": 1781561608.981941,
+    "ast_hash": "8b40ed8c9e9060fc215219a8fc964091",
+    "semantic_hash": "8b40ed8c9e9060fc215219a8fc964091"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/transcribe.md": {
+    "mtime": 1781561608.987513,
+    "ast_hash": "70f6aa30d6211f3a2c7e9fc45479f50c",
+    "semantic_hash": "70f6aa30d6211f3a2c7e9fc45479f50c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/graphify/references/update.md": {
+    "mtime": 1781561608.9876676,
+    "ast_hash": "0dad167a95bdb389f02fecffb60b1bc8",
+    "semantic_hash": "0dad167a95bdb389f02fecffb60b1bc8"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/SKILL.md": {
+    "mtime": 1781448128.0434465,
+    "ast_hash": "bc27ef4d76ec41e1cc51b26f773a9701",
+    "semantic_hash": "bc27ef4d76ec41e1cc51b26f773a9701"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/adapt.md": {
+    "mtime": 1781448128.043743,
+    "ast_hash": "677c79a3dfdb092d711e5e59c46b41bb",
+    "semantic_hash": "677c79a3dfdb092d711e5e59c46b41bb"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/animate.md": {
+    "mtime": 1781448128.0439749,
+    "ast_hash": "87e75f869b8289acb616dce325e1d008",
+    "semantic_hash": "87e75f869b8289acb616dce325e1d008"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/audit.md": {
+    "mtime": 1781448128.0442207,
+    "ast_hash": "fb3a1ab9b014ecc9fe0d22075616702a",
+    "semantic_hash": "fb3a1ab9b014ecc9fe0d22075616702a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/bolder.md": {
+    "mtime": 1781448128.0444622,
+    "ast_hash": "60c92579e8c0b55945bac5f3fbdd7746",
+    "semantic_hash": "60c92579e8c0b55945bac5f3fbdd7746"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/brand.md": {
+    "mtime": 1781448128.0446274,
+    "ast_hash": "f70d1cd822ae916a55a2c26e775885aa",
+    "semantic_hash": "f70d1cd822ae916a55a2c26e775885aa"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/clarify.md": {
+    "mtime": 1781448128.044878,
+    "ast_hash": "59f37b001528ffa685aa9fc8b815ac0c",
+    "semantic_hash": "59f37b001528ffa685aa9fc8b815ac0c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/codex.md": {
+    "mtime": 1781448128.0452268,
+    "ast_hash": "6d97d559484916f05fa74f6b74f3da07",
+    "semantic_hash": "6d97d559484916f05fa74f6b74f3da07"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/colorize.md": {
+    "mtime": 1781448128.0454404,
+    "ast_hash": "69f597448e78f518d64617c0137bc533",
+    "semantic_hash": "69f597448e78f518d64617c0137bc533"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/craft.md": {
+    "mtime": 1781448128.0456703,
+    "ast_hash": "30b636d36ebb80efb147c409fbd56ef0",
+    "semantic_hash": "30b636d36ebb80efb147c409fbd56ef0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/critique.md": {
+    "mtime": 1781448128.0457926,
+    "ast_hash": "8f6903ba0a98fff1c229bfd091bb56fa",
+    "semantic_hash": "8f6903ba0a98fff1c229bfd091bb56fa"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/delight.md": {
+    "mtime": 1781448128.04596,
+    "ast_hash": "994a24c88a90cd4497831f73ad50e92c",
+    "semantic_hash": "994a24c88a90cd4497831f73ad50e92c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/distill.md": {
+    "mtime": 1781448128.0462034,
+    "ast_hash": "d47f1e82b6f7728ed0cad7e7ea0711b4",
+    "semantic_hash": "d47f1e82b6f7728ed0cad7e7ea0711b4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/document.md": {
+    "mtime": 1781448128.0463262,
+    "ast_hash": "ae73c8b196b13f02a2616080f4db0709",
+    "semantic_hash": "ae73c8b196b13f02a2616080f4db0709"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/extract.md": {
+    "mtime": 1781448128.0464413,
+    "ast_hash": "85e31dfecff207358c2ac0e335085245",
+    "semantic_hash": "85e31dfecff207358c2ac0e335085245"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/harden.md": {
+    "mtime": 1781448128.0466106,
+    "ast_hash": "e87b0bff32be86e7825e7ff4c50157e3",
+    "semantic_hash": "e87b0bff32be86e7825e7ff4c50157e3"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/hooks.md": {
+    "mtime": 1781448128.0468535,
+    "ast_hash": "ef55a31d3f9160ee3e4223a657bb8e28",
+    "semantic_hash": "ef55a31d3f9160ee3e4223a657bb8e28"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/init.md": {
+    "mtime": 1781448128.0470507,
+    "ast_hash": "77ef1cf6a45cfcc629b1be3bc9469ea4",
+    "semantic_hash": "77ef1cf6a45cfcc629b1be3bc9469ea4"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/interaction-design.md": {
+    "mtime": 1781448128.0473003,
+    "ast_hash": "1dd83bb8a96d7e250914064aa7389f8b",
+    "semantic_hash": "1dd83bb8a96d7e250914064aa7389f8b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/layout.md": {
+    "mtime": 1781448128.0474627,
+    "ast_hash": "0df4b2064cadee109afe865ce7d20d1e",
+    "semantic_hash": "0df4b2064cadee109afe865ce7d20d1e"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/live.md": {
+    "mtime": 1781448128.0475907,
+    "ast_hash": "6e4be1931ac0a93ccaf23a781f001ec0",
+    "semantic_hash": "6e4be1931ac0a93ccaf23a781f001ec0"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/onboard.md": {
+    "mtime": 1781448128.0478296,
+    "ast_hash": "7095aaea9e2994e37afb3cf1743bc092",
+    "semantic_hash": "7095aaea9e2994e37afb3cf1743bc092"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/optimize.md": {
+    "mtime": 1781448128.048183,
+    "ast_hash": "d01f252b7e5cb35b8443d57eaad40b58",
+    "semantic_hash": "d01f252b7e5cb35b8443d57eaad40b58"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/overdrive.md": {
+    "mtime": 1781448128.0483284,
+    "ast_hash": "dadd48faf8bc6dbb63196215a7195abb",
+    "semantic_hash": "dadd48faf8bc6dbb63196215a7195abb"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/polish.md": {
+    "mtime": 1781448128.0484898,
+    "ast_hash": "fe186b5a0d88279bc0675d0ba1c5213f",
+    "semantic_hash": "fe186b5a0d88279bc0675d0ba1c5213f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/product.md": {
+    "mtime": 1781448128.0485957,
+    "ast_hash": "6408a63ddbfe7003c732650381506860",
+    "semantic_hash": "6408a63ddbfe7003c732650381506860"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/quieter.md": {
+    "mtime": 1781448128.0488276,
+    "ast_hash": "2f534f1c782f998a78ef17b34eedb0ce",
+    "semantic_hash": "2f534f1c782f998a78ef17b34eedb0ce"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/shape.md": {
+    "mtime": 1781448128.0489848,
+    "ast_hash": "328ad4e06423eed564fa9391985f834c",
+    "semantic_hash": "328ad4e06423eed564fa9391985f834c"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/impeccable/reference/typeset.md": {
+    "mtime": 1781448128.049159,
+    "ast_hash": "8e8e3a58858713ff62de8ffa1a740cc6",
+    "semantic_hash": "8e8e3a58858713ff62de8ffa1a740cc6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/.claude/skills/release/SKILL.md": {
+    "mtime": 1780874245.913614,
+    "ast_hash": "70dda5906daea235fb8dc34fb1bd6295",
+    "semantic_hash": "70dda5906daea235fb8dc34fb1bd6295"
+  },
+  "/Users/ahmedelbltagy/Roashetta/DESIGN.md": {
+    "mtime": 1781449716.367471,
+    "ast_hash": "307e307012792ec4bc8f1364d1f7fa83",
+    "semantic_hash": "307e307012792ec4bc8f1364d1f7fa83"
+  },
+  "/Users/ahmedelbltagy/Roashetta/PRODUCT.md": {
+    "mtime": 1781448621.035203,
+    "ast_hash": "cbdadc867425abc5b11dd55c487c4f7b",
+    "semantic_hash": "cbdadc867425abc5b11dd55c487c4f7b"
+  },
+  "/Users/ahmedelbltagy/Roashetta/README.md": {
+    "mtime": 1778524112.3009393,
+    "ast_hash": "6e9ad21bbd71e4e951c3acdcba733070",
+    "semantic_hash": "6e9ad21bbd71e4e951c3acdcba733070"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/claude.md": {
+    "mtime": 1778524121.2856166,
+    "ast_hash": "a46a2fb11614418236ccd2ef8f34efc5",
+    "semantic_hash": "a46a2fb11614418236ccd2ef8f34efc5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/index.html": {
+    "mtime": 1781115462.800224,
+    "ast_hash": "fcc51453a887d2f663ea5c3483d83b0f",
+    "semantic_hash": "fcc51453a887d2f663ea5c3483d83b0f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/robots.txt": {
+    "mtime": 1781115462.8008068,
+    "ast_hash": "f9dff89adf98833e676de2205921996a",
+    "semantic_hash": "f9dff89adf98833e676de2205921996a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/claude.md": {
+    "mtime": 1781565382.563883,
+    "ast_hash": "0c9ef51532090096f68e4fbdabab8af5",
+    "semantic_hash": "0c9ef51532090096f68e4fbdabab8af5"
+  },
+  "/Users/ahmedelbltagy/Roashetta/index.html": {
+    "mtime": 1781565786.2996445,
+    "ast_hash": "c8abc1d843ddf2daf0c61c13eb358203",
+    "semantic_hash": "c8abc1d843ddf2daf0c61c13eb358203"
+  },
+  "/Users/ahmedelbltagy/Roashetta/public/robots.txt": {
+    "mtime": 1766929864.4874637,
+    "ast_hash": "f9dff89adf98833e676de2205921996a",
+    "semantic_hash": "f9dff89adf98833e676de2205921996a"
+  },
+  "/Users/ahmedelbltagy/Roashetta/src/claude.md": {
+    "mtime": 1778524121.3991232,
+    "ast_hash": "de944ca1da8a8a24264abc835be55062",
+    "semantic_hash": "de944ca1da8a8a24264abc835be55062"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/files/records/383dadfa-01f7-454e-8fc5-896e2364a67b.svg": {
+    "mtime": 1781111890.4447818,
+    "ast_hash": "e6284be4eb2a1f9f9f4ebde46a13aa79",
+    "semantic_hash": "e6284be4eb2a1f9f9f4ebde46a13aa79"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/files/records/6637ae34-7e76-4913-8d93-6d5743db4cbb.svg": {
+    "mtime": 1781111890.444996,
+    "ast_hash": "e6284be4eb2a1f9f9f4ebde46a13aa79",
+    "semantic_hash": "e6284be4eb2a1f9f9f4ebde46a13aa79"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/files/records/782e31a5-b14a-45eb-b549-2ae4299d9986.svg": {
+    "mtime": 1781111890.4452462,
+    "ast_hash": "3f24201150156763d91820d549896e5d",
+    "semantic_hash": "3f24201150156763d91820d549896e5d"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/files/records/8c84fa20-d204-4639-bd66-e167a128ac48.svg": {
+    "mtime": 1781111890.445117,
+    "ast_hash": "f8b6936de7a2d2241e96edc00d470f0f",
+    "semantic_hash": "f8b6936de7a2d2241e96edc00d470f0f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/files/records/940fb717-2194-4dc7-b14f-fe322ae10dac.svg": {
+    "mtime": 1781111890.4449117,
+    "ast_hash": "98f3f538df9088c488cfad791cb3adf6",
+    "semantic_hash": "98f3f538df9088c488cfad791cb3adf6"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/favicon.svg": {
+    "mtime": 1781115462.8000095,
+    "ast_hash": "7b63ac7d853ed585b5918cc53cb5ffca",
+    "semantic_hash": "7b63ac7d853ed585b5918cc53cb5ffca"
+  },
+  "/Users/ahmedelbltagy/Roashetta/backend/public/placeholder.svg": {
+    "mtime": 1781115462.800621,
+    "ast_hash": "35707bd9960ba5281c72af927b79291f",
+    "semantic_hash": "35707bd9960ba5281c72af927b79291f"
+  },
+  "/Users/ahmedelbltagy/Roashetta/public/favicon.svg": {
+    "mtime": 1767295680.0217888,
+    "ast_hash": "7b63ac7d853ed585b5918cc53cb5ffca",
+    "semantic_hash": "7b63ac7d853ed585b5918cc53cb5ffca"
+  },
+  "/Users/ahmedelbltagy/Roashetta/public/placeholder.svg": {
+    "mtime": 1766929864.4873998,
+    "ast_hash": "35707bd9960ba5281c72af927b79291f",
+    "semantic_hash": "35707bd9960ba5281c72af927b79291f"
+  }
+}

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <link rel="stylesheet" href="assets/fonts/cairo.css" />
+    <style>
+      /* ---- BRAND: edit to match the real app palette (pull --primary from index.css) ---- */
+      :root {
+        --primary: #0ea5a4; /* teal */
+        --accent: #f59e0b; /* amber — "no one else has this" */
+        --bg: #0f172a; /* deep navy */
+        --ink: #f8fafc;
+        --muted: #94a3b8;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1080px; height: 1920px; overflow: hidden;
+        background: #000; font-family: "Cairo", sans-serif; color: var(--ink);
+      }
+      #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+
+      .fill { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .center {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; text-align: center; gap: 24px; padding: 0 80px;
+      }
+      .card-bg { background: radial-gradient(120% 80% at 50% 30%, #15233f 0%, var(--bg) 70%); }
+      video.fill { object-fit: cover; background: #000; }
+      .scrim {
+        background: linear-gradient(180deg, rgba(15,23,42,.2) 0%, rgba(15,23,42,0) 30%, rgba(15,23,42,.65) 100%);
+      }
+
+      h1 { font-size: 100px; font-weight: 900; line-height: 1.08; }
+      h2 { font-size: 70px; font-weight: 700; line-height: 1.2; }
+      .kicker { font-size: 40px; font-weight: 600; color: var(--muted); letter-spacing: 1px; }
+      .accent { color: var(--accent); }
+      .primary { color: var(--primary); }
+      .logo { font-size: 128px; font-weight: 900; letter-spacing: -2px; }
+      .logo .accent { color: var(--primary); }
+
+      .offline { display: inline-flex; align-items: center; gap: 18px; font-size: 44px; font-weight: 600; }
+      #dot2 { width: 30px; height: 30px; border-radius: 50%; background: var(--primary); }
+      .cta {
+        font-size: 56px; font-weight: 900; color: var(--bg);
+        background: var(--primary); padding: 26px 64px; border-radius: 999px;
+      }
+
+      /* callout chip floated over a screen recording */
+      .callout {
+        position: absolute; right: 60px; left: 60px; bottom: 360px;
+        background: rgba(15,23,42,.82); border: 3px solid var(--primary);
+        border-radius: 28px; padding: 34px 44px; text-align: center;
+        font-size: 54px; font-weight: 700; line-height: 1.25;
+        box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      }
+      .callout.hot { border-color: var(--accent); }
+      .callout .tag { display: block; font-size: 30px; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
+
+      /* burned-in caption, bottom-center */
+      .caption {
+        position: absolute; right: 60px; left: 60px; bottom: 110px; text-align: center;
+        font-size: 46px; font-weight: 700; line-height: 1.3;
+        background: rgba(0,0,0,.7); border-radius: 18px; padding: 18px 28px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="43" data-width="1080" data-height="1920">
+
+      <!-- ============ SCENE 1 — hook (0-4s) ============ -->
+      <div id="bg1" class="clip fill card-bg" data-start="0" data-duration="4" data-track-index="0" style="background:#e11d48;"></div>
+      <div id="c1" class="clip fill center" data-start="0" data-duration="4" data-track-index="2">
+        <div class="kicker">سؤال سريع</div>
+        <h1>بيانات عيادتك...<br /><span class="accent">على كلاود مين؟</span></h1>
+      </div>
+
+      <!-- ============ SCENE 2 — logo / offline (4-8s) ============ -->
+      <div id="bg2" class="clip fill card-bg" data-start="4" data-duration="4" data-track-index="0"></div>
+      <div id="c2" class="clip fill center" data-start="4" data-duration="4" data-track-index="2">
+        <div class="logo">رُشتّ<span class="accent">ة</span></div>
+        <div class="offline"><span id="dot2"></span> بتشتغل أوفلاين — من غير إنترنت</div>
+      </div>
+
+      <!-- ============ SCENE 3 — patient → visit (8-14s) ============ -->
+      <video id="bg3" class="clip fill" src="recordings/scene3.mp4" muted playsinline data-start="8" data-duration="6" data-track-index="0"></video>
+      <div id="scrim3" class="clip fill scrim" data-start="8" data-duration="6" data-track-index="1"></div>
+      <div id="c3" class="clip callout" data-start="8" data-duration="6" data-track-index="2">
+        <span class="tag">سرعة</span>من مريض لكشف في خطوة
+      </div>
+
+      <!-- ============ SCENE 4 — handwritten Rx (14-21s) — DIFFERENTIATOR ============ -->
+      <video id="bg4" class="clip fill" src="recordings/scene4.mp4" muted playsinline data-start="14" data-duration="7" data-track-index="0"></video>
+      <div id="scrim4" class="clip fill scrim" data-start="14" data-duration="7" data-track-index="1"></div>
+      <div id="c4" class="clip callout hot" data-start="14" data-duration="7" data-track-index="2">
+        <span class="tag">حصري</span>روشتة بخط الإيد — <span class="accent">محدش تاني عنده ده</span>
+      </div>
+
+      <!-- ============ SCENE 5 — live queue (21-26s) ============ -->
+      <video id="bg5" class="clip fill" src="recordings/scene5.mp4" muted playsinline data-start="21" data-duration="5" data-track-index="0"></video>
+      <div id="scrim5" class="clip fill scrim" data-start="21" data-duration="5" data-track-index="1"></div>
+      <div id="c5" class="clip callout" data-start="21" data-duration="5" data-track-index="2">
+        <span class="tag">لحظي</span>طابور مباشر لكل المساعدين
+      </div>
+
+      <!-- ============ SCENE 6 — analytics (26-31s) ============ -->
+      <video id="bg6" class="clip fill" src="recordings/scene6.mp4" muted playsinline data-start="26" data-duration="5" data-track-index="0"></video>
+      <div id="scrim6" class="clip fill scrim" data-start="26" data-duration="5" data-track-index="1"></div>
+      <div id="c6" class="clip callout" data-start="26" data-duration="5" data-track-index="2">
+        <span class="tag">تحليلات</span>إيرادات وكشوفات ومصاريف — مكان واحد
+      </div>
+
+      <!-- ============ SCENE 7 — bilingual RTL (31-35s) ============ -->
+      <video id="bg7" class="clip fill" src="recordings/scene7.mp4" muted playsinline data-start="31" data-duration="4" data-track-index="0"></video>
+      <div id="scrim7" class="clip fill scrim" data-start="31" data-duration="4" data-track-index="1"></div>
+      <div id="c7" class="clip callout" data-start="31" data-duration="4" data-track-index="2">
+        <span class="tag">ثنائي اللغة</span>عربي وإنجليزي — RTL جاهز
+      </div>
+
+      <!-- ============ SCENE 8 — one-time license (35-39s) ============ -->
+      <div id="bg8" class="clip fill card-bg" data-start="35" data-duration="4" data-track-index="0"></div>
+      <div id="c8" class="clip fill center" data-start="35" data-duration="4" data-track-index="2">
+        <h2>ادفع <span class="primary">مرة واحدة</span></h2>
+        <h1>وتملكه <span class="accent">للأبد</span></h1>
+        <div class="kicker">من غير اشتراك شهري</div>
+      </div>
+
+      <!-- ============ SCENE 9 — logo + CTA (39-43s) ============ -->
+      <div id="bg9" class="clip fill card-bg" data-start="39" data-duration="4" data-track-index="0"></div>
+      <div id="c9" class="clip fill center" data-start="39" data-duration="4" data-track-index="2">
+        <div class="logo">رُشتّ<span class="accent">ة</span></div>
+        <h2>عيادتك. بياناتك. على جهازك.</h2>
+        <div class="cta">احجز عرض ←</div>
+      </div>
+
+      <!-- ============ CAPTIONS (track 3) ============ -->
+      <div id="cap1" class="clip caption" data-start="0"  data-duration="4" data-track-index="3">بيانات عيادتك على كلاود حد تاني — وبتدفع كل شهر</div>
+      <div id="cap2" class="clip caption" data-start="4"  data-duration="4" data-track-index="3">رُشتّة — بتشتغل على جهازك، من غير إنترنت</div>
+      <div id="cap3" class="clip caption" data-start="8"  data-duration="6" data-track-index="3">ضيف مريض وافتح كشف في ثواني</div>
+      <div id="cap4" class="clip caption" data-start="14" data-duration="7" data-track-index="3">اكتب الروشتة بخط إيدك — كانفاس حقيقي</div>
+      <div id="cap5" class="clip caption" data-start="21" data-duration="5" data-track-index="3">طابور مباشر، كل مساعد يشوف التحديث لحظياً</div>
+      <div id="cap6" class="clip caption" data-start="26" data-duration="5" data-track-index="3">إيرادات وكشوفات ومصاريف في مكان واحد</div>
+      <div id="cap7" class="clip caption" data-start="31" data-duration="4" data-track-index="3">عربي وإنجليزي بالكامل — RTL</div>
+      <div id="cap8" class="clip caption" data-start="35" data-duration="4" data-track-index="3">ادفع مرة واحدة وتملكه للأبد</div>
+      <div id="cap9" class="clip caption" data-start="39" data-duration="4" data-track-index="3">رُشتّة. عيادتك. بياناتك. على جهازك</div>
+
+      <!-- ============ VOICEOVER (Egyptian Arabic) ============ -->
+      <!-- Place the recorded/TTS VO at audio/vo-ar.m4a. make-placeholders.sh writes a silent stand-in. -->
+      <audio id="vo" src="audio/vo-ar.m4a" data-start="0" data-duration="43" data-track-index="8" data-volume="1"></audio>
+    </div>
+  </body>
+</html>

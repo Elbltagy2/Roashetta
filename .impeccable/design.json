@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-14T00:00:00Z",
+  "title": "Design System: Roashetta",
+  "extensions": {
+    "colorMeta": {
+      "primary-teal": { "role": "primary", "displayName": "Clinic Teal", "canonical": "hsl(173 58% 39%)", "tonalRamp": ["#103c37", "#1c6a61", "#29998b", "#35c7b6", "#61d5c7", "#8fe1d8", "#bdede8", "#ebfaf8"] },
+      "accent-orange": { "role": "secondary", "displayName": "Signal Orange", "canonical": "hsl(25 95% 53%)", "tonalRamp": ["#4b2002", "#833903", "#bc5105", "#f56a06", "#fa8b3c", "#fbad74", "#fdcead", "#fef0e6"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "hsl(200 25% 15%)", "tonalRamp": ["#22282b", "#3b464b", "#55646c", "#6f838d", "#8f9fa7", "#afbbc0", "#d0d7da", "#f1f3f4"] },
+      "canvas": { "role": "neutral", "displayName": "Canvas", "canonical": "hsl(180 20% 98%)", "tonalRamp": ["#22282b", "#3b464b", "#55646c", "#6f838d", "#8f9fa7", "#afbbc0", "#d0d7da", "#f9fbfb"] },
+      "success-green": { "role": "semantic", "displayName": "Success Green", "canonical": "hsl(142 76% 36%)" },
+      "warning-amber": { "role": "semantic", "displayName": "Warning Amber", "canonical": "hsl(38 92% 50%)" },
+      "destructive-red": { "role": "semantic", "displayName": "Destructive Red", "canonical": "hsl(0 84% 60%)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Big stat numbers and the single hero figure a screen leads with." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles and primary card titles." },
+      "title": { "displayName": "Title", "purpose": "Section headers, patient names, list-item titles." },
+      "body": { "displayName": "Body", "purpose": "Content, descriptions, form values. Always Ink, not Muted Ink." },
+      "label": { "displayName": "Label", "purpose": "Field labels, badges, status text, meta." }
+    },
+    "shadows": [
+      { "name": "rest", "value": "0 1px 2px 0 hsl(200 25% 15% / 0.05)", "purpose": "Inputs and quiet containers at rest (shadow-sm)." },
+      { "name": "card", "value": "0 4px 6px -1px hsl(200 25% 15% / 0.1), 0 2px 4px -2px hsl(200 25% 15% / 0.1)", "purpose": "Default elevation for stat/patient cards and panels (card-shadow)." },
+      { "name": "lifted", "value": "0 10px 15px -3px hsl(200 25% 15% / 0.1), 0 4px 6px -4px hsl(200 25% 15% / 0.1)", "purpose": "Hover state for interactive cards; popovers and dialogs (shadow-lg)." }
+    ],
+    "motion": [
+      { "name": "color-transition", "value": "200ms ease-out", "purpose": "Button/link/state color changes (transition-colors duration-200)." },
+      { "name": "surface-lift", "value": "200ms ease-out", "purpose": "Card hover shadow lift." },
+      { "name": "page-enter", "value": "300ms ease-out", "purpose": "Route content fade+rise (opacity 0->1, y 10->0)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px (sidebar becomes fixed; mobile drawer retires)" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "container-max", "value": "1400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single 'do the main thing' action. Solid teal, deepens on hover.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Add Patient</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 16px; background:#2a9d90; color:#fff; border:none; border-radius:10px; font-family:Cairo,sans-serif; font-weight:500; font-size:14px; cursor:pointer; transition:background .2s ease, box-shadow .2s ease; } .ds-btn-primary:hover { background:#1c6a61; } .ds-btn-primary:active { background:#185a52; } .ds-btn-primary:focus-visible { outline:none; box-shadow:0 0 0 2px #fff, 0 0 0 4px #2a9d90; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Quiet alternative action. Hover stays calm with a teal-wash — never the vivid orange accent.",
+      "html": "<button class=\"ds-btn-outline\">Make Current</button>",
+      "css": ".ds-btn-outline { display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 16px; background:#f9fbfb; color:#1d2930; border:1px solid #dce5e5; border-radius:10px; font-family:Cairo,sans-serif; font-weight:500; font-size:14px; cursor:pointer; transition:background .2s ease, border-color .2s ease, box-shadow .2s ease; } .ds-btn-outline:hover { background:#eaf5f4; border-color:#2a9d90; } .ds-btn-outline:focus-visible { outline:none; box-shadow:0 0 0 2px #fff, 0 0 0 4px #2a9d90; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text field on the canvas fill with a teal focus ring. Placeholder stays high-contrast.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search patients by name or file no.\" />",
+      "css": ".ds-input { height:40px; width:280px; max-width:100%; padding:0 12px; background:#f9fbfb; color:#1d2930; border:1px solid #dce5e5; border-radius:10px; font-family:Cairo,sans-serif; font-size:14px; transition:border-color .2s ease, box-shadow .2s ease; } .ds-input::placeholder { color:rgba(29,41,48,.55); } .ds-input:focus { outline:none; border-color:#2a9d90; box-shadow:0 0 0 2px #fff, 0 0 0 4px #2a9d90; }"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "refersTo": "stat-card",
+      "description": "Signature dashboard tile: muted label, big Display value, trend, and a tonal icon tile.",
+      "html": "<div class=\"ds-stat-card\"><div class=\"ds-stat-body\"><p class=\"ds-stat-title\">Patients Today</p><p class=\"ds-stat-value\">42</p><p class=\"ds-stat-trend\">+12%</p></div><div class=\"ds-icon-tile\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75\"/></svg></div></div>",
+      "css": ".ds-stat-card { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; width:280px; padding:24px; background:#fff; border-radius:16px; box-shadow:0 4px 6px -1px hsl(200 25% 15% / 0.1), 0 2px 4px -2px hsl(200 25% 15% / 0.1); font-family:Cairo,sans-serif; } .ds-stat-title { margin:0; color:#67777e; font-size:14px; font-weight:500; } .ds-stat-value { margin:8px 0 0; color:#1d2930; font-size:30px; font-weight:700; line-height:1.1; } .ds-stat-trend { margin:8px 0 0; color:#16a249; font-size:14px; font-weight:500; } .ds-icon-tile { flex:none; width:48px; height:48px; border-radius:12px; background:#eaf5f4; color:#2a9d90; display:flex; align-items:center; justify-content:center; }"
+    },
+    {
+      "name": "Tonal Icon Tile",
+      "kind": "custom",
+      "refersTo": "icon-tile",
+      "description": "The system's way to give an icon weight without a border or hard block: a 10% tint fill with the icon in the full color.",
+      "html": "<div class=\"ds-icon-tile-lg\"><svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"8\" r=\"5\"/><path d=\"M20 21a8 8 0 0 0-16 0\"/></svg></div>",
+      "css": ".ds-icon-tile-lg { width:64px; height:64px; border-radius:16px; background:#eaf5f4; color:#2a9d90; display:inline-flex; align-items:center; justify-content:center; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-default",
+      "description": "Pill for status and counts. Solid teal default; semantic fills for state.",
+      "html": "<span class=\"ds-badge\">In Progress</span>",
+      "css": ".ds-badge { display:inline-flex; align-items:center; border-radius:9999px; padding:2px 10px; background:#2a9d90; color:#fff; font-family:Cairo,sans-serif; font-size:12px; font-weight:600; }"
+    },
+    {
+      "name": "Allergy Alert",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Signature tinted-block alert: 10% red wash with solid red text. The model for all attention blocks — never a colored stripe.",
+      "html": "<div class=\"ds-alert-danger\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"/><path d=\"M12 9v4M12 17h.01\"/></svg><span>Allergies: Penicillin, Aspirin</span></div>",
+      "css": ".ds-alert-danger { display:flex; align-items:center; gap:8px; padding:12px; background:rgba(239,67,67,.1); color:#ef4343; border-radius:12px; font-family:Cairo,sans-serif; font-size:14px; font-weight:500; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Row in the teal-filled sidebar. Active gets a lighter teal fill; inactive is white at 80%.",
+      "html": "<div class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\"/></svg>Dashboard</a><a class=\"ds-nav-item\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/></svg>Patients</a></div>",
+      "css": ".ds-nav { display:flex; flex-direction:column; gap:8px; width:256px; padding:16px; background:linear-gradient(135deg,#2a9d90,#258a7e); border-radius:16px; } .ds-nav-item { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:12px; color:rgba(255,255,255,.8); font-family:Cairo,sans-serif; font-size:14px; font-weight:500; text-decoration:none; cursor:pointer; transition:background .2s ease, color .2s ease; } .ds-nav-item:hover { background:rgba(255,255,255,.12); color:#fff; } .ds-nav-item--active { background:#35b3a4; color:#fff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Clinic",
+    "overview": "Roashetta should feel like a well-run consulting room: ordered, unhurried, everything in its place, nothing shouting. The teal that carries the system is the color of a freshly-prepared exam room — clean and clinical, but never icy. The interface earns trust by receding so the patient's data is always the loudest thing on screen. The system is warm, not cold: warmth is a deliberate goal carried by soft teal, the rounded Cairo typeface, generous padding, and tonal tints instead of hard rules and grey boxes. Color is restrained — teal does almost all the work; the vivid orange is held in reserve for the one moment that needs it.",
+    "keyCharacteristics": [
+      "One family, many weights: Cairo carries Arabic and Latin with equal craft.",
+      "Teal is the single action color; orange is a rare highlight, not décor.",
+      "Tonal washes (10% tints) and soft ink-tinted shadows convey depth — not stripes, not glass.",
+      "Generous rounding (12-16px) and 24px padding make a dense domain feel calm.",
+      "Hierarchy over density everywhere, hardest in data: lead with the one number that matters."
+    ],
+    "rules": [
+      { "name": "The One Teal Rule", "body": "Teal is the only color allowed to mean 'action' or 'selected.' If two things on a screen are teal, they are both interactive or both the current thing — never decoration.", "section": "colors" },
+      { "name": "The Reserved-Orange Rule", "body": "Orange appears at most once per screen, and never as a default hover. It is the brand's exception; its rarity is what makes it read as 'look here.'", "section": "colors" },
+      { "name": "The Reading-Contrast Rule", "body": "Muted Ink (#67777e) clears 4.5:1 on white cards but only ~4.4:1 on the tinted canvas. Body copy that must be read uses Ink (#1d2930); Muted Ink is for secondary labels on white surfaces. Never light-grey body text for elegance.", "section": "colors" },
+      { "name": "The Fixed-Scale Rule", "body": "Type sizes are a fixed rem scale, not fluid clamp(). Users sit at consistent DPI in a clinic; a heading that shrinks in a sidebar looks worse, not designed.", "section": "typography" },
+      { "name": "The Weight-Not-Face Rule", "body": "Need more emphasis? Go up in weight or size within Cairo. Never introduce a second font family for hierarchy — the bilingual unity is worth more than contrast.", "section": "typography" },
+      { "name": "The Lift-on-Touch Rule", "body": "Surfaces rest soft (shadow-sm/card-shadow). Elevation increases only as feedback — hover, drag, open. A card that already floats high at rest has nowhere to go on interaction.", "section": "elevation" },
+      { "name": "The Ink-Shadow Rule", "body": "Shadows are tinted with the ink hue, never rgba(0,0,0,...). Pure-black shadows on a teal-tinted canvas read muddy and cold.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep teal as the single action/selection color, and let one screen have at most one orange moment.",
+      "Do convey depth with ink-tinted soft shadows and 10% tonal washes; lift surfaces only on interaction.",
+      "Do use full tinted blocks for alerts (bg-destructive/10 with solid red text) — the allergy banner is the model.",
+      "Do lead every data surface with the single number that matters, then reveal detail; give analytics breathing room.",
+      "Do set body text in Ink (#1d2930); reserve Muted Ink for secondary labels on white cards.",
+      "Do build Arabic (RTL) as a first-class layout — mirror direction, flip chevrons and the sidebar, verify Cairo at every weight.",
+      "Do give interactive surfaces all states: default, hover, focus (2px teal ring + offset), active, disabled, loading."
+    ],
+    "donts": [
+      "Don't ship anything that reads sterile and cold — no icy-grey forms, hairline-cramped density, or hard black shadows.",
+      "Don't build cluttered analytics dashboards — no walls of equal-weight charts and numbers with no hierarchy.",
+      "Don't let the vivid orange accent flash on outline/ghost button hovers; hover to a teal-wash or mist tint instead.",
+      "Don't use gradient text (background-clip: text over a gradient — the .text-gradient utility). Emphasis via weight and size.",
+      "Don't use glassmorphism as a default (.glass-effect blur cards). Rare and purposeful, or not at all.",
+      "Don't use a thick colored border-left/border-right as a stripe; use a full tinted block or a leading icon tile.",
+      "Don't introduce a second font family or fluid clamp() headings — one Cairo, fixed rem scale.",
+      "Don't nest cards, or place white cards directly on white with no tint/divider between them."
+    ]
+  }
+}
