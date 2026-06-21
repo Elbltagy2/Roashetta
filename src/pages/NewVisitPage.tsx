@@ -207,7 +207,7 @@ const SectionHeader = React.memo(({
 const NewVisitPage: React.FC = () => {
   const { id: patientId, visitId } = useParams<{ id: string; visitId?: string }>();
   const { t, language, direction } = useLanguage();
-  const { addVisit, updateVisit, uploadVisitAttachment, visits, loadPatientVisits, loadFullVisit } = useData();
+  const { addVisit, updateVisit, uploadVisitAttachment, getVisitAttachments, visits, loadPatientVisits, loadFullVisit } = useData();
   const isEditMode = !!visitId;
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -215,6 +215,9 @@ const NewVisitPage: React.FC = () => {
   const prescriptionFileInputRef = useRef<HTMLInputElement>(null);
   const radiologyFileInputRef = useRef<HTMLInputElement>(null);
   const prescriptionRef = useRef<HTMLDivElement>(null);
+  // Tracks local attachment ids already persisted to the server so a
+  // re-submit (or edit-then-save) does not upload the same file twice.
+  const persistedAttachmentIds = useRef<Set<string>>(new Set());
   const labRequestRef = useRef<HTMLDivElement>(null);
 
   const [patient, setLocalPatient] = useState<Patient | null>(null);
@@ -1535,46 +1538,37 @@ const NewVisitPage: React.FC = () => {
           ...visitData,
         });
         savedVisitId = visit.id;
-
-        // Upload attachments to the newly created visit (only for new visits)
-        if (attachments.length > 0) {
-          await Promise.all(
-            attachments.map(attachment =>
-              uploadVisitAttachment(visit.id, {
-                name: attachment.name,
-                type: attachment.type,
-                dataUrl: attachment.dataUrl,
-              })
-            )
-          );
-        }
-
-        // Upload prescription attachments
-        if (prescriptionAttachments.length > 0) {
-          await Promise.all(
-            prescriptionAttachments.map(attachment =>
-              uploadVisitAttachment(visit.id, {
-                name: `[Prescription] ${attachment.name}`,
-                type: attachment.type,
-                dataUrl: attachment.dataUrl,
-              })
-            )
-          );
-        }
-
-        // Upload radiology attachments
-        if (radiologyAttachments.length > 0) {
-          await Promise.all(
-            radiologyAttachments.map(attachment =>
-              uploadVisitAttachment(visit.id, {
-                name: `[Radiology] ${attachment.name}`,
-                type: attachment.type,
-                dataUrl: attachment.dataUrl,
-              })
-            )
-          );
-        }
       }
+
+      // Upload attachments for BOTH new and edited visits. Dedup twice:
+      //  1. skip local attachments already persisted this session (re-submit)
+      //  2. skip ones already saved on the server for this visit (name+type)
+      const existingAttachments = getVisitAttachments(savedVisitId);
+      const alreadyOnServer = (name: string, type: string) =>
+        existingAttachments.some(a => a.name === name && a.type === type);
+
+      const uploadAttachments = (items: Attachment[], prefix: string) =>
+        Promise.all(
+          items
+            .filter(att => !persistedAttachmentIds.current.has(att.id))
+            .map(async att => {
+              const name = prefix ? `${prefix} ${att.name}` : att.name;
+              if (!alreadyOnServer(name, att.type)) {
+                await uploadVisitAttachment(savedVisitId, {
+                  name,
+                  type: att.type,
+                  dataUrl: att.dataUrl,
+                });
+              }
+              persistedAttachmentIds.current.add(att.id);
+            })
+        );
+
+      await Promise.all([
+        uploadAttachments(attachments, ''),
+        uploadAttachments(prescriptionAttachments, '[Prescription]'),
+        uploadAttachments(radiologyAttachments, '[Radiology]'),
+      ]);
 
       // Visit was saved to the server — drop the local draft
       clearDraft(draftKey);
