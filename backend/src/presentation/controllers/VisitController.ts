@@ -167,6 +167,7 @@ export class VisitController {
         labTestRequest: req.body.labTestRequest,
         radiologyRequest: req.body.radiologyRequest,
         medicalChecklists: req.body.medicalChecklists,
+        prescriptionMedicines: req.body.prescriptionMedicines,
         vitals: req.body.vitals,
       };
 

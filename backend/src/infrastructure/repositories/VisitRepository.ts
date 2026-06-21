@@ -64,10 +64,10 @@ export class VisitRepository implements IVisitRepository {
         past_medical_history_drawing, hpi_drawing, drug_history_drawing,
         family_history_drawing, current_medication_drawing,
         radiology_drawing, radiology_drawing_2, radiology_drawing_3,
-        lab_test_request, radiology_request, medical_checklists,
+        lab_test_request, radiology_request, medical_checklists, prescription_medicines,
         blood_pressure, temperature, weight, visit_date, created_at, updated_at
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.patientId,
@@ -93,6 +93,7 @@ export class VisitRepository implements IVisitRepository {
       data.labTestRequest ?? null,
       data.radiologyRequest ?? null,
       data.medicalChecklists ?? null,
+      data.prescriptionMedicines ?? null,
       data.vitals?.bloodPressure ?? null,
       data.vitals?.temperature ?? null,
       data.vitals?.weight ?? null,
@@ -211,6 +212,10 @@ export class VisitRepository implements IVisitRepository {
       fields.push('medical_checklists = ?');
       values.push(data.medicalChecklists);
     }
+    if (data.prescriptionMedicines !== undefined) {
+      fields.push('prescription_medicines = ?');
+      values.push(data.prescriptionMedicines);
+    }
     if (data.vitals?.bloodPressure !== undefined) {
       fields.push('blood_pressure = ?');
       values.push(data.vitals.bloodPressure);
@@ -324,6 +329,7 @@ export class VisitRepository implements IVisitRepository {
       labTestRequest: row.lab_test_request as string | null,
       radiologyRequest: row.radiology_request as string | null,
       medicalChecklists: row.medical_checklists as string | null,
+      prescriptionMedicines: row.prescription_medicines as string | null,
       vitals: {
         bloodPressure: row.blood_pressure as string,
         temperature: row.temperature as number,
@@ -364,6 +370,7 @@ export class VisitRepository implements IVisitRepository {
       labTestRequest: null,
       radiologyRequest: null,
       medicalChecklists: null,
+      prescriptionMedicines: null,
       vitals: {
         bloodPressure: (row.blood_pressure as string) || '',
         temperature: (row.temperature as number) ?? 0,

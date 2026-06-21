@@ -14,7 +14,8 @@
   },
   "pkg": {
     "assets": [
-      "public/**/*"
+      "public/**/*",
+      "data/**/*"
     ],
     "outputPath": "release"
   },

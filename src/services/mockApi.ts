@@ -191,6 +191,7 @@ import type {
   UpdateAssistantData,
   QueueEntry,
   UpdateQueueEntryData,
+  DrugSearchResult,
 } from './api';
 
 type AuthErrorCallback = () => void;
@@ -387,6 +388,7 @@ class MockApiClient {
       labTestRequest: data.labTestRequest || null,
       radiologyRequest: data.radiologyRequest || null,
       medicalChecklists: data.medicalChecklists || null,
+      prescriptionMedicines: data.prescriptionMedicines || null,
       vitals: data.vitals || { bloodPressure: '', temperature: 0, weight: 0 },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -398,6 +400,11 @@ class MockApiClient {
 
   async updateVisitPrice(visitId: string, price: number): Promise<Visit> {
     return this.updateVisit(visitId, { price });
+  }
+
+  // Drug search is backend-only; demo mode has no drug database.
+  async getDrugs(_query: string, _limit = 30): Promise<DrugSearchResult[]> {
+    return [];
   }
 
   async updateVisit(visitId: string, data: UpdateVisitData): Promise<Visit> {

@@ -80,6 +80,8 @@ export interface Visit {
   radiologyRequest: string | null;
   // Medical Checklists (JSON string - combined 7 checklist forms)
   medicalChecklists: string | null;
+  // Prescription Medicines (JSON string - structured Rx lines)
+  prescriptionMedicines: string | null;
   vitals: Vital;
 }
 
@@ -228,6 +230,7 @@ const convertApiVisit = (apiVisit: ApiVisit): Visit => ({
   labTestRequest: apiVisit.labTestRequest || null,
   radiologyRequest: apiVisit.radiologyRequest || null,
   medicalChecklists: apiVisit.medicalChecklists || null,
+  prescriptionMedicines: apiVisit.prescriptionMedicines || null,
   vitals: {
     bloodPressure: apiVisit.vitals?.bloodPressure || '',
     temperature: apiVisit.vitals?.temperature || 0,
@@ -442,6 +445,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       radiologyRequest: visitData.radiologyRequest || undefined,
       // Medical Checklists
       medicalChecklists: visitData.medicalChecklists || undefined,
+      // Prescription Medicines
+      prescriptionMedicines: visitData.prescriptionMedicines || undefined,
       vitals: {
         bloodPressure: visitData.vitals.bloodPressure,
         temperature: visitData.vitals.temperature,
@@ -481,6 +486,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       labTestRequest: visitData.labTestRequest,
       radiologyRequest: visitData.radiologyRequest,
       medicalChecklists: visitData.medicalChecklists,
+      prescriptionMedicines: visitData.prescriptionMedicines,
       vitals: visitData.vitals,
     };
 

@@ -68,6 +68,7 @@ export async function initializeDatabase(): Promise<void> {
 
   createTables();
   createDefaultDoctor();
+  seedDrugs();
 
   // Migrate existing base64 blobs to files (one-time, skipped if already done)
   await migrateBase64ToFiles();
@@ -378,6 +379,10 @@ function createTables() {
   try {
     db.exec(`ALTER TABLE visits ADD COLUMN medical_checklists TEXT`);
   } catch (e) { /* Column already exists */ }
+  // Add prescription medicines JSON field (structured Rx lines from the drug picker)
+  try {
+    db.exec(`ALTER TABLE visits ADD COLUMN prescription_medicines TEXT`);
+  } catch (e) { /* Column already exists */ }
 
   // Add file_number column to patients table
   try {
@@ -574,6 +579,20 @@ function createTables() {
     )
   `);
 
+  // Create drugs table (Egyptian drug database - read-only reference data, seeded once)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS drugs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      commercial_name_en TEXT,
+      commercial_name_ar TEXT,
+      scientific_name TEXT,
+      manufacturer TEXT,
+      drug_class TEXT,
+      route TEXT,
+      price_egp REAL
+    )
+  `);
+
   // Create indexes
   db.exec(`CREATE INDEX IF NOT EXISTS idx_doctors_email ON doctors(email)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_patients_doctor_id ON patients(doctor_id)`);
@@ -596,6 +615,59 @@ function createTables() {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_visit_attachments_visit_id ON visit_attachments(visit_id)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_queue_doctor_date ON queue(doctor_id, queue_date)`);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_queue_patient_date ON queue(patient_id, queue_date)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_drugs_name_en ON drugs(commercial_name_en)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_drugs_scientific ON drugs(scientific_name)`);
+}
+
+// Seed the drugs table from the bundled Egyptian drug database JSON.
+// Read-only reference data: only runs when the table is empty (first launch /
+// fresh DB), so it's a one-time ~1-2s cost. The JSON file ships via pkg.assets
+// ("data/**/*") and resolves the same way the writable DB path does.
+function seedDrugs() {
+  try {
+    const count = (db.prepare('SELECT COUNT(*) AS n FROM drugs').get() as { n: number }).n;
+    if (count > 0) return; // already seeded
+
+    const dataPath = path.join(__dirname, '..', '..', '..', 'data', 'egyptian-drugs.json');
+    if (!fs.existsSync(dataPath)) {
+      console.warn(`Drug database file not found at ${dataPath}; skipping drug seed.`);
+      return;
+    }
+
+    type DrugRow = {
+      commercial_name_en?: string;
+      commercial_name_ar?: string;
+      scientific_name?: string;
+      manufacturer?: string;
+      drug_class?: string;
+      route?: string;
+      price_egp?: number;
+    };
+    const drugs = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as DrugRow[];
+    if (!Array.isArray(drugs) || drugs.length === 0) return;
+
+    const insert = db.prepare(`
+      INSERT INTO drugs (commercial_name_en, commercial_name_ar, scientific_name, manufacturer, drug_class, route, price_egp)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const seed = db.transaction((rows: DrugRow[]) => {
+      for (const d of rows) {
+        insert.run(
+          d.commercial_name_en ?? null,
+          d.commercial_name_ar ?? null,
+          d.scientific_name ?? null,
+          d.manufacturer ?? null,
+          d.drug_class ?? null,
+          d.route ?? null,
+          typeof d.price_egp === 'number' ? d.price_egp : null
+        );
+      }
+    });
+    seed(drugs);
+    console.log(`Seeded ${drugs.length} drugs into the drug database.`);
+  } catch (err) {
+    console.error('Failed to seed drugs:', err);
+  }
 }
 
 // Create default doctor account for testing

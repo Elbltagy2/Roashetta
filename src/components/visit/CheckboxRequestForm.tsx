@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Keyboard } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import OnScreenKeyboard from '@/components/ui/on-screen-keyboard';
 
 export interface ChecklistCategory {
   id: string;
@@ -44,6 +46,10 @@ const CheckboxRequestForm: React.FC<CheckboxRequestFormProps> = ({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const didInitialExpand = useRef(false);
   const c = colorMap[accentColor];
+  const { language } = useLanguage();
+  // In-app keyboard for the free-text "Others" field — tablets where the
+  // native keyboard does not auto-open can still type via taps.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   // First time we see non-empty data (e.g. from a draft restore or edit-mode
   // load), auto-expand any category that already has selections so the
@@ -121,13 +127,21 @@ const CheckboxRequestForm: React.FC<CheckboxRequestFormProps> = ({
         {isExpanded && (
           <div className="p-2 bg-white">
             {isOthers ? (
-              <textarea
-                value={otherText}
-                onChange={(e) => onOtherTextChange(e.target.value)}
-                placeholder={otherPlaceholder}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 ${c.ring}`}
-                rows={3}
-              />
+              <div
+                role="textbox"
+                tabIndex={0}
+                onClick={() => setKeyboardOpen(true)}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md text-sm cursor-pointer whitespace-pre-wrap break-words min-h-[72px] focus:outline-none focus:ring-2 ${c.ring}`}
+              >
+                {otherText
+                  ? otherText
+                  : (
+                    <span className="text-gray-400 flex items-center gap-1.5">
+                      <Keyboard className="w-4 h-4" />
+                      {otherPlaceholder} {language === 'ar' ? '(اضغط للكتابة)' : '(tap to type)'}
+                    </span>
+                  )}
+              </div>
             ) : (
               <div className="space-y-1 max-h-60 overflow-y-auto">
                 {category.tests.map((test) => (
@@ -159,6 +173,15 @@ const CheckboxRequestForm: React.FC<CheckboxRequestFormProps> = ({
         <div className="space-y-1">{column2.map(renderCategory)}</div>
         <div className="space-y-1">{column3.map(renderCategory)}</div>
       </div>
+      {keyboardOpen && (
+        <OnScreenKeyboard
+          value={otherText}
+          onChange={onOtherTextChange}
+          onClose={() => setKeyboardOpen(false)}
+          language={language}
+          title={language === 'ar' ? 'إدخال نص آخر' : 'Other — text entry'}
+        />
+      )}
     </div>
   );
 };

@@ -13,6 +13,7 @@ import settingsRoutes from './settingsRoutes';
 import analyticsRoutes from './analyticsRoutes';
 import queueRoutes from './queueRoutes';
 import updateRoutes from './updateRoutes';
+import drugRoutes from './drugRoutes';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/settings', settingsRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/queue', queueRoutes);
 router.use('/updates', updateRoutes);
+router.use('/drugs', drugRoutes);
 
 export default router;

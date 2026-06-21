@@ -428,6 +428,71 @@ const VisitDetailPage: React.FC = () => {
       { label: 'الروشتة - صفحة 3 / Prescription - Page 3', data: visit.notesDrawing3 },
     ].filter(d => d.data);
 
+    // Structured Rx lines built with the medicine picker
+    const escHtml = (s: string) =>
+      String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    let prescriptionMeds: { name?: string; scientific?: string; dose?: string; frequency?: string; duration?: string; instructions?: string }[] = [];
+    try {
+      if (visit.prescriptionMedicines) {
+        const parsed = JSON.parse(visit.prescriptionMedicines);
+        if (Array.isArray(parsed)) prescriptionMeds = parsed;
+      }
+    } catch { /* ignore malformed */ }
+
+    const prescriptionMedsItem = prescriptionMeds.length > 0 ? `
+      <div class="prescription-item">
+        <div class="prescription-header">
+          <div class="prescription-header-content">
+            <div style="text-align: left;">
+              <p style="font-weight: bold; font-size: 12px;">Dr/ Sherif Ali . MD,MRCP (Uk)</p>
+            </div>
+            <div style="text-align: right; direction: rtl; font-size: 11px;">
+              <p style="font-weight: bold;">دكتـــور شــريف علي رضــا</p>
+              <p style="font-size: 9px; color: #6b7280;">استشارى أمراض الباطنـــة العامة والكلى</p>
+            </div>
+          </div>
+          <div style="margin-top: 10px; font-size: 11px;">
+            <span>الإســـم / Name: ${patient.name}</span> |
+            <span>التـــاريخ / Date: ${visitDate}</span>
+          </div>
+        </div>
+        <div class="prescription-body">
+          <div class="rx-symbol">℞/</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px;">
+            <thead>
+              <tr style="background: #f3f4f6;">
+                <th style="padding: 6px 8px; border: 1px solid #e5e7eb; width: 30px;">#</th>
+                <th style="padding: 6px 8px; border: 1px solid #e5e7eb; text-align: left;">الدواء / Medicine</th>
+                <th style="padding: 6px 8px; border: 1px solid #e5e7eb;">الجرعة / Dose</th>
+                <th style="padding: 6px 8px; border: 1px solid #e5e7eb;">التكرار / Frequency</th>
+                <th style="padding: 6px 8px; border: 1px solid #e5e7eb;">المدة / Duration</th>
+                <th style="padding: 6px 8px; border: 1px solid #e5e7eb;">التعليمات / Instructions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${prescriptionMeds.map((m, i) => `
+                <tr>
+                  <td style="padding: 6px 8px; border: 1px solid #e5e7eb; text-align: center;">${i + 1}</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e5e7eb;">
+                    <div style="font-weight: 600;">${escHtml(m.name || '')}</div>
+                    ${m.scientific ? `<div style="font-size: 10px; color: #6b7280;">${escHtml(m.scientific)}</div>` : ''}
+                  </td>
+                  <td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escHtml(m.dose || '')}</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escHtml(m.frequency || '')}</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escHtml(m.duration || '')}</td>
+                  <td style="padding: 6px 8px; border: 1px solid #e5e7eb;">${escHtml(m.instructions || '')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="prescription-footer">
+          <div>مستشفى تبارك/النسائم | 16552 - 15452</div>
+          <div>١٨ عمارات خلف العبور - مصر الجديدة | ت: 01554343147</div>
+        </div>
+      </div>
+    ` : '';
+
     const radiologyPages = [
       { label: 'الأشعة - صفحة 1 / Radiology - Page 1', data: visit.radiologyDrawing },
       { label: 'الأشعة - صفحة 2 / Radiology - Page 2', data: visit.radiologyDrawing2 },
@@ -767,9 +832,10 @@ const VisitDetailPage: React.FC = () => {
 
             ${medicalNotesDrawings.length > 0 ? generateDrawingSection('الملاحظات الطبية / Medical Notes', medicalNotesDrawings) : ''}
 
-            ${prescriptionPages.length > 0 ? `
+            ${(prescriptionPages.length > 0 || prescriptionMeds.length > 0) ? `
               <div class="section">
                 <h2 class="section-title">الروشتة / Prescription</h2>
+                ${prescriptionMedsItem}
                 ${prescriptionPages.map(p => `
                   <div class="prescription-item">
                     <div class="prescription-header">
@@ -1581,7 +1647,15 @@ const VisitDetailPage: React.FC = () => {
                     const prescriptionAttachmentsList = attachments.filter(a => a.name.startsWith('[Prescription]'));
                     const hasPrescriptionAttachments = prescriptionAttachmentsList.length > 0;
 
-                    if (!hasPrescriptionDrawings && !hasPrescriptionAttachments) {
+                    let meds: { name?: string; scientific?: string; dose?: string; frequency?: string; duration?: string; instructions?: string }[] = [];
+                    try {
+                      if (visit.prescriptionMedicines) {
+                        const parsed = JSON.parse(visit.prescriptionMedicines);
+                        if (Array.isArray(parsed)) meds = parsed;
+                      }
+                    } catch { /* ignore malformed */ }
+
+                    if (!hasPrescriptionDrawings && !hasPrescriptionAttachments && meds.length === 0) {
                       return (
                         <p className="text-muted-foreground text-center py-4">
                           {language === 'ar' ? 'لا توجد روشتة مسجلة' : 'No prescription recorded'}
@@ -1591,6 +1665,41 @@ const VisitDetailPage: React.FC = () => {
 
                     return (
                       <div>
+                        {meds.length > 0 && (
+                          <div className="mb-6 overflow-x-auto">
+                            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                              <Pill className="w-4 h-4 text-primary" />
+                              {language === 'ar' ? 'الأدوية' : 'Medicines'}
+                            </h3>
+                            <table className="w-full text-sm border border-border rounded-lg overflow-hidden">
+                              <thead>
+                                <tr className="bg-muted/60 text-start">
+                                  <th className="px-2 py-1.5 w-8 text-center">#</th>
+                                  <th className="px-2 py-1.5 text-start">{language === 'ar' ? 'الدواء' : 'Medicine'}</th>
+                                  <th className="px-2 py-1.5 text-start">{language === 'ar' ? 'الجرعة' : 'Dose'}</th>
+                                  <th className="px-2 py-1.5 text-start">{language === 'ar' ? 'التكرار' : 'Frequency'}</th>
+                                  <th className="px-2 py-1.5 text-start">{language === 'ar' ? 'المدة' : 'Duration'}</th>
+                                  <th className="px-2 py-1.5 text-start">{language === 'ar' ? 'التعليمات' : 'Instructions'}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {meds.map((m, i) => (
+                                  <tr key={i} className="border-t border-border">
+                                    <td className="px-2 py-1.5 text-center text-muted-foreground">{i + 1}</td>
+                                    <td className="px-2 py-1.5">
+                                      <div className="font-medium">{m.name}</div>
+                                      {m.scientific && <div className="text-xs text-muted-foreground">{m.scientific}</div>}
+                                    </td>
+                                    <td className="px-2 py-1.5">{m.dose}</td>
+                                    <td className="px-2 py-1.5">{m.frequency}</td>
+                                    <td className="px-2 py-1.5">{m.duration}</td>
+                                    <td className="px-2 py-1.5">{m.instructions}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                         {hasPrescriptionDrawings && (
                           <>
                             {/* Page Tabs - Always in English */}

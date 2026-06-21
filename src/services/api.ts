@@ -356,6 +356,15 @@ class ApiClient {
     return this.request<void>('/notifications', { method: 'DELETE' });
   }
 
+  // Drugs (Egyptian drug database search)
+  async getDrugs(query: string, limit = 30) {
+    const q = query.trim();
+    if (q.length < 2) return [] as DrugSearchResult[];
+    return this.request<DrugSearchResult[]>(
+      `/drugs?q=${encodeURIComponent(q)}&limit=${limit}`
+    );
+  }
+
   // Settings
   async getSettings() {
     return this.request<Settings>('/settings');
@@ -539,6 +548,8 @@ export interface Visit {
   radiologyRequest: string | null;
   // Medical Checklists (JSON string)
   medicalChecklists: string | null;
+  // Prescription Medicines (JSON string - structured Rx lines)
+  prescriptionMedicines: string | null;
   vitals: {
     bloodPressure: string;
     temperature: number;
@@ -576,6 +587,8 @@ export interface CreateVisitData {
   radiologyRequest?: string;
   // Medical Checklists (JSON string)
   medicalChecklists?: string;
+  // Prescription Medicines (JSON string)
+  prescriptionMedicines?: string | null;
   vitals?: {
     bloodPressure?: string;
     temperature?: number;
@@ -605,11 +618,37 @@ export interface UpdateVisitData {
   labTestRequest?: string | null;
   radiologyRequest?: string | null;
   medicalChecklists?: string | null;
+  prescriptionMedicines?: string | null;
   vitals?: {
     bloodPressure?: string;
     temperature?: number;
     weight?: number;
   };
+}
+
+// A single drug returned by the Egyptian drug database search (GET /api/drugs).
+export interface DrugSearchResult {
+  id: number;
+  commercialNameEn: string | null;
+  commercialNameAr: string | null;
+  scientificName: string | null;
+  manufacturer: string | null;
+  drugClass: string | null;
+  route: string | null;
+  priceEgp: number | null;
+}
+
+// A structured prescription line built in the medicine picker and stored as
+// JSON in Visit.prescriptionMedicines.
+export interface PrescriptionMedicine {
+  drugId: number | null;
+  name: string;
+  nameAr?: string;
+  scientific?: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
 }
 
 export interface PatientRecord {

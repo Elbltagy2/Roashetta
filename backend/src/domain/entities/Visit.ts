@@ -37,6 +37,8 @@ export interface Visit {
   radiologyRequest: string | null;
   // Medical Checklists (JSON string - all 7 checklist forms combined)
   medicalChecklists: string | null;
+  // Prescription Medicines (JSON string - structured Rx lines from the drug picker)
+  prescriptionMedicines: string | null;
   vitals: Vitals;
   createdAt: Date;
   updatedAt: Date;

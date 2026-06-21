@@ -50,6 +50,8 @@ import { HPI_CATEGORIES } from '@/data/hpiItems';
 import { DRUG_HISTORY_CATEGORIES } from '@/data/drugHistoryItems';
 import { FAMILY_HISTORY_CATEGORIES } from '@/data/familyHistoryItems';
 import { CURRENT_MEDICATION_CATEGORIES } from '@/data/currentMedicationItems';
+import MedicineSelectForm from '@/components/visit/MedicineSelectForm';
+import { PrescriptionMedicine } from '@/services/api';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData, Visit, Patient } from '@/contexts/DataContext';
 import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
@@ -296,6 +298,16 @@ const NewVisitPage: React.FC = () => {
           }
         }
 
+        // Load prescription medicines (structured Rx lines)
+        if (visitToEdit.prescriptionMedicines) {
+          try {
+            const meds = JSON.parse(visitToEdit.prescriptionMedicines);
+            if (Array.isArray(meds)) setPrescriptionMedicines(meds);
+          } catch (e) {
+            console.error('Failed to parse prescription medicines:', e);
+          }
+        }
+
         // Load radiology request
         if (visitToEdit.radiologyRequest) {
           try {
@@ -374,7 +386,11 @@ const NewVisitPage: React.FC = () => {
   const [prescriptionPage1, setPrescriptionPage1] = useState<string>('');
   const [prescriptionPage2, setPrescriptionPage2] = useState<string>('');
   const [prescriptionPage3, setPrescriptionPage3] = useState<string>('');
-  const [activePrescriptionPage, setActivePrescriptionPage] = useState<1 | 2 | 3>(1);
+  // Prescription section tab: the medicine picker or one of the 3 canvas pages
+  const [activePrescriptionTab, setActivePrescriptionTab] = useState<'medicines' | 1 | 2 | 3>('medicines');
+
+  // Prescription medicines (structured Rx lines from the drug picker)
+  const [prescriptionMedicines, setPrescriptionMedicines] = useState<PrescriptionMedicine[]>([]);
 
   // Medical History drawings
   const [pastMedicalHistoryDrawing, setPastMedicalHistoryDrawing] = useState<string>('');
@@ -466,6 +482,50 @@ const NewVisitPage: React.FC = () => {
       currentMed: isArabic ? 'الأدوية الحالية' : 'Current Medication',
       prescription: isArabic ? 'الروشتة' : 'Prescription',
       radiology: isArabic ? 'الأشعة' : 'Radiology',
+      medicines: isArabic ? 'الأدوية' : 'Medicines',
+      dose: isArabic ? 'الجرعة' : 'Dose',
+      frequency: isArabic ? 'التكرار' : 'Frequency',
+      duration: isArabic ? 'المدة' : 'Duration',
+      instructions: isArabic ? 'التعليمات' : 'Instructions',
+    };
+
+    const esc = (s: string) =>
+      String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Render the structured Rx lines (from the drug picker) as a numbered table.
+    const medicinesSection = (json: string | null | undefined) => {
+      if (!json) return '';
+      let meds: { name?: string; scientific?: string; dose?: string; frequency?: string; duration?: string; instructions?: string }[] = [];
+      try { meds = JSON.parse(json); } catch { return ''; }
+      if (!Array.isArray(meds) || meds.length === 0) return '';
+      const rows = meds.map((m, i) => `
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e5e7eb;text-align:center;">${i + 1}</td>
+          <td style="padding:6px 8px;border:1px solid #e5e7eb;">
+            <div style="font-weight:600;">${esc(m.name || '')}</div>
+            ${m.scientific ? `<div style="font-size:11px;color:#6b7280;">${esc(m.scientific)}</div>` : ''}
+          </td>
+          <td style="padding:6px 8px;border:1px solid #e5e7eb;">${esc(m.dose || '')}</td>
+          <td style="padding:6px 8px;border:1px solid #e5e7eb;">${esc(m.frequency || '')}</td>
+          <td style="padding:6px 8px;border:1px solid #e5e7eb;">${esc(m.duration || '')}</td>
+          <td style="padding:6px 8px;border:1px solid #e5e7eb;">${esc(m.instructions || '')}</td>
+        </tr>`).join('');
+      return `<div style="margin-top:16px;">
+        <h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">${t2.prescription} — ${t2.medicines}</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:#f3f4f6;">
+              <th style="padding:6px 8px;border:1px solid #e5e7eb;width:32px;">#</th>
+              <th style="padding:6px 8px;border:1px solid #e5e7eb;text-align:start;">${t2.medicines}</th>
+              <th style="padding:6px 8px;border:1px solid #e5e7eb;text-align:start;">${t2.dose}</th>
+              <th style="padding:6px 8px;border:1px solid #e5e7eb;text-align:start;">${t2.frequency}</th>
+              <th style="padding:6px 8px;border:1px solid #e5e7eb;text-align:start;">${t2.duration}</th>
+              <th style="padding:6px 8px;border:1px solid #e5e7eb;text-align:start;">${t2.instructions}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
     };
 
     const drawingSection = (label: string, urls: (string | null | undefined)[]) => {
@@ -510,6 +570,7 @@ const NewVisitPage: React.FC = () => {
       ${drawingSection(t2.drugHistory, [v.drugHistoryDrawing])}
       ${drawingSection(t2.familyHistory, [v.familyHistoryDrawing])}
       ${drawingSection(t2.currentMed, [v.currentMedicationDrawing])}
+      ${medicinesSection(v.prescriptionMedicines)}
       ${drawingSection(t2.prescription, [v.notesDrawing, v.notesDrawing2, v.notesDrawing3])}
       ${drawingSection(t2.radiology, [v.radiologyDrawing, v.radiologyDrawing2, v.radiologyDrawing3])}
     </div>`;
@@ -601,6 +662,7 @@ const NewVisitPage: React.FC = () => {
       prescriptionPage1,
       prescriptionPage2,
       prescriptionPage3,
+      prescriptionMedicines,
       pastMedicalHistoryDrawing,
       hpiDrawing,
       drugHistoryDrawing,
@@ -631,7 +693,7 @@ const NewVisitPage: React.FC = () => {
     [
       visitType, price, formData,
       chiefComplaintDrawing, diagnosisDrawing,
-      prescriptionPage1, prescriptionPage2, prescriptionPage3,
+      prescriptionPage1, prescriptionPage2, prescriptionPage3, prescriptionMedicines,
       pastMedicalHistoryDrawing, hpiDrawing, drugHistoryDrawing,
       familyHistoryDrawing, currentMedicationDrawing,
       radiologyPage1, radiologyPage2, radiologyPage3,
@@ -678,6 +740,7 @@ const NewVisitPage: React.FC = () => {
     if (typeof d.prescriptionPage1 === 'string') setPrescriptionPage1(d.prescriptionPage1);
     if (typeof d.prescriptionPage2 === 'string') setPrescriptionPage2(d.prescriptionPage2);
     if (typeof d.prescriptionPage3 === 'string') setPrescriptionPage3(d.prescriptionPage3);
+    if (Array.isArray(d.prescriptionMedicines)) setPrescriptionMedicines(d.prescriptionMedicines as PrescriptionMedicine[]);
     if (typeof d.pastMedicalHistoryDrawing === 'string') setPastMedicalHistoryDrawing(d.pastMedicalHistoryDrawing);
     if (typeof d.hpiDrawing === 'string') setHpiDrawing(d.hpiDrawing);
     if (typeof d.drugHistoryDrawing === 'string') setDrugHistoryDrawing(d.drugHistoryDrawing);
@@ -1473,6 +1536,79 @@ const NewVisitPage: React.FC = () => {
     downloadPdf(getDrawingHtml(drawingData, title), `${title}-${today}`, 'a5');
   };
 
+  // Build a printable A4 prescription from the structured medicine rows
+  // (clinic letterhead + numbered Rx table). Mirrors getChecklistHtml.
+  const getMedicinesHtml = () => {
+    const today = new Date();
+    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+    const color = '#0d9488';
+    const esc = (s: string) =>
+      String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const rows = prescriptionMedicines.map((m, i) => `
+      <tr>
+        <td class="num">${i + 1}</td>
+        <td><div class="med-name">${esc(m.name)}</div>${m.scientific ? `<div class="med-sci">${esc(m.scientific)}</div>` : ''}</td>
+        <td>${esc(m.dose)}</td>
+        <td>${esc(m.frequency)}</td>
+        <td>${esc(m.duration)}</td>
+        <td>${esc(m.instructions)}</td>
+      </tr>`).join('');
+
+    return `<!DOCTYPE html><html><head><title>Prescription</title><style>
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      @page { size: A4; margin: 15mm; }
+      body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.4; }
+      .container { max-width: 210mm; margin: 0 auto; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 2px solid ${color}; margin-bottom: 15px; }
+      .header-left { text-align: left; } .header-right { text-align: right; direction: rtl; }
+      .doctor-name { font-size: 14px; font-weight: bold; color: ${color}; }
+      .credentials { font-size: 10px; color: #374151; }
+      .patient-info { display: flex; gap: 40px; margin-bottom: 16px; font-size: 13px; }
+      .patient-info span { font-weight: bold; }
+      .rx { font-size: 26px; font-weight: bold; color: ${color}; margin-bottom: 8px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { background: ${color}; color: white; padding: 7px 8px; text-align: left; }
+      td { padding: 7px 8px; border: 1px solid #e5e7eb; vertical-align: top; }
+      tr:nth-child(even) td { background: #f3f4f6; }
+      .num { text-align: center; width: 32px; }
+      .med-name { font-weight: bold; } .med-sci { font-size: 10px; color: #6b7280; }
+      .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #d1d5db; display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; }
+    </style></head><body><div class="container">
+      <div class="header"><div class="header-left"><p class="doctor-name">Dr/ Sherif Ali . MD, MRCP (UK)</p><p class="credentials">Consultant Internal Medicine & Nephrology</p></div><div class="header-right"><p class="doctor-name">د/ شريف علي رضا</p><p class="credentials">استشاري الباطنة العامة والكلى</p></div></div>
+      <div class="patient-info"><div>Name: <span>${patient?.name || '________________'}</span></div><div>Date: <span>${dateStr}</span></div></div>
+      <div class="rx">℞</div>
+      <table>
+        <thead><tr>
+          <th class="num">#</th>
+          <th>Medicine / الدواء</th>
+          <th>Dose / الجرعة</th>
+          <th>Frequency / التكرار</th>
+          <th>Duration / المدة</th>
+          <th>Instructions / التعليمات</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="footer"><div>مستشفى تبارك/النسائم - 16552 - 15452</div><div>١٨ عمارات خلف العبور - مصر الجديدة - ت: 01554343147</div></div>
+    </div></body></html>`;
+  };
+
+  const handlePrintMedicines = () => {
+    if (prescriptionMedicines.length === 0) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(getMedicinesHtml());
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 250);
+  };
+
+  const handleDownloadMedicines = () => {
+    if (prescriptionMedicines.length === 0) return;
+    const today = new Date().toISOString().split('T')[0];
+    downloadPdf(getMedicinesHtml(), `prescription-medicines-${today}`, 'a4');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1517,6 +1653,9 @@ const NewVisitPage: React.FC = () => {
           );
           return hasAny ? JSON.stringify(mc) : null;
         })(),
+        prescriptionMedicines: prescriptionMedicines.length
+          ? JSON.stringify(prescriptionMedicines)
+          : null,
         vitals: {
           bloodPressure: formData.bloodPressure || '120/80',
           temperature: parseFloat(formData.temperature) || 37,
@@ -2278,8 +2417,12 @@ const NewVisitPage: React.FC = () => {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const currentDrawing = activePrescriptionPage === 1 ? prescriptionPage1 : activePrescriptionPage === 2 ? prescriptionPage2 : prescriptionPage3;
-                      handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionPage}` : `Prescription - Page ${activePrescriptionPage}`);
+                      if (activePrescriptionTab === 'medicines') {
+                        handlePrintMedicines();
+                        return;
+                      }
+                      const currentDrawing = activePrescriptionTab === 1 ? prescriptionPage1 : activePrescriptionTab === 2 ? prescriptionPage2 : prescriptionPage3;
+                      handlePrint(currentDrawing, language === 'ar' ? `الروشتة - صفحة ${activePrescriptionTab}` : `Prescription - Page ${activePrescriptionTab}`);
                     }}
                     className="gap-1 h-8"
                   >
@@ -2291,8 +2434,12 @@ const NewVisitPage: React.FC = () => {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const currentDrawing = activePrescriptionPage === 1 ? prescriptionPage1 : activePrescriptionPage === 2 ? prescriptionPage2 : prescriptionPage3;
-                      handleDownloadDrawing(currentDrawing, language === 'ar' ? `الروشتة-صفحة-${activePrescriptionPage}` : `prescription-page-${activePrescriptionPage}`);
+                      if (activePrescriptionTab === 'medicines') {
+                        handleDownloadMedicines();
+                        return;
+                      }
+                      const currentDrawing = activePrescriptionTab === 1 ? prescriptionPage1 : activePrescriptionTab === 2 ? prescriptionPage2 : prescriptionPage3;
+                      handleDownloadDrawing(currentDrawing, language === 'ar' ? `الروشتة-صفحة-${activePrescriptionTab}` : `prescription-page-${activePrescriptionTab}`);
                     }}
                     className="gap-1 h-8"
                   >
@@ -2311,16 +2458,32 @@ const NewVisitPage: React.FC = () => {
                   className="overflow-hidden"
                 >
                   <div className="p-6 pt-2 border-t border-border" ref={prescriptionRef}>
-                    {/* Page Tabs - Always in English */}
-                    <div className="flex items-center gap-2 mb-4" dir="ltr">
+                    {/* Tabs: Medicines picker + 3 canvas pages */}
+                    <div className="flex items-center gap-2 mb-4 flex-wrap" dir="ltr">
+                      <button
+                        type="button"
+                        onClick={() => setActivePrescriptionTab('medicines')}
+                        className={cn(
+                          'px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-1.5',
+                          activePrescriptionTab === 'medicines'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                        )}
+                      >
+                        <Pill className="w-4 h-4" />
+                        {language === 'ar' ? 'الأدوية' : 'Medicines'}
+                        {prescriptionMedicines.length > 0 && (
+                          <span className="ms-1 text-xs bg-white/25 rounded-full px-1.5">{prescriptionMedicines.length}</span>
+                        )}
+                      </button>
                       {[1, 2, 3].map((page) => (
                         <button
                           key={page}
                           type="button"
-                          onClick={() => setActivePrescriptionPage(page as 1 | 2 | 3)}
+                          onClick={() => setActivePrescriptionTab(page as 1 | 2 | 3)}
                           className={cn(
                             'px-4 py-2 rounded-lg font-medium transition-colors',
-                            activePrescriptionPage === page
+                            activePrescriptionTab === page
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted hover:bg-muted/80 text-muted-foreground'
                           )}
@@ -2330,8 +2493,15 @@ const NewVisitPage: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Page Content */}
-                    {activePrescriptionPage === 1 && (
+                    {/* Tab Content */}
+                    {activePrescriptionTab === 'medicines' && (
+                      <MedicineSelectForm
+                        value={prescriptionMedicines}
+                        onChange={setPrescriptionMedicines}
+                        language={language}
+                      />
+                    )}
+                    {activePrescriptionTab === 1 && (
                       <PrescriptionTemplate
                         onSave={setPrescriptionPage1}
                         placeholder="Write prescription here (Page 1)..."
@@ -2341,7 +2511,7 @@ const NewVisitPage: React.FC = () => {
                         globalPenSize={globalPenSize}
                       />
                     )}
-                    {activePrescriptionPage === 2 && (
+                    {activePrescriptionTab === 2 && (
                       <PrescriptionTemplate
                         onSave={setPrescriptionPage2}
                         placeholder="Write prescription here (Page 2)..."
@@ -2351,7 +2521,7 @@ const NewVisitPage: React.FC = () => {
                         globalPenSize={globalPenSize}
                       />
                     )}
-                    {activePrescriptionPage === 3 && (
+                    {activePrescriptionTab === 3 && (
                       <PrescriptionTemplate
                         onSave={setPrescriptionPage3}
                         placeholder="Write prescription here (Page 3)..."
