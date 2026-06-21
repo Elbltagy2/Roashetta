@@ -33,11 +33,13 @@ import { useData, Patient } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { printImage } from '@/lib/download-pdf';
 import { FileViewerModal, ViewerFile } from '@/components/ui/file-viewer-modal';
+import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
 
 const PatientDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, language, direction } = useLanguage();
+  const { toast } = useToast();
   const { isAssistant, isDoctor, hasPermission } = useAuth();
   const {
     getPatientVisits,
@@ -131,13 +133,29 @@ const PatientDetailPage: React.FC = () => {
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const dataUrl = event.target?.result as string;
-        const newRecord = await addPatientRecord(patient.id, {
-          name: file.name,
-          type: file.type,
-          dataUrl,
+        try {
+          const dataUrl = event.target?.result as string;
+          const newRecord = await addPatientRecord(patient.id, {
+            name: file.name,
+            type: file.type,
+            dataUrl,
+          });
+          setLocalPatient(prev => prev ? { ...prev, records: [...prev.records, newRecord] } : null);
+        } catch (error) {
+          console.error('Failed to upload record:', error);
+          toast({
+            title: language === 'ar' ? 'فشل رفع الملف' : 'Upload failed',
+            description: language === 'ar' ? `تعذر حفظ "${file.name}"` : `Could not save "${file.name}"`,
+            variant: 'destructive',
+          });
+        }
+      };
+      reader.onerror = () => {
+        toast({
+          title: language === 'ar' ? 'فشل قراءة الملف' : 'Could not read file',
+          description: file.name,
+          variant: 'destructive',
         });
-        setLocalPatient(prev => prev ? { ...prev, records: [...prev.records, newRecord] } : null);
       };
       reader.readAsDataURL(file);
     });
@@ -160,12 +178,28 @@ const PatientDetailPage: React.FC = () => {
 
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        addPreviousInvestigation(patient.id, {
-          name: file.name,
-          type: file.type,
-          dataUrl,
+      reader.onload = async (event) => {
+        try {
+          const dataUrl = event.target?.result as string;
+          await addPreviousInvestigation(patient.id, {
+            name: file.name,
+            type: file.type,
+            dataUrl,
+          });
+        } catch (error) {
+          console.error('Failed to upload investigation:', error);
+          toast({
+            title: language === 'ar' ? 'فشل رفع الملف' : 'Upload failed',
+            description: language === 'ar' ? `تعذر حفظ "${file.name}"` : `Could not save "${file.name}"`,
+            variant: 'destructive',
+          });
+        }
+      };
+      reader.onerror = () => {
+        toast({
+          title: language === 'ar' ? 'فشل قراءة الملف' : 'Could not read file',
+          description: file.name,
+          variant: 'destructive',
         });
       };
       reader.readAsDataURL(file);
