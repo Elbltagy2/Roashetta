@@ -56,6 +56,9 @@ export class VisitRepository implements IVisitRepository {
     const id = uuidv4();
     const now = new Date().toISOString();
 
+    // Offload every base64 drawing to a file (same as update()), so a freshly
+    // created visit never stores megabytes of base64 in the row. Keeps the DB
+    // small and stops big INSERTs from blowing the request/body limits.
     db.prepare(
       `INSERT INTO visits (
         id, patient_id, doctor_id, visit_type, price,
@@ -75,21 +78,21 @@ export class VisitRepository implements IVisitRepository {
       data.visitType || 'new',
       data.price ?? 0,
       data.chiefComplaint ?? null,
-      data.chiefComplaintDrawing ?? null,
+      this.saveDrawing(id, 'chief_complaint_drawing', data.chiefComplaintDrawing) ?? null,
       data.diagnosis ?? null,
-      data.diagnosisDrawing ?? null,
+      this.saveDrawing(id, 'diagnosis_drawing', data.diagnosisDrawing) ?? null,
       data.notes ?? null,
-      data.notesDrawing ?? null,
-      data.notesDrawing2 ?? null,
-      data.notesDrawing3 ?? null,
-      data.pastMedicalHistoryDrawing ?? null,
-      data.hpiDrawing ?? null,
-      data.drugHistoryDrawing ?? null,
-      data.familyHistoryDrawing ?? null,
-      data.currentMedicationDrawing ?? null,
-      data.radiologyDrawing ?? null,
-      data.radiologyDrawing2 ?? null,
-      data.radiologyDrawing3 ?? null,
+      this.saveDrawing(id, 'notes_drawing', data.notesDrawing) ?? null,
+      this.saveDrawing(id, 'notes_drawing_2', data.notesDrawing2) ?? null,
+      this.saveDrawing(id, 'notes_drawing_3', data.notesDrawing3) ?? null,
+      this.saveDrawing(id, 'past_medical_history_drawing', data.pastMedicalHistoryDrawing) ?? null,
+      this.saveDrawing(id, 'hpi_drawing', data.hpiDrawing) ?? null,
+      this.saveDrawing(id, 'drug_history_drawing', data.drugHistoryDrawing) ?? null,
+      this.saveDrawing(id, 'family_history_drawing', data.familyHistoryDrawing) ?? null,
+      this.saveDrawing(id, 'current_medication_drawing', data.currentMedicationDrawing) ?? null,
+      this.saveDrawing(id, 'radiology_drawing', data.radiologyDrawing) ?? null,
+      this.saveDrawing(id, 'radiology_drawing_2', data.radiologyDrawing2) ?? null,
+      this.saveDrawing(id, 'radiology_drawing_3', data.radiologyDrawing3) ?? null,
       data.labTestRequest ?? null,
       data.radiologyRequest ?? null,
       data.medicalChecklists ?? null,

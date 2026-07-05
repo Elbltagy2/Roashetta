@@ -1686,28 +1686,36 @@ const NewVisitPage: React.FC = () => {
       const alreadyOnServer = (name: string, type: string) =>
         existingAttachments.some(a => a.name === name && a.type === type);
 
-      const uploadAttachments = (items: Attachment[], prefix: string) =>
-        Promise.all(
-          items
-            .filter(att => !persistedAttachmentIds.current.has(att.id))
-            .map(async att => {
-              const name = prefix ? `${prefix} ${att.name}` : att.name;
-              if (!alreadyOnServer(name, att.type)) {
-                await uploadVisitAttachment(savedVisitId, {
-                  name,
-                  type: att.type,
-                  dataUrl: att.dataUrl,
-                });
-              }
-              persistedAttachmentIds.current.add(att.id);
-            })
-        );
+      const pendingUploads = [
+        ...attachments.map(att => ({ att, prefix: '' })),
+        ...prescriptionAttachments.map(att => ({ att, prefix: '[Prescription]' })),
+        ...radiologyAttachments.map(att => ({ att, prefix: '[Radiology]' })),
+      ].filter(({ att }) => !persistedAttachmentIds.current.has(att.id));
 
-      await Promise.all([
-        uploadAttachments(attachments, ''),
-        uploadAttachments(prescriptionAttachments, '[Prescription]'),
-        uploadAttachments(radiologyAttachments, '[Radiology]'),
-      ]);
+      // allSettled (not Promise.all) so one oversized/failed image doesn't
+      // reject the whole batch and mask that the visit itself already saved.
+      const results = await Promise.allSettled(
+        pendingUploads.map(async ({ att, prefix }) => {
+          const name = prefix ? `${prefix} ${att.name}` : att.name;
+          if (!alreadyOnServer(name, att.type)) {
+            await uploadVisitAttachment(savedVisitId, {
+              name,
+              type: att.type,
+              dataUrl: att.dataUrl,
+            });
+          }
+          persistedAttachmentIds.current.add(att.id);
+        })
+      );
+      const failedUploads = results.filter(r => r.status === 'rejected').length;
+      if (failedUploads > 0) {
+        toast({
+          title: language === 'ar'
+            ? `تعذّر رفع ${failedUploads} من ${pendingUploads.length} مرفق`
+            : `${failedUploads} of ${pendingUploads.length} attachments failed to upload`,
+          variant: 'destructive',
+        });
+      }
 
       // Visit was saved to the server — drop the local draft
       clearDraft(draftKey);

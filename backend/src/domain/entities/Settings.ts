@@ -3,6 +3,7 @@ export interface Settings {
   doctorId: string;
   newVisitPrice: number;
   followupVisitPrice: number;
+  backupPath: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -25,6 +25,17 @@ backend/.env
 # Database files (runtime data - never commit patient records)
 *.db
 *.db-tmp
+*.db-shm
+*.db-wal
+*.bak
+*.checkpoint
+
+# Local tooling (not shared)
+.agents/
+.claude/
+.impeccable/
+graphify-out/
+skills-lock.json
 
 # Local tooling (graphify knowledge graph)
 graphify-out/

@@ -66,7 +66,9 @@ class ApiClient {
       }
 
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || 'Request failed');
+      // Prefer the server's `detail` (real cause, e.g. disk full) over the
+      // generic message so failures are diagnosable instead of "An error occurred".
+      throw new Error(error.detail || error.error || error.message || 'Request failed');
     }
 
     if (response.status === 204) {
@@ -375,6 +377,15 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async backupNow() {
+    return this.request<BackupResult>('/settings/backup-now', { method: 'POST' });
+  }
+
+  async browseFolders(path?: string) {
+    const query = path ? `?path=${encodeURIComponent(path)}` : '';
+    return this.request<FolderBrowseResult>(`/settings/browse-folders${query}`);
   }
 
   // Analytics
@@ -778,6 +789,7 @@ export interface Settings {
   doctorId: string;
   newVisitPrice: number;
   followupVisitPrice: number;
+  backupPath: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -785,6 +797,19 @@ export interface Settings {
 export interface UpdateSettingsData {
   newVisitPrice?: number;
   followupVisitPrice?: number;
+  backupPath?: string;
+}
+
+export interface BackupResult {
+  ok: boolean;
+  message: string;
+  destination?: string;
+}
+
+export interface FolderBrowseResult {
+  path: string;            // '' means the drive-roots level
+  parent: string | null;   // null at drive-roots level, '' means "back to drive roots"
+  dirs: { name: string; path: string }[];
 }
 
 // Analytics

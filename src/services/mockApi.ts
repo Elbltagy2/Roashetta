@@ -185,6 +185,8 @@ import type {
   UpdateLabResultData,
   Settings,
   UpdateSettingsData,
+  BackupResult,
+  FolderBrowseResult,
   AnalyticsData,
   Assistant,
   CreateAssistantData,
@@ -622,7 +624,16 @@ class MockApiClient {
       doctorId: 'demo-doctor-1',
       newVisitPrice: 200,
       followupVisitPrice: 100,
+      backupPath: '',
     };
+  }
+
+  async backupNow(): Promise<BackupResult> {
+    return { ok: false, message: 'Backup is not available in demo mode.' };
+  }
+
+  async browseFolders(_path?: string): Promise<FolderBrowseResult> {
+    return { path: '', parent: null, dirs: [] };
   }
 
   async updateSettings(data: UpdateSettingsData): Promise<Settings> {

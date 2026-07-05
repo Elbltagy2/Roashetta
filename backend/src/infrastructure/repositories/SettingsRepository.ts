@@ -13,13 +13,14 @@ export class SettingsRepository {
     const now = new Date().toISOString();
 
     db.prepare(
-      `INSERT INTO settings (id, doctor_id, new_visit_price, followup_visit_price, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO settings (id, doctor_id, new_visit_price, followup_visit_price, backup_path, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.doctorId,
       data.newVisitPrice,
       data.followupVisitPrice,
+      data.backupPath ?? '',
       now,
       now,
     );
@@ -39,6 +40,10 @@ export class SettingsRepository {
       fields.push('followup_visit_price = ?');
       values.push(data.followupVisitPrice);
     }
+    if (data.backupPath !== undefined) {
+      fields.push('backup_path = ?');
+      values.push(data.backupPath);
+    }
 
     if (fields.length > 0) {
       fields.push("updated_at = datetime('now')");
@@ -56,6 +61,7 @@ export class SettingsRepository {
       return this.update(data.doctorId, {
         newVisitPrice: data.newVisitPrice,
         followupVisitPrice: data.followupVisitPrice,
+        backupPath: data.backupPath,
       });
     }
     return this.create(data);
@@ -67,6 +73,7 @@ export class SettingsRepository {
       doctorId: row.doctor_id as string,
       newVisitPrice: typeof row.new_visit_price === 'string' ? parseFloat(row.new_visit_price) : (row.new_visit_price as number) || 0,
       followupVisitPrice: typeof row.followup_visit_price === 'string' ? parseFloat(row.followup_visit_price) : (row.followup_visit_price as number) || 0,
+      backupPath: (row.backup_path as string) || '',
       createdAt: new Date(row.created_at as string),
       updatedAt: new Date(row.updated_at as string),
     };
