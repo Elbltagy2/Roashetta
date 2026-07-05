@@ -10,7 +10,7 @@ import { exec } from 'child_process';
 import routes from './presentation/routes';
 import { errorHandler } from './presentation/middleware/errorHandler';
 import { initializeSocketServer } from './infrastructure/socket/socketServer';
-import { initializeDatabase, closeDatabase, getStorageDir } from './infrastructure/database/config';
+import { initializeDatabase, closeDatabase, getStorageDir, backupToUsb } from './infrastructure/database/config';
 import { validateLicenseKey } from './utils/license';
 import { updater } from './infrastructure/updater/Updater';
 import { APP_VERSION } from './utils/version';
@@ -82,8 +82,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -282,20 +282,17 @@ process.on('exit', () => {
   releaseLock();
 });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\nShutting down gracefully...');
+// Graceful shutdown — export to USB (end of day) before closing the DB.
+async function shutdown(signal: string): Promise<void> {
+  console.log(`\nShutting down gracefully (${signal})...`);
+  try { await backupToUsb(); } catch { /* backupToUsb already logs; never block exit */ }
   closeDatabase();
   releaseLock();
   process.exit(0);
-});
+}
 
-process.on('SIGTERM', () => {
-  console.log('\nShutting down gracefully...');
-  closeDatabase();
-  releaseLock();
-  process.exit(0);
-});
+process.on('SIGINT', () => { shutdown('SIGINT'); });
+process.on('SIGTERM', () => { shutdown('SIGTERM'); });
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception — saving database before exit:', err);

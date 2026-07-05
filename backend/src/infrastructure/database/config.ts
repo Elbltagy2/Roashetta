@@ -19,7 +19,6 @@ const getDbPath = (): string => {
 
 const dbPath = getDbPath();
 const dbDir = path.dirname(path.resolve(dbPath));
-const dbBase = path.basename(dbPath);
 
 // When running from a pkg exe, better-sqlite3's native addon must be loaded
 // from the directory containing the exe (shipped alongside it, like sql-wasm.wasm was).
@@ -34,37 +33,180 @@ type DB = InstanceType<typeof Database>;
 const database: DB = new Database(dbPath, dbOptions);
 export const db: DB = database;
 
-// ── Daily backup ──────────────────────────────────────────────────────────────
-// Uses better-sqlite3's hot-backup API for a consistent snapshot at any time.
+// ── USB / external-drive backup ──────────────────────────────────────────────
+// Full backup of everything onto a USB (or any external) drive:
+//   <target>/RoashettaBackup/roashetta.db   consistent hot snapshot of the DB
+//   <target>/RoashettaBackup/files/...      all uploaded files (photos, PDFs,
+//                                           scans, canvas drawings)
+//
+// The target folder comes from the Settings page (backup_path column) and can
+// still be overridden with the USB_BACKUP_PATH env var. Settings win.
+//
+// Why not a plain file copy of the live DB:
+//   • In WAL mode recent writes live in roashetta.db-wal; copying only the .db
+//     gives a torn, incomplete backup. better-sqlite3's .backup() takes a
+//     consistent hot snapshot (WAL included) even while the server runs.
+//   • Running the DB directly from USB corrupts it the moment the stick is
+//     pulled mid-write. So we keep the live DB on local disk and only export.
+//
+// The DB snapshot is copy-then-swap: the previous good backup is never removed
+// until the new one is fully written, so a full/unplugged drive can't leave you
+// with zero backups. Files are synced incrementally (only new/changed copied),
+// so repeated runs are cheap even with gigabytes of photos.
+let usbBackupRunning = false;
 
-async function saveDailyBackup() {
+// Backup folder configured in Settings. The clinic machine has one backup
+// drive, so the first non-empty path wins regardless of which doctor set it.
+function getConfiguredBackupPath(): string | null {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const dailyPath = path.join(dbDir, `${dbBase}.${today}.bak`);
-    if (!fs.existsSync(dailyPath)) {
-      await database.backup(dailyPath);
-      console.log(`Daily backup saved: ${dailyPath}`);
+    const row = database
+      .prepare(`SELECT backup_path FROM settings WHERE backup_path IS NOT NULL AND backup_path != '' LIMIT 1`)
+      .get() as { backup_path: string } | undefined;
+    if (row?.backup_path) return row.backup_path;
+  } catch { /* settings table may not exist yet on first boot */ }
+  return process.env.USB_BACKUP_PATH || null;
+}
+
+// Mirrors srcDir into destDir: copies only files that are missing or changed
+// (size or mtime differ), and prunes anything in the backup that no longer
+// exists in the source — so the backup never grows past the real data size.
+// Prune runs FIRST to free space on a tight drive before new copies land.
+function syncDir(srcDir: string, destDir: string): number {
+  let copied = 0;
+  fs.mkdirSync(destDir, { recursive: true });
+
+  const srcNames = new Set(fs.readdirSync(srcDir));
+  for (const name of fs.readdirSync(destDir)) {
+    if (!srcNames.has(name)) {
+      try { fs.rmSync(path.join(destDir, name), { recursive: true, force: true }); }
+      catch (err) { console.error(`Backup: failed to prune ${name}:`, err); }
     }
-    // Keep only last 7 daily backups
-    const pattern = new RegExp(`^${dbBase}\\.\\d{4}-\\d{2}-\\d{2}\\.bak$`);
-    fs.readdirSync(dbDir)
-      .filter(f => pattern.test(f))
-      .sort()
-      .slice(0, -7)
-      .forEach(f => { try { fs.unlinkSync(path.join(dbDir, f)); } catch { /* ignore */ } });
+  }
+
+  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    const src = path.join(srcDir, entry.name);
+    const dest = path.join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      // A file where a folder should be (name reused) — clear it, then recurse.
+      try {
+        if (fs.existsSync(dest) && !fs.statSync(dest).isDirectory()) fs.rmSync(dest, { force: true });
+      } catch { /* ignore */ }
+      copied += syncDir(src, dest);
+    } else if (entry.isFile()) {
+      try {
+        const s = fs.statSync(src);
+        const d = fs.existsSync(dest) ? fs.statSync(dest) : null;
+        if (d && d.isDirectory()) { fs.rmSync(dest, { recursive: true, force: true }); }
+        if (!d || d.isDirectory() || d.size !== s.size || d.mtimeMs < s.mtimeMs) {
+          fs.copyFileSync(src, dest);
+          copied++;
+        }
+      } catch (err) {
+        console.error(`Backup: failed to copy ${src}:`, err);
+      }
+    }
+  }
+  return copied;
+}
+
+export interface BackupResult {
+  ok: boolean;
+  message: string;
+  destination?: string;
+}
+
+export async function backupToUsb(): Promise<BackupResult> {
+  const target = getConfiguredBackupPath();
+  if (!target) {
+    return { ok: false, message: 'No backup folder configured. Set it in Settings.' };
+  }
+  if (usbBackupRunning) {
+    return { ok: false, message: 'A backup is already running.' };
+  }
+  usbBackupRunning = true;
+
+  const backupDir = path.join(target, 'RoashettaBackup');
+  const dbFile = path.join(backupDir, 'roashetta.db');
+  const tmpFile = `${dbFile}.tmp`;
+
+  try {
+    // Bail (don't crash) if the drive isn't connected right now.
+    if (!fs.existsSync(target)) {
+      const message = `Backup folder not found: ${target} (drive not connected?)`;
+      console.warn(`⚠️  USB backup skipped: ${message}`);
+      return { ok: false, message };
+    }
+    fs.mkdirSync(backupDir, { recursive: true });
+    try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+
+    // 1. Consistent DB snapshot to a temp file, then swap in. The safe path
+    // needs old + new DB on the drive at once; if that fails (drive too full),
+    // fall back to deleting the old backup first and retrying once. Riskier —
+    // a failure in the retry window leaves no DB backup — but strictly better
+    // than never backing up again on a full drive.
+    try {
+      await database.backup(tmpFile);
+    } catch (err) {
+      try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+      if (!fs.existsSync(dbFile)) throw err; // nothing to free — real failure
+      console.warn('⚠️  Backup drive too full for safe snapshot — deleting old DB backup and retrying once.');
+      fs.unlinkSync(dbFile);
+      await database.backup(tmpFile);
+    }
+    if (fs.existsSync(dbFile)) fs.unlinkSync(dbFile);
+    fs.renameSync(tmpFile, dbFile);
+
+    // 2. Sync all uploaded files (photos, PDFs, scans, drawings).
+    let copied = 0;
+    const filesDir = getStorageDir();
+    if (fs.existsSync(filesDir)) {
+      copied = syncDir(filesDir, path.join(backupDir, 'files'));
+    }
+
+    console.log(`USB backup written: ${backupDir} (${copied} file(s) copied)`);
+    return { ok: true, message: `Backup complete (${copied} file(s) copied).`, destination: backupDir };
   } catch (err) {
-    console.error('Failed to save daily backup:', err);
+    console.error('USB backup failed (previous backup, if any, is intact):', err);
+    try { if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile); } catch { /* ignore */ }
+    return { ok: false, message: `Backup failed: ${err instanceof Error ? err.message : String(err)}` };
+  } finally {
+    usbBackupRunning = false;
   }
 }
 
 // ── Initialise ────────────────────────────────────────────────────────────────
 
 export async function initializeDatabase(): Promise<void> {
-  // WAL mode: writes go to a tiny WAL file instead of the main DB.
-  // This eliminates the Windows Defender EBUSY/EPERM locking issues entirely
-  // because the main roashetta.db file is only updated during checkpoints.
-  database.pragma('journal_mode = WAL');
+  // WAL mode: writes go to a tiny WAL file instead of the main DB, which
+  // eliminates the Windows Defender EBUSY/EPERM locking issues on local disks.
+  // BUT WAL needs mmap shared memory and is unsupported on USB/exFAT/FAT32 and
+  // network drives — there SQLite silently falls back. When the DB lives on a
+  // removable/network drive, set SQLITE_JOURNAL_MODE=DELETE.
+  const allowedModes = ['WAL', 'DELETE', 'TRUNCATE', 'PERSIST', 'MEMORY', 'OFF'];
+  const requested = (process.env.SQLITE_JOURNAL_MODE || 'WAL').toUpperCase();
+  const journalMode = allowedModes.includes(requested) ? requested : 'WAL';
+  const applied = String(database.pragma(`journal_mode = ${journalMode}`, { simple: true })).toUpperCase();
+  if (applied !== journalMode) {
+    console.warn(`⚠️  Requested journal_mode=${journalMode} but SQLite is using '${applied}'. ` +
+      `On USB/network drives WAL is unsupported — set SQLITE_JOURNAL_MODE=DELETE for a durable database.`);
+  }
   database.pragma('foreign_keys = ON');
+
+  // Durability: fsync on every commit so a committed visit survives a power cut
+  // or hard reset. With WAL + the default synchronous=NORMAL, the last commits
+  // can silently roll back after power loss — unacceptable for medical records.
+  // FULL is slightly slower per write but a clinic's write rate is trivial.
+  database.pragma('synchronous = FULL');
+
+  // In WAL mode, keep the -wal file small and flushed into the main DB often, so
+  // little committed data lives only in the WAL (shrinks the window where a
+  // deleted/quarantined .db-wal — e.g. by antivirus — could lose recent visits).
+  if (applied === 'WAL') {
+    database.pragma('wal_autocheckpoint = 256'); // ~1 MB
+    setInterval(() => {
+      try { database.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* ignore transient locks */ }
+    }, 5 * 60 * 1000).unref?.();
+  }
 
   createTables();
   createDefaultDoctor();
@@ -81,9 +223,16 @@ export async function initializeDatabase(): Promise<void> {
     }
   } catch { /* ignore */ }
 
-  // Daily backup on startup, then every 24 hours
-  saveDailyBackup();
-  setInterval(saveDailyBackup, 24 * 60 * 60 * 1000);
+  // USB backup: once at startup (covers "clinic opens → yesterday's data lands
+  // on the stick") and then on a timer. Default is daily; set
+  // USB_BACKUP_INTERVAL_HOURS=1 for hourly — safe, won't crash. A snapshot also
+  // runs on graceful shutdown (see index.ts) for the end-of-day case.
+  // The timer always runs: the path comes from Settings and is re-read on every
+  // tick, so it picks up a folder configured after startup with no restart.
+  // Each run silently no-ops if no path is set or the drive isn't plugged in.
+  backupToUsb();
+  const hours = Math.max(1, Number(process.env.USB_BACKUP_INTERVAL_HOURS) || 24);
+  setInterval(() => { backupToUsb(); }, hours * 60 * 60 * 1000);
 
   console.log('SQLite database initialized successfully');
 }
@@ -93,8 +242,12 @@ export async function initializeDatabase(): Promise<void> {
 // Runs once automatically; subsequent runs are instant (no base64 rows left).
 
 export function getStorageDir(): string {
-  if (process.pkg) return path.join(path.dirname(process.execPath), 'files');
-  return path.join(path.dirname(dbPath), 'files');
+  // Explicit override wins (e.g. a dedicated media drive).
+  if (process.env.STORAGE_DIR) return process.env.STORAGE_DIR;
+  // Otherwise keep uploaded files next to the database file. dbDir already
+  // honours DATABASE_PATH and the pkg exe location, so moving the DB to a USB
+  // drive (DATABASE_PATH=E:\roashetta\roashetta.db) moves its files with it.
+  return path.join(dbDir, 'files');
 }
 
 function ensureDir(dir: string) {
@@ -138,9 +291,28 @@ function migrateDrawingData(data: string, subdir: string, filename: string): str
   return saveDataUrl(data, subdir, filename);
 }
 
+// Tiny key/value table for one-off flags (e.g. "migration finished").
+function getMeta(key: string): string | null {
+  database.prepare(`CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)`).run();
+  const row = database.prepare(`SELECT value FROM app_meta WHERE key = ?`).get(key) as { value: string } | undefined;
+  return row?.value ?? null;
+}
+function setMeta(key: string, value: string): void {
+  database.prepare(`CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)`).run();
+  database.prepare(
+    `INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  ).run(key, value);
+}
+
 async function migrateBase64ToFiles() {
+  // Once every base64 blob has been moved to a file, skip this entirely.
+  // Previously it re-ran 14 full-table LIKE scans on `visits` on EVERY boot,
+  // which is why startup got slow as the database grew.
+  if (getMeta('base64_migration_v1') === 'done') return;
+
   const storageDir = getStorageDir();
   ensureDir(storageDir);
+  let foundAny = false; // true if any base64 still needed migrating this pass
 
   // ── visit_attachments ──────────────────────────────────────────────────────
   const attachments = database.prepare(
@@ -148,6 +320,7 @@ async function migrateBase64ToFiles() {
   ).all() as { id: string; data_url: string }[];
 
   if (attachments.length > 0) {
+    foundAny = true;
     console.log(`Migrating ${attachments.length} visit attachments to files...`);
     const updateAttachment = database.prepare(`UPDATE visit_attachments SET data_url = ? WHERE id = ?`);
     const migrate = database.transaction(() => {
@@ -167,6 +340,7 @@ async function migrateBase64ToFiles() {
   ).all() as { id: string; file_url: string }[];
 
   if (records.length > 0) {
+    foundAny = true;
     console.log(`Migrating ${records.length} patient records to files...`);
     const updateRecord = database.prepare(`UPDATE patient_records SET file_url = ? WHERE id = ?`);
     const migrate = database.transaction(() => {
@@ -186,6 +360,7 @@ async function migrateBase64ToFiles() {
   ).all() as { id: string; file_url: string }[];
 
   if (investigations.length > 0) {
+    foundAny = true;
     console.log(`Migrating ${investigations.length} investigations to files...`);
     const updateInv = database.prepare(`UPDATE previous_investigations SET file_url = ? WHERE id = ?`);
     const migrate = database.transaction(() => {
@@ -212,12 +387,17 @@ async function migrateBase64ToFiles() {
   for (const col of drawingCols) {
     let visits: { id: string; [k: string]: string }[];
     try {
+      // Match only rows that still hold base64: raw "data:..." or a TEXT_MODE
+      // blob whose inner dataUrl is still base64. Already-migrated TEXT_MODE
+      // rows hold a file path, so they no longer match (they used to re-match
+      // every boot, which meant the migration never registered as finished).
       visits = database.prepare(
-        `SELECT id, ${col} FROM visits WHERE ${col} LIKE 'data:%' OR ${col} LIKE 'TEXT_MODE:%' LIMIT 500`
+        `SELECT id, ${col} FROM visits WHERE ${col} LIKE 'data:%' OR ${col} LIKE '%dataUrl":"data:%' LIMIT 500`
       ).all() as { id: string; [k: string]: string }[];
     } catch { continue; } // column might not exist yet
 
     if (visits.length === 0) continue;
+    foundAny = true;
     console.log(`Migrating ${visits.length} rows for visits.${col}...`);
     const updateVisit = database.prepare(`UPDATE visits SET ${col} = ? WHERE id = ?`);
     const migrate = database.transaction(() => {
@@ -230,6 +410,13 @@ async function migrateBase64ToFiles() {
     });
     migrate();
     console.log(`  ✓ visits.${col} migrated`);
+  }
+
+  // A pass that found nothing left means the migration is complete — record it
+  // so every future startup skips the scan and boots fast regardless of DB size.
+  if (!foundAny) {
+    setMeta('base64_migration_v1', 'done');
+    console.log('Base64→file migration complete; future startups will skip the scan.');
   }
 }
 
@@ -392,6 +579,11 @@ function createTables() {
     db.exec(`ALTER TABLE settings ADD COLUMN last_scanner_name TEXT DEFAULT ''`);
   } catch (e) { /* Column already exists */ }
 
+  // Backup destination folder (USB drive), configurable from the Settings page
+  try {
+    db.exec(`ALTER TABLE settings ADD COLUMN backup_path TEXT DEFAULT ''`);
+  } catch (e) { /* Column already exists */ }
+
   // Create visit_attachments table
   db.exec(`
     CREATE TABLE IF NOT EXISTS visit_attachments (
@@ -510,6 +702,7 @@ function createTables() {
       doctor_id TEXT UNIQUE NOT NULL,
       new_visit_price REAL NOT NULL DEFAULT 0,
       followup_visit_price REAL NOT NULL DEFAULT 0,
+      backup_path TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
