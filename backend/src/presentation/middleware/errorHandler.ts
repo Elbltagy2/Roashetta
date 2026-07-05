@@ -21,6 +21,14 @@ export const errorHandler = (
     return res.status(err.statusCode).json({ error: err.message });
   }
 
+  // Respect status codes set by framework errors (e.g. body-parser's 413
+  // "request entity too large") instead of masking them as a generic 500.
+  const status = (err as { status?: number; statusCode?: number }).status
+    ?? (err as { statusCode?: number }).statusCode;
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    return res.status(status).json({ error: err.message });
+  }
+
   // Handle known error messages
   if (err.message.includes('not found')) {
     return res.status(404).json({ error: err.message });
@@ -34,5 +42,12 @@ export const errorHandler = (
     return res.status(409).json({ error: err.message });
   }
 
-  return res.status(500).json({ error: 'Internal server error' });
+  // Local single-tenant desktop app: surface the real reason so operators can
+  // see WHY a save failed (e.g. "SQLITE_FULL: database or disk is full",
+  // "disk I/O error", a checkpoint EBUSY) instead of a useless generic 500.
+  return res.status(500).json({
+    error: 'Internal server error',
+    detail: err.message,
+    code: (err as { code?: string }).code,
+  });
 };

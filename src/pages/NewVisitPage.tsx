@@ -1536,43 +1536,28 @@ const NewVisitPage: React.FC = () => {
         });
         savedVisitId = visit.id;
 
-        // Upload attachments to the newly created visit (only for new visits)
-        if (attachments.length > 0) {
-          await Promise.all(
-            attachments.map(attachment =>
-              uploadVisitAttachment(visit.id, {
-                name: attachment.name,
-                type: attachment.type,
-                dataUrl: attachment.dataUrl,
-              })
-            )
-          );
-        }
+        // Upload every attachment for the new visit. Use allSettled (not
+        // Promise.all) so one oversized/failed image doesn't reject the whole
+        // batch and silently drop the rest — the visit itself is already saved.
+        const uploads = [
+          ...attachments.map(a => ({ name: a.name, type: a.type, dataUrl: a.dataUrl })),
+          ...prescriptionAttachments.map(a => ({ name: `[Prescription] ${a.name}`, type: a.type, dataUrl: a.dataUrl })),
+          ...radiologyAttachments.map(a => ({ name: `[Radiology] ${a.name}`, type: a.type, dataUrl: a.dataUrl })),
+        ];
 
-        // Upload prescription attachments
-        if (prescriptionAttachments.length > 0) {
-          await Promise.all(
-            prescriptionAttachments.map(attachment =>
-              uploadVisitAttachment(visit.id, {
-                name: `[Prescription] ${attachment.name}`,
-                type: attachment.type,
-                dataUrl: attachment.dataUrl,
-              })
-            )
+        if (uploads.length > 0) {
+          const results = await Promise.allSettled(
+            uploads.map(u => uploadVisitAttachment(visit.id, u))
           );
-        }
-
-        // Upload radiology attachments
-        if (radiologyAttachments.length > 0) {
-          await Promise.all(
-            radiologyAttachments.map(attachment =>
-              uploadVisitAttachment(visit.id, {
-                name: `[Radiology] ${attachment.name}`,
-                type: attachment.type,
-                dataUrl: attachment.dataUrl,
-              })
-            )
-          );
+          const failed = results.filter(r => r.status === 'rejected').length;
+          if (failed > 0) {
+            toast({
+              title: language === 'ar'
+                ? `تعذّر رفع ${failed} من ${uploads.length} مرفق`
+                : `${failed} of ${uploads.length} attachments failed to upload`,
+              variant: 'destructive',
+            });
+          }
         }
       }
 
