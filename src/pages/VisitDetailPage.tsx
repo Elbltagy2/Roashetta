@@ -1261,6 +1261,31 @@ const VisitDetailPage: React.FC = () => {
     );
   }
 
+  const parsedChecklists: Record<string, { items: Record<string, boolean>; notes: string }> = (() => {
+    try { return JSON.parse((visit as any).medicalChecklists || 'null') ?? {}; } catch { return {}; }
+  })();
+  const clItems = (key: string): string[] =>
+    Object.entries(parsedChecklists[key]?.items ?? {}).filter(([, v]) => v).map(([k]) => k);
+  const clNotes = (key: string): string => parsedChecklists[key]?.notes || '';
+
+  const ChecklistBlock = ({ sectionKey }: { sectionKey: string }) => {
+    const items = clItems(sectionKey);
+    const notes = clNotes(sectionKey);
+    if (!items.length && !notes) return null;
+    return (
+      <div className="mb-3">
+        {items.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {items.map(item => (
+              <span key={item} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full border border-primary/20">{item}</span>
+            ))}
+          </div>
+        )}
+        {notes && <p className="text-sm text-muted-foreground italic">{notes}</p>}
+      </div>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -1430,59 +1455,72 @@ const VisitDetailPage: React.FC = () => {
               >
                 <div className="p-6 pt-2 space-y-4 border-t border-border">
                   {/* Past Medical History */}
-                  {visit.pastMedicalHistoryDrawing && (
+                  {(visit.pastMedicalHistoryDrawing || clItems('pastMedicalHistory').length > 0 || clNotes('pastMedicalHistory')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <History className="w-4 h-4" />
                         {language === 'ar' ? 'التاريخ المرضي السابق' : 'Past Medical History'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.pastMedicalHistoryDrawing) || ''} alt="Past Medical History" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="pastMedicalHistory" />
+                      {visit.pastMedicalHistoryDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.pastMedicalHistoryDrawing) || ''} alt="Past Medical History" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* HPI */}
-                  {visit.hpiDrawing && (
+                  {(visit.hpiDrawing || clItems('hpi').length > 0 || clNotes('hpi')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <ClipboardList className="w-4 h-4" />
                         {language === 'ar' ? 'تاريخ المرض الحالي' : 'HPI (History of Present Illness)'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.hpiDrawing) || ''} alt="HPI" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="hpi" />
+                      {visit.hpiDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.hpiDrawing) || ''} alt="HPI" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Drug History */}
-                  {visit.drugHistoryDrawing && (
+                  {(visit.drugHistoryDrawing || clItems('drugHistory').length > 0 || clNotes('drugHistory')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <Pill className="w-4 h-4" />
                         {language === 'ar' ? 'تاريخ الأدوية' : 'Drug History'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.drugHistoryDrawing) || ''} alt="Drug History" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="drugHistory" />
+                      {visit.drugHistoryDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.drugHistoryDrawing) || ''} alt="Drug History" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Family History */}
-                  {visit.familyHistoryDrawing && (
+                  {(visit.familyHistoryDrawing || clItems('familyHistory').length > 0 || clNotes('familyHistory')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <Users className="w-4 h-4" />
                         {language === 'ar' ? 'التاريخ العائلي' : 'Family History'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.familyHistoryDrawing) || ''} alt="Family History" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="familyHistory" />
+                      {visit.familyHistoryDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.familyHistoryDrawing) || ''} alt="Family History" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Show message if no medical history data */}
-                  {!visit.pastMedicalHistoryDrawing && !visit.hpiDrawing && !visit.drugHistoryDrawing && !visit.familyHistoryDrawing && (
+                  {!visit.pastMedicalHistoryDrawing && !visit.hpiDrawing && !visit.drugHistoryDrawing && !visit.familyHistoryDrawing
+                   && !clItems('pastMedicalHistory').length && !clItems('hpi').length && !clItems('drugHistory').length && !clItems('familyHistory').length && (
                     <p className="text-muted-foreground text-center py-4">
                       {language === 'ar' ? 'لا يوجد تاريخ طبي مسجل' : 'No medical history recorded'}
                     </p>
@@ -1514,41 +1552,50 @@ const VisitDetailPage: React.FC = () => {
               >
                 <div className="p-6 pt-2 space-y-4 border-t border-border">
                   {/* Chief Complaint */}
-                  {visit.chiefComplaintDrawing && (
+                  {(visit.chiefComplaintDrawing || clItems('chiefComplaint').length > 0 || clNotes('chiefComplaint')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <ClipboardList className="w-4 h-4" />
                         {language === 'ar' ? 'الشكوى الرئيسية' : 'Chief Complaint'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.chiefComplaintDrawing) || ''} alt="Chief Complaint" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="chiefComplaint" />
+                      {visit.chiefComplaintDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.chiefComplaintDrawing) || ''} alt="Chief Complaint" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Diagnosis */}
-                  {visit.diagnosisDrawing && (
+                  {(visit.diagnosisDrawing || clItems('diagnosis').length > 0 || clNotes('diagnosis')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <Stethoscope className="w-4 h-4" />
                         {language === 'ar' ? 'التشخيص' : 'Diagnosis'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.diagnosisDrawing) || ''} alt="Diagnosis" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="diagnosis" />
+                      {visit.diagnosisDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.diagnosisDrawing) || ''} alt="Diagnosis" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Current Medication */}
-                  {visit.currentMedicationDrawing && (
+                  {(visit.currentMedicationDrawing || clItems('currentMedication').length > 0 || clNotes('currentMedication')) && (
                     <div className="border rounded-xl p-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
                         <Pill className="w-4 h-4" />
                         {language === 'ar' ? 'الأدوية الحالية' : 'Current Medication'}
                       </h3>
-                      <div className="bg-white rounded-lg border border-gray-200 p-2">
-                        <img src={getDisplayDataUrl(visit.currentMedicationDrawing) || ''} alt="Current Medication" className="w-full rounded" />
-                      </div>
+                      <ChecklistBlock sectionKey="currentMedication" />
+                      {visit.currentMedicationDrawing && (
+                        <div className="bg-white rounded-lg border border-gray-200 p-2">
+                          <img src={getDisplayDataUrl(visit.currentMedicationDrawing) || ''} alt="Current Medication" className="w-full rounded" />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1580,7 +1627,8 @@ const VisitDetailPage: React.FC = () => {
                   )}
 
                   {/* Show message if no medical notes data */}
-                  {!visit.chiefComplaintDrawing && !visit.diagnosisDrawing && !visit.currentMedicationDrawing && !visit.chiefComplaint && !visit.diagnosis && !visit.notes && (
+                  {!visit.chiefComplaintDrawing && !visit.diagnosisDrawing && !visit.currentMedicationDrawing && !visit.chiefComplaint && !visit.diagnosis && !visit.notes
+                   && !clItems('chiefComplaint').length && !clItems('diagnosis').length && !clItems('currentMedication').length && (
                     <p className="text-muted-foreground text-center py-4">
                       {language === 'ar' ? 'لا توجد ملاحظات طبية مسجلة' : 'No medical notes recorded'}
                     </p>
