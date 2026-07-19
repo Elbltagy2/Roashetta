@@ -40,6 +40,9 @@ skills-lock.json
 # Local tooling (graphify knowledge graph)
 graphify-out/
 
+# Market research outputs (scraped data — not shared)
+market-research/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
