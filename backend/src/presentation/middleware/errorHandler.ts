@@ -15,6 +15,21 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
+  // Checked before anything else on purpose. raw-body raises this with
+  // status 400, so the generic 4xx branch below would swallow it, and the
+  // console.error would print a stack trace for what is not a server fault:
+  // the client hung up mid-upload (page reload, closed laptop, wifi drop).
+  // Nothing was saved for that request.
+  if ((err as { type?: string }).type === 'request.aborted') {
+    const aborted = err as unknown as { expected?: number; received?: number };
+    const detail = aborted.expected
+      ? ` (${aborted.received ?? 0} of ${aborted.expected} bytes)`
+      : '';
+    console.warn(`Upload aborted by client${detail} — nothing was saved for that request.`);
+    // Nothing to send: the socket is already gone.
+    return res.status(499).end();
+  }
+
   console.error('Error:', err);
 
   if (err instanceof AppError) {
@@ -27,13 +42,6 @@ export const errorHandler = (
     ?? (err as { statusCode?: number }).statusCode;
   if (typeof status === 'number' && status >= 400 && status < 500) {
     return res.status(status).json({ error: err.message });
-  }
-
-  // A client that hangs up mid-upload (page reload, closed laptop, wifi drop)
-  // is not a server fault and must not be logged as one. Nothing was saved.
-  if ((err as { type?: string }).type === 'request.aborted') {
-    console.warn('Upload aborted by client — nothing was saved for that request.');
-    return res.status(499).end();
   }
 
   // Handle known error messages

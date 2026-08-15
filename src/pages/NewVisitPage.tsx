@@ -221,6 +221,11 @@ const NewVisitPage: React.FC = () => {
   // re-submit (or edit-then-save) does not upload the same file twice.
   const persistedAttachmentIds = useRef<Set<string>>(new Set());
   const labRequestRef = useRef<HTMLDivElement>(null);
+  // Drawings as they were when this visit was opened for editing, so an
+  // unchanged page can be left out of the save request.
+  const loadedDrawingsRef = useRef<Record<string, string>>({});
+  // True while a save is uploading — used to warn before the page is closed.
+  const savingRef = useRef(false);
 
   const [patient, setLocalPatient] = useState<Patient | null>(null);
   const BackIcon = direction === 'rtl' ? ArrowRight : ArrowLeft;
@@ -286,6 +291,27 @@ const NewVisitPage: React.FC = () => {
         setRadiologyPage1(visitToEdit.radiologyDrawing || '');
         setRadiologyPage2(visitToEdit.radiologyDrawing2 || '');
         setRadiologyPage3(visitToEdit.radiologyDrawing3 || '');
+
+        // Remember what the drawings looked like when loaded. On save, the ones
+        // that still match are left out of the request entirely — the server
+        // skips absent fields, so untouched pages keep their stored image
+        // instead of being re-uploaded. A visit with 13 canvases was sending
+        // ~4 MB on every save, which is what aborted mid-upload.
+        loadedDrawingsRef.current = {
+          chiefComplaintDrawing: visitToEdit.chiefComplaintDrawing || '',
+          diagnosisDrawing: visitToEdit.diagnosisDrawing || '',
+          notesDrawing: visitToEdit.notesDrawing || '',
+          notesDrawing2: visitToEdit.notesDrawing2 || '',
+          notesDrawing3: visitToEdit.notesDrawing3 || '',
+          pastMedicalHistoryDrawing: visitToEdit.pastMedicalHistoryDrawing || '',
+          hpiDrawing: visitToEdit.hpiDrawing || '',
+          drugHistoryDrawing: visitToEdit.drugHistoryDrawing || '',
+          familyHistoryDrawing: visitToEdit.familyHistoryDrawing || '',
+          currentMedicationDrawing: visitToEdit.currentMedicationDrawing || '',
+          radiologyDrawing: visitToEdit.radiologyDrawing || '',
+          radiologyDrawing2: visitToEdit.radiologyDrawing2 || '',
+          radiologyDrawing3: visitToEdit.radiologyDrawing3 || '',
+        };
 
         // Load lab test request
         if (visitToEdit.labTestRequest) {
@@ -1612,6 +1638,7 @@ const NewVisitPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    savingRef.current = true;
     try {
       const visitData = {
         visitType: visitType,
@@ -1666,8 +1693,25 @@ const NewVisitPage: React.FC = () => {
       let savedVisitId: string;
 
       if (isEditMode && visitId) {
-        // Update existing visit
-        const updatedVisit = await updateVisit(visitId, visitData);
+        // Drop drawings that are byte-identical to what was loaded. The server
+        // only writes fields present in the request, so an omitted page keeps
+        // its stored image — this turns a ~4 MB save into a few KB when the
+        // doctor edited text or a single canvas. Sending null would erase them,
+        // so the key must be absent, not empty.
+        const loaded = loadedDrawingsRef.current;
+        const trimmed: Record<string, unknown> = { ...visitData };
+        let skipped = 0;
+        for (const [key, wasValue] of Object.entries(loaded)) {
+          if (trimmed[key] === wasValue || (!trimmed[key] && !wasValue)) {
+            delete trimmed[key];
+            skipped++;
+          }
+        }
+        if (skipped) {
+          console.debug(`[visit save] ${skipped} unchanged drawing(s) left out of the request`);
+        }
+
+        const updatedVisit = await updateVisit(visitId, trimmed as typeof visitData);
         savedVisitId = updatedVisit.id;
       } else {
         // Create new visit
@@ -1728,12 +1772,38 @@ const NewVisitPage: React.FC = () => {
 
       navigate(`/patients/${patientId}/visit/${savedVisitId}`);
     } catch (error) {
+      // The draft is still on disk (clearDraft only runs after the server
+      // confirms), so say so — a failed save looks like lost work otherwise.
+      const message = error instanceof Error ? error.message : '';
+      const isNetwork = !message || /network|failed to fetch|load failed/i.test(message);
       toast({
-        title: language === 'ar' ? 'حدث خطأ' : 'An error occurred',
+        title: language === 'ar' ? 'لم يتم حفظ الزيارة' : 'Visit was not saved',
+        description: isNetwork
+          ? (language === 'ar'
+              ? 'تعذّر الاتصال بالخادم. عملك محفوظ هنا — تحقق من الشبكة ثم اضغط حفظ مرة أخرى.'
+              : 'Could not reach the server. Your work is still here — check the network and press save again.')
+          : message,
         variant: 'destructive',
       });
+    } finally {
+      savingRef.current = false;
     }
   };
+
+  // A reload or tab close during upload aborts the request and the visit is
+  // lost server-side. Warn while a save is in flight, or while a draft holds
+  // work that has not reached the server.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const hasUnsaved = savingRef.current || draftStatus === 'saving' || !!restoredDraft;
+      if (!hasUnsaved) return;
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [draftStatus, restoredDraft]);
 
 
   if (!patient) {

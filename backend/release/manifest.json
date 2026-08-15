@@ -1,7 +1,7 @@
 {
-  "version": "1.3.2",
+  "version": "1.3.3",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "d7f8b2de49e61275603a643be2bf42e16d286afd1ff17db318cb2ea57051f977",
-  "releasedAt": "2026-08-15T16:40:11Z",
-  "notes": "Permission errors no longer masquerade as an expired session: an ownership failure returned 401, which made the web app clear the token and hard-redirect to login, discarding whatever was open — including a prescription mid-save. It now returns 403 and the page stays put. Errors whose message merely contained the word \"Invalid\" were logging users out for the same reason; that rule is gone. Uploads cut off by a client disconnect are recorded as one warning line instead of a server error stack trace. Socket.io and notifications are now off by default (ENABLE_SOCKET=1 / ENABLE_NOTIFICATIONS=1 to restore), which stops the connect/disconnect churn in the server window and keeps the notifications table from growing."
+  "sha256": "95dda52f12cd59e5ade7538407c283e3413a8efc7f65ceca21aa4bdae004011b",
+  "releasedAt": "2026-08-15T16:47:56Z",
+  "notes": "Saving an existing visit now sends only the drawings that changed. A visit with 13 canvases uploaded about 4 MB on every save; editing text or one page now sends a few KB, so there is far less time for the connection to drop mid-upload. Unchanged pages are omitted from the request (not sent as empty), so the stored image is kept. The browser also warns before closing or reloading while a save is uploading or a draft still holds unsaved work, and a failed save now says the visit was not saved and the work is still in the form, instead of a generic error. Fixes the aborted-upload log line from 1.3.2, which never actually ran because the framework's 400 status was handled first — client disconnects now log one warning with the byte count instead of a stack trace."
 }
