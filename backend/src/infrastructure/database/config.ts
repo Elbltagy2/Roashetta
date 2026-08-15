@@ -470,6 +470,20 @@ export function saveFileToStorage(dataUrl: string, subdir: string, filename: str
   return saveDataUrl(dataUrl, subdir, filename);
 }
 
+/**
+ * Strips the "/files/" URL prefix from a stored file reference.
+ *
+ * The web app resolves a stored path like "drawings/x.png" into "/files/drawings/x.png"
+ * for display, and re-sends that resolved value when the visit is saved again. Storing it
+ * verbatim produced rows the server then looked for at <storage>/files/drawings/x.png —
+ * hence the ENOENT 404s. Values are normalised on write and repaired on startup.
+ */
+export function normalizeStoredPath<T extends string | null | undefined>(value: T): T {
+  if (!value || typeof value !== 'string') return value;
+  if (value.startsWith('data:') || value.startsWith('http')) return value;
+  return value.replace(/^\/?files\//, '') as T;
+}
+
 export function deleteFileFromStorage(relativePath: string) {
   if (!relativePath || relativePath.startsWith('data:')) return;
   try {
@@ -631,6 +645,51 @@ function createTables() {
   try {
     db.exec(`ALTER TABLE settings ADD COLUMN backup_path TEXT DEFAULT ''`);
   } catch (e) { /* Column already exists */ }
+
+  // Repair file references that were saved with the web app's display prefix
+  // ("/files/drawings/x.png" instead of "drawings/x.png"). Those rows resolve to
+  // <storage>/files/drawings/... on disk, which does not exist — the images look
+  // fine in the browser but 404 everywhere else and flood the log with ENOENT.
+  try {
+    const drawingCols = [
+      'chief_complaint_drawing', 'diagnosis_drawing',
+      'notes_drawing', 'notes_drawing_2', 'notes_drawing_3',
+      'past_medical_history_drawing', 'hpi_drawing', 'drug_history_drawing',
+      'family_history_drawing', 'current_medication_drawing',
+      'radiology_drawing', 'radiology_drawing_2', 'radiology_drawing_3',
+    ];
+    let repaired = 0;
+    for (const col of drawingCols) {
+      const res = db.prepare(
+        `UPDATE visits SET ${col} = REPLACE(${col}, '/files/', '')
+         WHERE ${col} LIKE '%/files/%' AND ${col} NOT LIKE 'data:%'`
+      ).run();
+      repaired += res.changes ?? 0;
+      const res2 = db.prepare(
+        `UPDATE visits SET ${col} = SUBSTR(${col}, 7)
+         WHERE ${col} LIKE 'files/%'`
+      ).run();
+      repaired += res2.changes ?? 0;
+    }
+    for (const [table, col] of [
+      ['visit_attachments', 'data_url'],
+      ['patient_records', 'file_url'],
+      ['previous_investigations', 'file_url'],
+    ] as [string, string][]) {
+      try {
+        const res = db.prepare(
+          `UPDATE ${table} SET ${col} = REPLACE(${col}, '/files/', '')
+           WHERE ${col} LIKE '%/files/%' AND ${col} NOT LIKE 'data:%'`
+        ).run();
+        repaired += res.changes ?? 0;
+      } catch { /* table may not exist yet on a fresh database */ }
+    }
+    if (repaired > 0) {
+      console.log(`Repaired ${repaired} file reference(s) that had a /files/ prefix`);
+    }
+  } catch (e) {
+    console.error('File-path repair failed (non-fatal):', e);
+  }
 
   // Visit type chosen when the patient is put in the queue (كشف / نص كشف /
   // استشارة / كشف مجاني). This is what the day's revenue is calculated from —

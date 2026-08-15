@@ -1,4 +1,4 @@
-import { db, saveFileToStorage } from '../database/config';
+import { db, saveFileToStorage, normalizeStoredPath } from '../database/config';
 import { IVisitRepository } from '../../domain/repositories/IVisitRepository';
 import { Visit, CreateVisitInput, UpdateVisitInput, VisitType } from '../../domain/entities/Visit';
 import { v4 as uuidv4 } from 'uuid';
@@ -118,13 +118,20 @@ export class VisitRepository implements IVisitRepository {
           const rel = saveFileToStorage(parsed.dataUrl, 'drawings', `${visitId}_${col}.png`);
           if (rel) return TEXT_MODE_PREFIX + JSON.stringify({ text: parsed.text, dataUrl: rel });
         }
+        // Same display-prefix problem as plain paths, one level deeper.
+        const normalized = normalizeStoredPath(parsed.dataUrl);
+        if (normalized !== parsed.dataUrl) {
+          return TEXT_MODE_PREFIX + JSON.stringify({ text: parsed.text, dataUrl: normalized });
+        }
       } catch { /* leave as-is */ }
       return data;
     }
     if (data.startsWith('data:')) {
       return saveFileToStorage(data, 'drawings', `${visitId}_${col}.png`) ?? data;
     }
-    return data;
+    // Already a stored path. The web app sends back the display URL it was
+    // given ("/files/drawings/x.png"), so strip the prefix before storing.
+    return normalizeStoredPath(data);
   }
 
   update(id: string, data: UpdateVisitInput): Promise<Visit> {
