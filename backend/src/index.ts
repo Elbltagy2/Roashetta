@@ -243,10 +243,15 @@ async function startServer() {
     // Initialize SQLite database (async for sql.js)
     await initializeDatabase();
 
-    httpServer.listen(PORT, '0.0.0.0', () => {
+    // No host argument on purpose: Node then listens on :: (dual stack), which
+    // accepts both IPv6 and IPv4. Binding '0.0.0.0' is IPv4 only, and Windows
+    // resolves "localhost" to the IPv6 address ::1 first — the browser would
+    // connect to an address nothing was listening on and hang on
+    // "Waiting for localhost...", while the server looked perfectly healthy.
+    httpServer.listen(PORT, () => {
       const localIP = getLocalIPAddress();
       const networkURL = `http://${localIP}:${PORT}`;
-      const localURL = `http://localhost:${PORT}`;
+      const localURL = `http://127.0.0.1:${PORT}`;
 
       console.log('\n========================================');
       console.log('  🏥 Roashetta Server Started');
