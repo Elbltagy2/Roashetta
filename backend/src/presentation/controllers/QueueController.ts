@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
+import { QUEUE_VISIT_TYPES } from '../../domain/entities/QueueEntry';
 import { QueueRepository } from '../../infrastructure/repositories/QueueRepository';
 import { db } from '../../infrastructure/database/config';
 
@@ -17,6 +18,7 @@ export class QueueController {
         patientPhone: e.patientPhone,
         position: e.position,
         status: e.status,
+        visitType: e.visitType,
         addedAt: e.addedAt.toISOString(),
         addedBy: e.addedBy,
         queueDate: e.queueDate,
@@ -29,7 +31,11 @@ export class QueueController {
   async addToQueue(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const queueRepository = new QueueRepository();
-      const { patientId } = req.body;
+      const { patientId, visitType } = req.body;
+
+      if (visitType && !QUEUE_VISIT_TYPES.includes(visitType)) {
+        return res.status(400).json({ error: `visitType must be one of: ${QUEUE_VISIT_TYPES.join(', ')}` });
+      }
 
       if (!patientId) {
         return res.status(400).json({ error: 'patientId is required' });
@@ -54,6 +60,7 @@ export class QueueController {
         patientName: patient.name as string,
         patientPhone: (patient.phone as string) || '',
         addedBy: req.user!.id,
+        visitType: visitType || 'examination',
       });
 
       res.status(201).json({
@@ -63,6 +70,7 @@ export class QueueController {
         patientPhone: entry.patientPhone,
         position: entry.position,
         status: entry.status,
+        visitType: entry.visitType,
         addedAt: entry.addedAt.toISOString(),
         addedBy: entry.addedBy,
         queueDate: entry.queueDate,
@@ -76,9 +84,13 @@ export class QueueController {
     try {
       const queueRepository = new QueueRepository();
       const { id } = req.params;
-      const { status, position } = req.body;
+      const { status, position, visitType } = req.body;
 
-      const entry = await queueRepository.update(id, { status, position });
+      if (visitType && !QUEUE_VISIT_TYPES.includes(visitType)) {
+        return res.status(400).json({ error: `visitType must be one of: ${QUEUE_VISIT_TYPES.join(', ')}` });
+      }
+
+      const entry = await queueRepository.update(id, { status, position, visitType });
 
       res.json({
         id: entry.id,
@@ -87,6 +99,7 @@ export class QueueController {
         patientPhone: entry.patientPhone,
         position: entry.position,
         status: entry.status,
+        visitType: entry.visitType,
         addedAt: entry.addedAt.toISOString(),
         addedBy: entry.addedBy,
         queueDate: entry.queueDate,

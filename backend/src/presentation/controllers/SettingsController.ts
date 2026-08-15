@@ -38,7 +38,7 @@ export class SettingsController {
   async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const doctorId = req.doctorId!;
-      const { newVisitPrice, followupVisitPrice, backupPath } = req.body;
+      const { newVisitPrice, followupVisitPrice, consultationPrice, backupPath } = req.body;
 
       const existing = await settingsRepository.findByDoctorId(doctorId);
 
@@ -46,6 +46,7 @@ export class SettingsController {
         doctorId,
         newVisitPrice: newVisitPrice ?? existing?.newVisitPrice ?? 0,
         followupVisitPrice: followupVisitPrice ?? existing?.followupVisitPrice ?? 0,
+        consultationPrice: consultationPrice ?? existing?.consultationPrice ?? 0,
         backupPath: backupPath ?? existing?.backupPath ?? '',
       });
 

@@ -405,7 +405,7 @@ class ApiClient {
     return this.request<QueueEntry[]>(url);
   }
 
-  async addToQueue(data: { patientId: string }) {
+  async addToQueue(data: { patientId: string; visitType?: QueueVisitType }) {
     return this.request<QueueEntry>('/queue', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -787,8 +787,9 @@ export interface UpdateLabResultData {
 export interface Settings {
   id?: string;
   doctorId: string;
-  newVisitPrice: number;
-  followupVisitPrice: number;
+  newVisitPrice: number;        // كشف
+  followupVisitPrice: number;   // نص كشف
+  consultationPrice: number;    // استشارة — كشف مجاني is always 0
   backupPath: string;
   createdAt?: string;
   updatedAt?: string;
@@ -797,6 +798,7 @@ export interface Settings {
 export interface UpdateSettingsData {
   newVisitPrice?: number;
   followupVisitPrice?: number;
+  consultationPrice?: number;
   backupPath?: string;
 }
 
@@ -835,6 +837,15 @@ export interface AnalyticsData {
 // Queue
 export type QueueStatus = 'waiting' | 'in-progress' | 'done';
 
+/**
+ * Visit type picked when the patient joins the queue. Drives the day's revenue:
+ *   examination      كشف
+ *   half_examination نص كشف
+ *   consultation     استشارة
+ *   free             كشف مجاني
+ */
+export type QueueVisitType = 'examination' | 'half_examination' | 'consultation' | 'free';
+
 export interface QueueEntry {
   id: string;
   patientId: string;
@@ -842,6 +853,7 @@ export interface QueueEntry {
   patientPhone: string;
   position: number;
   status: QueueStatus;
+  visitType: QueueVisitType;
   addedAt: string;
   addedBy: string;
   queueDate: string;
@@ -850,6 +862,7 @@ export interface QueueEntry {
 export interface UpdateQueueEntryData {
   status?: QueueStatus;
   position?: number;
+  visitType?: QueueVisitType;
 }
 
 // App auto-update

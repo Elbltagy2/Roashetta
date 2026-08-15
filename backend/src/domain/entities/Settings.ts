@@ -1,8 +1,9 @@
 export interface Settings {
   id: string;
   doctorId: string;
-  newVisitPrice: number;
-  followupVisitPrice: number;
+  newVisitPrice: number;        // كشف
+  followupVisitPrice: number;   // نص كشف
+  consultationPrice: number;    // استشارة (كشف مجاني is always 0)
   backupPath: string;
   createdAt: Date;
   updatedAt: Date;

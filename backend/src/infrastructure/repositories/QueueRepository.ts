@@ -30,9 +30,9 @@ export class QueueRepository implements IQueueRepository {
     const position = await this.getNextPosition(data.doctorId, today);
 
     db.prepare(
-      `INSERT INTO queue (id, doctor_id, patient_id, patient_name, patient_phone, position, status, added_at, added_by, queue_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(id, data.doctorId, data.patientId, data.patientName, data.patientPhone, position, 'waiting', now, data.addedBy, today);
+      `INSERT INTO queue (id, doctor_id, patient_id, patient_name, patient_phone, position, status, visit_type, added_at, added_by, queue_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(id, data.doctorId, data.patientId, data.patientName, data.patientPhone, position, 'waiting', data.visitType || 'examination', now, data.addedBy, today);
 
     return this.findById(id) as Promise<QueueEntry>;
   }
@@ -48,6 +48,10 @@ export class QueueRepository implements IQueueRepository {
     if (data.position !== undefined) {
       fields.push('position = ?');
       values.push(data.position);
+    }
+    if (data.visitType !== undefined) {
+      fields.push('visit_type = ?');
+      values.push(data.visitType);
     }
 
     if (fields.length > 0) {
@@ -70,6 +74,46 @@ export class QueueRepository implements IQueueRepository {
     return Promise.resolve();
   }
 
+  /**
+   * Queue entries grouped by visit type for a date range, and per day.
+   * Revenue is derived from these counts × the doctor's configured prices —
+   * the price stored on the visit record is deliberately not used.
+   */
+  getTypeBreakdown(doctorId: string, startDate: string, endDate: string): Promise<{
+    totals: Record<string, number>;
+    daily: { date: string; counts: Record<string, number> }[];
+  }> {
+    const totalRows = db.prepare(`
+      SELECT COALESCE(visit_type, 'examination') AS visit_type, COUNT(*) AS n
+      FROM queue
+      WHERE doctor_id = ? AND queue_date >= ? AND queue_date <= ?
+      GROUP BY COALESCE(visit_type, 'examination')
+    `).all(doctorId, startDate, endDate) as Record<string, unknown>[];
+
+    const dailyRows = db.prepare(`
+      SELECT queue_date AS date, COALESCE(visit_type, 'examination') AS visit_type, COUNT(*) AS n
+      FROM queue
+      WHERE doctor_id = ? AND queue_date >= ? AND queue_date <= ?
+      GROUP BY queue_date, COALESCE(visit_type, 'examination')
+      ORDER BY queue_date DESC
+    `).all(doctorId, startDate, endDate) as Record<string, unknown>[];
+
+    const totals: Record<string, number> = {};
+    for (const row of totalRows) totals[row.visit_type as string] = Number(row.n) || 0;
+
+    const byDate = new Map<string, Record<string, number>>();
+    for (const row of dailyRows) {
+      const date = row.date as string;
+      if (!byDate.has(date)) byDate.set(date, {});
+      byDate.get(date)![row.visit_type as string] = Number(row.n) || 0;
+    }
+
+    return Promise.resolve({
+      totals,
+      daily: Array.from(byDate.entries()).map(([date, counts]) => ({ date, counts })),
+    });
+  }
+
   async getNextPosition(doctorId: string, date: string): Promise<number> {
     const row = db.prepare(
       'SELECT MAX(position) as max_pos FROM queue WHERE doctor_id = ? AND queue_date = ?'
@@ -87,6 +131,8 @@ export class QueueRepository implements IQueueRepository {
       patientPhone: row.patient_phone as string,
       position: row.position as number,
       status: row.status as QueueEntry['status'],
+      // Entries created before the visit-type feature default to كشف.
+      visitType: (row.visit_type as QueueEntry['visitType']) || 'examination',
       addedAt: new Date(row.added_at as string),
       addedBy: row.added_by as string,
       queueDate: row.queue_date as string,

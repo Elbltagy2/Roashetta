@@ -27,6 +27,7 @@ const SettingsPage: React.FC = () => {
   const [formData, setFormData] = useState({
     newVisitPrice: '',
     followupVisitPrice: '',
+    consultationPrice: '',
     backupPath: '',
   });
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -46,6 +47,7 @@ const SettingsPage: React.FC = () => {
       setFormData({
         newVisitPrice: data.newVisitPrice.toString(),
         followupVisitPrice: data.followupVisitPrice.toString(),
+        consultationPrice: (data.consultationPrice ?? 0).toString(),
         backupPath: data.backupPath || '',
       });
     } catch (error) {
@@ -67,6 +69,7 @@ const SettingsPage: React.FC = () => {
       const updatedSettings = await api.updateSettings({
         newVisitPrice: parseFloat(formData.newVisitPrice) || 0,
         followupVisitPrice: parseFloat(formData.followupVisitPrice) || 0,
+        consultationPrice: parseFloat(formData.consultationPrice) || 0,
         backupPath: formData.backupPath.trim(),
       });
       setSettings(updatedSettings);
@@ -228,8 +231,34 @@ const SettingsPage: React.FC = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   {language === 'ar'
-                    ? 'السعر للمتابعات والزيارات المتكررة'
-                    : 'Price for follow-up and recurring visits'}
+                    ? 'السعر لنص الكشف والزيارات المتكررة'
+                    : 'Price for half examination and recurring visits'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 text-violet-600 text-xs font-bold">
+                    {language === 'ar' ? 'س' : 'C'}
+                  </span>
+                  {language === 'ar' ? 'سعر الاستشارة (EGP)' : 'Consultation Price (EGP)'}
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.consultationPrice}
+                  onChange={(e) =>
+                    setFormData({ ...formData, consultationPrice: e.target.value })
+                  }
+                  placeholder="0.00"
+                  dir="ltr"
+                  className="text-lg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {language === 'ar'
+                    ? 'سعر الاستشارة — الكشف المجاني دائماً بدون رسوم'
+                    : 'Consultation price — free examination is always zero'}
                 </p>
               </div>
             </div>

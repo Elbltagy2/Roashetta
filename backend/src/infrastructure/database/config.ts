@@ -632,6 +632,19 @@ function createTables() {
     db.exec(`ALTER TABLE settings ADD COLUMN backup_path TEXT DEFAULT ''`);
   } catch (e) { /* Column already exists */ }
 
+  // Visit type chosen when the patient is put in the queue (كشف / نص كشف /
+  // استشارة / كشف مجاني). This is what the day's revenue is calculated from —
+  // the price on the visit record itself is not used for analytics.
+  try {
+    db.exec(`ALTER TABLE queue ADD COLUMN visit_type TEXT DEFAULT 'examination'`);
+  } catch (e) { /* Column already exists */ }
+
+  // Price for استشارة. كشف and نص كشف reuse the existing new/followup prices,
+  // and كشف مجاني is always zero.
+  try {
+    db.exec(`ALTER TABLE settings ADD COLUMN consultation_price REAL NOT NULL DEFAULT 0`);
+  } catch (e) { /* Column already exists */ }
+
   // Create visit_attachments table
   db.exec(`
     CREATE TABLE IF NOT EXISTS visit_attachments (

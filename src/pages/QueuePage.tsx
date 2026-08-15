@@ -29,8 +29,35 @@ import {
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useData } from '@/contexts/DataContext';
-import api, { QueueEntry, QueueStatus } from '@/services/api';
+import api, { QueueEntry, QueueStatus, QueueVisitType, Settings } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
+
+/** The four visit types, in the order they appear in the picker. */
+const VISIT_TYPES: { value: QueueVisitType; ar: string; en: string }[] = [
+  { value: 'examination',      ar: 'كشف',        en: 'Examination' },
+  { value: 'half_examination', ar: 'نص كشف',     en: 'Half examination' },
+  { value: 'consultation',     ar: 'استشارة',     en: 'Consultation' },
+  { value: 'free',             ar: 'كشف مجاني',  en: 'Free' },
+];
+
+const TYPE_STYLES: Record<QueueVisitType, string> = {
+  examination:      'bg-primary/10 text-primary border-primary/20',
+  half_examination: 'bg-amber-100 text-amber-700 border-amber-200',
+  consultation:     'bg-violet-100 text-violet-700 border-violet-200',
+  free:             'bg-slate-100 text-slate-600 border-slate-200',
+};
+
+/** كشف مجاني is always free; the rest are priced from the doctor's settings. */
+function priceForType(type: QueueVisitType, settings: Settings | null): number {
+  if (!settings) return 0;
+  switch (type) {
+    case 'examination':      return settings.newVisitPrice ?? 0;
+    case 'half_examination': return settings.followupVisitPrice ?? 0;
+    case 'consultation':     return settings.consultationPrice ?? 0;
+    case 'free':             return 0;
+    default:                 return 0;
+  }
+}
 
 const QueuePage: React.FC = () => {
   const { t, language } = useLanguage();
@@ -46,6 +73,19 @@ const QueuePage: React.FC = () => {
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
   const [confirmEntry, setConfirmEntry] = useState<QueueEntry | null>(null);
   const [isSettingCurrent, setIsSettingCurrent] = useState(false);
+  // Visit type applied to the next patient added; the row keeps its own type after that.
+  const [addVisitType, setAddVisitType] = useState<QueueVisitType>('examination');
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [typeDropdownId, setTypeDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getSettings().then(setSettings).catch(() => { /* prices show as 0 */ });
+  }, []);
+
+  const dayTotal = useMemo(
+    () => queue.reduce((sum, entry) => sum + priceForType(entry.visitType, settings), 0),
+    [queue, settings]
+  );
 
   const loadQueue = useCallback(async () => {
     try {
@@ -87,9 +127,25 @@ const QueuePage: React.FC = () => {
     return () => { cancelled = true; };
   }, [searchQuery, queue]);
 
+  const handleChangeVisitType = async (entry: QueueEntry, visitType: QueueVisitType) => {
+    setTypeDropdownId(null);
+    const previous = entry.visitType;
+    // Optimistic — the day's total updates as the doctor picks.
+    setQueue(prev => prev.map(e => (e.id === entry.id ? { ...e, visitType } : e)));
+    try {
+      await api.updateQueueEntry(entry.id, { visitType });
+    } catch {
+      setQueue(prev => prev.map(e => (e.id === entry.id ? { ...e, visitType: previous } : e)));
+      toast({
+        title: language === 'ar' ? 'تعذّر تغيير نوع الكشف' : 'Could not change visit type',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleAddToQueue = async (patientId: string) => {
     try {
-      const entry = await api.addToQueue({ patientId });
+      const entry = await api.addToQueue({ patientId, visitType: addVisitType });
       setQueue(prev => [...prev, entry]);
       setSearchQuery('');
       setShowSearch(false);
@@ -239,6 +295,17 @@ const QueuePage: React.FC = () => {
               {waitingCount} {t('queue.patientCount')}
             </p>
           </div>
+          {/* Today's takings, from each entry's visit type × its price in Settings */}
+          {queue.length > 0 && (
+            <div className="rounded-xl border border-border bg-card px-4 py-2 text-end">
+              <p className="text-xs text-muted-foreground">
+                {language === 'ar' ? 'إجمالي اليوم' : "Today's total"}
+              </p>
+              <p className="text-2xl font-bold text-foreground">
+                {dayTotal} <span className="text-sm font-normal text-muted-foreground">{language === 'ar' ? 'ج.م' : 'EGP'}</span>
+              </p>
+            </div>
+          )}
           <Button
             onClick={() => setShowSearch(!showSearch)}
             className="gap-2"
@@ -251,6 +318,33 @@ const QueuePage: React.FC = () => {
         {/* Search to add patient */}
         {showSearch && (
           <div className="relative">
+            {/* Visit type for the patient about to be added */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-sm text-muted-foreground">
+                {language === 'ar' ? 'نوع الكشف:' : 'Visit type:'}
+              </span>
+              {VISIT_TYPES.map(type => {
+                const price = priceForType(type.value, settings);
+                const active = addVisitType === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setAddVisitType(type.value)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full border text-sm transition-colors',
+                      active ? TYPE_STYLES[type.value] : 'bg-card text-muted-foreground border-border hover:bg-muted/50'
+                    )}
+                  >
+                    {language === 'ar' ? type.ar : type.en}
+                    <span className="ms-1.5 opacity-70">
+                      {type.value === 'free' ? (language === 'ar' ? 'مجاني' : 'free') : price}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="relative">
               <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -304,6 +398,8 @@ const QueuePage: React.FC = () => {
             {queue.map((entry, index) => {
               const isCurrent = currentPatient?.id === entry.patientId;
               const isStatusOpen = statusDropdownId === entry.id;
+              const isTypeOpen = typeDropdownId === entry.id;
+              const typeLabel = VISIT_TYPES.find(v => v.value === entry.visitType) ?? VISIT_TYPES[0];
               return (
                 <div
                   key={entry.id}
@@ -342,6 +438,46 @@ const QueuePage: React.FC = () => {
                       {new Date(entry.addedAt).toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </button>
+
+                  {/* Visit type — click to change; drives the day's total */}
+                  <div className="relative flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setTypeDropdownId(isTypeOpen ? null : entry.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full border text-sm font-medium whitespace-nowrap',
+                        TYPE_STYLES[entry.visitType]
+                      )}
+                    >
+                      {language === 'ar' ? typeLabel.ar : typeLabel.en}
+                      <span className="ms-1.5 opacity-70">
+                        {entry.visitType === 'free'
+                          ? (language === 'ar' ? 'مجاني' : 'free')
+                          : `${priceForType(entry.visitType, settings)}`}
+                      </span>
+                    </button>
+
+                    {isTypeOpen && (
+                      <div className="absolute z-30 top-full mt-1 end-0 w-44 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                        {VISIT_TYPES.map(type => (
+                          <button
+                            key={type.value}
+                            type="button"
+                            onClick={() => handleChangeVisitType(entry, type.value)}
+                            className={cn(
+                              'w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 transition-colors',
+                              entry.visitType === type.value && 'font-semibold'
+                            )}
+                          >
+                            <span>{language === 'ar' ? type.ar : type.en}</span>
+                            <span className="text-muted-foreground">
+                              {type.value === 'free' ? (language === 'ar' ? 'مجاني' : 'free') : priceForType(type.value, settings)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Set as current patient button */}
                   <Button
