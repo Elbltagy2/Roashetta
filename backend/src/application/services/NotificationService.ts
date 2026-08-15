@@ -5,23 +5,33 @@ import { CreateNotificationInput, Notification } from '../../domain/entities/Not
 export class NotificationService {
   constructor(
     private notificationRepository: INotificationRepository,
-    private io: SocketIOServer
+    // null when Socket.io is disabled — the notification is still stored, it
+    // just isn't pushed live.
+    private io: SocketIOServer | null
   ) {}
 
   async createAndEmit(input: CreateNotificationInput): Promise<Notification> {
-    console.log('[NotificationService] Creating notification:', input.type, 'for doctor:', input.doctorId);
+    // Notifications are off by default: a solo doctor does not need to be told
+    // about their own actions, and the rows only grow the database. Set
+    // ENABLE_NOTIFICATIONS=1 to record them again.
+    if (process.env.ENABLE_NOTIFICATIONS !== '1') {
+      return {
+        id: '',
+        ...input,
+        isRead: true,
+        readAt: null,
+        createdAt: new Date(),
+      } as unknown as Notification;
+    }
 
     // Save notification to database
     const notification = await this.notificationRepository.create(input);
-    console.log('[NotificationService] Notification saved to DB:', notification.id);
+
+    if (!this.io) return notification;
 
     // Emit to all connected clients in the doctor's room
     const room = `doctor:${input.doctorId}`;
-    const socketsInRoom = this.io.sockets.adapter.rooms.get(room);
-    console.log(`[NotificationService] Sockets in room ${room}:`, socketsInRoom?.size || 0);
-
     this.io.to(room).emit('notification', notification);
-    console.log(`[NotificationService] Notification emitted to room ${room}:`, notification.title);
 
     return notification;
   }

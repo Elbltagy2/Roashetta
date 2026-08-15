@@ -20,6 +20,15 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+/**
+ * Notifications and their live delivery are off by default — a single doctor
+ * working alone has no use for being told about their own actions. Re-enable
+ * at build time with VITE_ENABLE_NOTIFICATIONS=true (and ENABLE_SOCKET=1 on the
+ * server, plus VITE_ENABLE_SOCKET=true here, for instant delivery).
+ */
+export const NOTIFICATIONS_ENABLED = import.meta.env.VITE_ENABLE_NOTIFICATIONS === 'true';
+const SOCKET_ENABLED = NOTIFICATIONS_ENABLED && import.meta.env.VITE_ENABLE_SOCKET === 'true';
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -42,9 +51,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Load notifications on mount
   useEffect(() => {
+    if (!NOTIFICATIONS_ENABLED) {
+      setIsLoading(false);
+      return;
+    }
     if (isAuthenticated) {
       loadNotifications();
-      connectSocket();
+      if (SOCKET_ENABLED) connectSocket();
     } else {
       // Clear notifications when logged out
       setNotifications([]);
@@ -55,6 +68,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => {
       socketService.disconnect();
     };
+  }, [isAuthenticated]);
+
+  // Without a live socket, refresh when the window regains focus so the bell
+  // isn't stale after an assistant adds a patient on another machine.
+  useEffect(() => {
+    if (!NOTIFICATIONS_ENABLED || SOCKET_ENABLED || !isAuthenticated) return;
+    const onFocus = () => loadNotifications();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [isAuthenticated]);
 
   const loadNotifications = async () => {

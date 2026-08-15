@@ -63,10 +63,14 @@ const app = express();
 const httpServer = http.createServer(app);
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
-// Initialize Socket.io
-const io = initializeSocketServer(httpServer);
+// Socket.io only ever carried live notification delivery. Notifications are
+// still written to the database and read over the API, so with it off the bell
+// updates when a page loads instead of instantly. Off by default; set
+// ENABLE_SOCKET=1 in .env to turn it back on.
+const SOCKET_ENABLED = process.env.ENABLE_SOCKET === '1';
+const io = SOCKET_ENABLED ? initializeSocketServer(httpServer) : null;
 
-// Attach Socket.io instance to app for access in controllers
+// Attach Socket.io instance to app for access in controllers (null when off)
 app.set('io', io);
 
 // Middleware
@@ -253,7 +257,7 @@ async function startServer() {
         console.log(`👥 Max doctors: ${licenseInfo.maxDoctors === -1 ? 'Unlimited' : licenseInfo.maxDoctors}\n`);
       }
       console.log(`💾 Database: roashetta.db`);
-      console.log(`🔌 Socket.io: Enabled\n`);
+      console.log(`🔌 Socket.io: ${SOCKET_ENABLED ? 'Enabled' : 'Disabled (set ENABLE_SOCKET=1 for live notifications)'}\n`);
       console.log('📍 Access URLs:');
       console.log(`   Local:   ${localURL}`);
       console.log(`   Network: ${networkURL}\n`);

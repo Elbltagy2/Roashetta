@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { NOTIFICATIONS_ENABLED } from '@/contexts/NotificationContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -167,7 +168,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell />
+          {NOTIFICATIONS_ENABLED && <NotificationBell />}
           <Button variant="ghost" size="icon" onClick={toggleLanguage}>
             <Globe className="w-5 h-5" />
           </Button>
@@ -182,7 +183,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             {/* Breadcrumb could go here */}
           </div>
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            {NOTIFICATIONS_ENABLED && <NotificationBell />}
             <Button
               variant="outline"
               size="sm"

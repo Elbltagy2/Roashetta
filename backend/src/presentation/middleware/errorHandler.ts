@@ -29,13 +29,24 @@ export const errorHandler = (
     return res.status(status).json({ error: err.message });
   }
 
+  // A client that hangs up mid-upload (page reload, closed laptop, wifi drop)
+  // is not a server fault and must not be logged as one. Nothing was saved.
+  if ((err as { type?: string }).type === 'request.aborted') {
+    console.warn('Upload aborted by client — nothing was saved for that request.');
+    return res.status(499).end();
+  }
+
   // Handle known error messages
   if (err.message.includes('not found')) {
     return res.status(404).json({ error: err.message });
   }
 
-  if (err.message.includes('Unauthorized') || err.message.includes('Invalid')) {
-    return res.status(401).json({ error: err.message });
+  // Ownership failures ("Unauthorized access to patient") are a permission
+  // problem, NOT an expired session. Returning 401 made the web app treat them
+  // as a dead token and hard-redirect to /login, throwing away whatever the
+  // doctor had open — including a prescription mid-save.
+  if (err.message.includes('Unauthorized') || err.message.includes('Access denied')) {
+    return res.status(403).json({ error: err.message });
   }
 
   if (err.message.includes('already exists') || err.message.includes('already registered')) {
