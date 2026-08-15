@@ -817,12 +817,19 @@ function createTables() {
 
   // Create settings table for storing doctor-specific configuration (visit prices, etc.)
   db.exec(`
+    -- NOTE: columns added later must be listed here as well as in an ALTER
+    -- above. The ALTER statements run before this table exists, so on a brand
+    -- new database they fail silently and the column would be missing —
+    -- queue and settings writes then fail with "no such column".
     CREATE TABLE IF NOT EXISTS settings (
       id TEXT PRIMARY KEY,
       doctor_id TEXT UNIQUE NOT NULL,
       new_visit_price REAL NOT NULL DEFAULT 0,
       followup_visit_price REAL NOT NULL DEFAULT 0,
+      consultation_price REAL NOT NULL DEFAULT 0,
       backup_path TEXT DEFAULT '',
+      last_scanner_url TEXT DEFAULT '',
+      last_scanner_name TEXT DEFAULT '',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
@@ -879,6 +886,7 @@ function createTables() {
       patient_phone TEXT,
       position INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'in-progress', 'done')),
+      visit_type TEXT DEFAULT 'examination',
       added_at TEXT DEFAULT (datetime('now')),
       added_by TEXT NOT NULL,
       queue_date TEXT NOT NULL,

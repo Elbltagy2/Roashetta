@@ -1,7 +1,7 @@
 {
-  "version": "1.3.3",
+  "version": "1.3.4",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "95dda52f12cd59e5ade7538407c283e3413a8efc7f65ceca21aa4bdae004011b",
-  "releasedAt": "2026-08-15T16:47:56Z",
-  "notes": "Saving an existing visit now sends only the drawings that changed. A visit with 13 canvases uploaded about 4 MB on every save; editing text or one page now sends a few KB, so there is far less time for the connection to drop mid-upload. Unchanged pages are omitted from the request (not sent as empty), so the stored image is kept. The browser also warns before closing or reloading while a save is uploading or a draft still holds unsaved work, and a failed save now says the visit was not saved and the work is still in the form, instead of a generic error. Fixes the aborted-upload log line from 1.3.2, which never actually ran because the framework's 400 status was handled first — client disconnects now log one warning with the byte count instead of a stack trace."
+  "sha256": "f57105cceb74034ce726dfab8d7993608221684d2279cf9c0425efecc2fcfca6",
+  "releasedAt": "2026-08-15T17:03:45Z",
+  "notes": "Fixes a fresh install. Columns added by later migrations (queue visit type, consultation price, and the scanner fields from an earlier version) were applied by ALTER statements that run before those tables are created, so on a brand new database they failed silently and the columns were missing — adding a patient to the queue or saving settings then failed with \"no such column\". Existing databases were unaffected, which is why it only appeared on a new setup. The columns are now part of the table definitions as well as the migrations."
 }
