@@ -309,115 +309,158 @@ async function migrateBase64ToFiles() {
   // Once every base64 blob has been moved to a file, skip this entirely.
   // Previously it re-ran 14 full-table LIKE scans on `visits` on EVERY boot,
   // which is why startup got slow as the database grew.
-  if (getMeta('base64_migration_v1') === 'done') return;
+  if (getMeta('base64_migration_v1') === 'done') {
+    vacuumAfterMigration();
+    return;
+  }
 
   const storageDir = getStorageDir();
   ensureDir(storageDir);
-  let foundAny = false; // true if any base64 still needed migrating this pass
 
-  // ── visit_attachments ──────────────────────────────────────────────────────
-  const attachments = database.prepare(
-    `SELECT id, data_url FROM visit_attachments WHERE data_url LIKE 'data:%' LIMIT 500`
-  ).all() as { id: string; data_url: string }[];
+  // Queries below are batched (LIMIT 500), so loop passes until a full pass
+  // finds nothing — one startup finishes the whole migration instead of one
+  // restart per 500 rows. `migrated` guards against rows whose file write
+  // keeps failing (they would match forever): a pass that finds rows but
+  // migrates none stops here and leaves the retry to the next startup.
+  let foundAny = true;
+  while (foundAny) {
+    foundAny = false;
+    let migrated = 0;
 
-  if (attachments.length > 0) {
-    foundAny = true;
-    console.log(`Migrating ${attachments.length} visit attachments to files...`);
-    const updateAttachment = database.prepare(`UPDATE visit_attachments SET data_url = ? WHERE id = ?`);
-    const migrate = database.transaction(() => {
-      for (const row of attachments) {
-        const ext = row.data_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
-        const relPath = saveDataUrl(row.data_url, 'attachments', `${row.id}.${ext}`);
-        if (relPath) updateAttachment.run(relPath, row.id);
-      }
-    });
-    migrate();
-    console.log(`  ✓ ${attachments.length} attachments migrated`);
-  }
+    // ── visit_attachments ────────────────────────────────────────────────────
+    const attachments = database.prepare(
+      `SELECT id, data_url FROM visit_attachments WHERE data_url LIKE 'data:%' LIMIT 500`
+    ).all() as { id: string; data_url: string }[];
 
-  // ── patient_records ────────────────────────────────────────────────────────
-  const records = database.prepare(
-    `SELECT id, file_url FROM patient_records WHERE file_url LIKE 'data:%' LIMIT 500`
-  ).all() as { id: string; file_url: string }[];
+    if (attachments.length > 0) {
+      foundAny = true;
+      console.log(`Migrating ${attachments.length} visit attachments to files...`);
+      const updateAttachment = database.prepare(`UPDATE visit_attachments SET data_url = ? WHERE id = ?`);
+      const migrate = database.transaction(() => {
+        for (const row of attachments) {
+          const ext = row.data_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
+          const relPath = saveDataUrl(row.data_url, 'attachments', `${row.id}.${ext}`);
+          if (relPath) { updateAttachment.run(relPath, row.id); migrated++; }
+        }
+      });
+      migrate();
+      console.log(`  ✓ ${attachments.length} attachments migrated`);
+    }
 
-  if (records.length > 0) {
-    foundAny = true;
-    console.log(`Migrating ${records.length} patient records to files...`);
-    const updateRecord = database.prepare(`UPDATE patient_records SET file_url = ? WHERE id = ?`);
-    const migrate = database.transaction(() => {
-      for (const row of records) {
-        const ext = row.file_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
-        const relPath = saveDataUrl(row.file_url, 'records', `${row.id}.${ext}`);
-        if (relPath) updateRecord.run(relPath, row.id);
-      }
-    });
-    migrate();
-    console.log(`  ✓ ${records.length} records migrated`);
-  }
+    // ── patient_records ──────────────────────────────────────────────────────
+    const records = database.prepare(
+      `SELECT id, file_url FROM patient_records WHERE file_url LIKE 'data:%' LIMIT 500`
+    ).all() as { id: string; file_url: string }[];
 
-  // ── previous_investigations ────────────────────────────────────────────────
-  const investigations = database.prepare(
-    `SELECT id, file_url FROM previous_investigations WHERE file_url LIKE 'data:%' LIMIT 500`
-  ).all() as { id: string; file_url: string }[];
+    if (records.length > 0) {
+      foundAny = true;
+      console.log(`Migrating ${records.length} patient records to files...`);
+      const updateRecord = database.prepare(`UPDATE patient_records SET file_url = ? WHERE id = ?`);
+      const migrate = database.transaction(() => {
+        for (const row of records) {
+          const ext = row.file_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
+          const relPath = saveDataUrl(row.file_url, 'records', `${row.id}.${ext}`);
+          if (relPath) { updateRecord.run(relPath, row.id); migrated++; }
+        }
+      });
+      migrate();
+      console.log(`  ✓ ${records.length} records migrated`);
+    }
 
-  if (investigations.length > 0) {
-    foundAny = true;
-    console.log(`Migrating ${investigations.length} investigations to files...`);
-    const updateInv = database.prepare(`UPDATE previous_investigations SET file_url = ? WHERE id = ?`);
-    const migrate = database.transaction(() => {
-      for (const row of investigations) {
-        const ext = row.file_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
-        const relPath = saveDataUrl(row.file_url, 'records', `${row.id}.${ext}`);
-        if (relPath) updateInv.run(relPath, row.id);
-      }
-    });
-    migrate();
-    console.log(`  ✓ ${investigations.length} investigations migrated`);
-  }
+    // ── previous_investigations ──────────────────────────────────────────────
+    const investigations = database.prepare(
+      `SELECT id, file_url FROM previous_investigations WHERE file_url LIKE 'data:%' LIMIT 500`
+    ).all() as { id: string; file_url: string }[];
 
-  // ── visit drawings (14 columns) ────────────────────────────────────────────
-  const drawingCols = [
-    'chief_complaint_drawing', 'diagnosis_drawing',
-    'notes_drawing', 'notes_drawing_2', 'notes_drawing_3',
-    'past_medical_history_drawing', 'hpi_drawing', 'drug_history_drawing',
-    'family_history_drawing', 'current_medication_drawing',
-    'radiology_drawing', 'radiology_drawing_2', 'radiology_drawing_3',
-    'drawing_data',
-  ];
+    if (investigations.length > 0) {
+      foundAny = true;
+      console.log(`Migrating ${investigations.length} investigations to files...`);
+      const updateInv = database.prepare(`UPDATE previous_investigations SET file_url = ? WHERE id = ?`);
+      const migrate = database.transaction(() => {
+        for (const row of investigations) {
+          const ext = row.file_url.split(';')[0].split('/')[1]?.split('+')[0] || 'bin';
+          const relPath = saveDataUrl(row.file_url, 'records', `${row.id}.${ext}`);
+          if (relPath) { updateInv.run(relPath, row.id); migrated++; }
+        }
+      });
+      migrate();
+      console.log(`  ✓ ${investigations.length} investigations migrated`);
+    }
 
-  for (const col of drawingCols) {
-    let visits: { id: string; [k: string]: string }[];
-    try {
-      // Match only rows that still hold base64: raw "data:..." or a TEXT_MODE
-      // blob whose inner dataUrl is still base64. Already-migrated TEXT_MODE
-      // rows hold a file path, so they no longer match (they used to re-match
-      // every boot, which meant the migration never registered as finished).
-      visits = database.prepare(
-        `SELECT id, ${col} FROM visits WHERE ${col} LIKE 'data:%' OR ${col} LIKE '%dataUrl":"data:%' LIMIT 500`
-      ).all() as { id: string; [k: string]: string }[];
-    } catch { continue; } // column might not exist yet
+    // ── visit drawings (14 columns) ──────────────────────────────────────────
+    const drawingCols = [
+      'chief_complaint_drawing', 'diagnosis_drawing',
+      'notes_drawing', 'notes_drawing_2', 'notes_drawing_3',
+      'past_medical_history_drawing', 'hpi_drawing', 'drug_history_drawing',
+      'family_history_drawing', 'current_medication_drawing',
+      'radiology_drawing', 'radiology_drawing_2', 'radiology_drawing_3',
+      'drawing_data',
+    ];
 
-    if (visits.length === 0) continue;
-    foundAny = true;
-    console.log(`Migrating ${visits.length} rows for visits.${col}...`);
-    const updateVisit = database.prepare(`UPDATE visits SET ${col} = ? WHERE id = ?`);
-    const migrate = database.transaction(() => {
-      for (const row of visits) {
-        const data = row[col];
-        if (!data) continue;
-        const relPath = migrateDrawingData(data, 'drawings', `${row.id}_${col}.png`);
-        if (relPath) updateVisit.run(relPath, row.id);
-      }
-    });
-    migrate();
-    console.log(`  ✓ visits.${col} migrated`);
+    for (const col of drawingCols) {
+      let visits: { id: string; [k: string]: string }[];
+      try {
+        // Match only rows that still hold base64: raw "data:..." or a TEXT_MODE
+        // blob whose inner dataUrl is still base64. Already-migrated TEXT_MODE
+        // rows hold a file path, so they no longer match (they used to re-match
+        // every boot, which meant the migration never registered as finished).
+        visits = database.prepare(
+          `SELECT id, ${col} FROM visits WHERE ${col} LIKE 'data:%' OR ${col} LIKE '%dataUrl":"data:%' LIMIT 500`
+        ).all() as { id: string; [k: string]: string }[];
+      } catch { continue; } // column might not exist yet
+
+      if (visits.length === 0) continue;
+      foundAny = true;
+      console.log(`Migrating ${visits.length} rows for visits.${col}...`);
+      const updateVisit = database.prepare(`UPDATE visits SET ${col} = ? WHERE id = ?`);
+      const migrate = database.transaction(() => {
+        for (const row of visits) {
+          const data = row[col];
+          if (!data) continue;
+          const relPath = migrateDrawingData(data, 'drawings', `${row.id}_${col}.png`);
+          if (relPath) { updateVisit.run(relPath, row.id); migrated++; }
+        }
+      });
+      migrate();
+      console.log(`  ✓ visits.${col} migrated`);
+    }
+
+    if (foundAny && migrated === 0) {
+      console.warn('⚠️  Some base64 rows could not be saved as files; will retry on next startup.');
+      return;
+    }
   }
 
   // A pass that found nothing left means the migration is complete — record it
   // so every future startup skips the scan and boots fast regardless of DB size.
-  if (!foundAny) {
-    setMeta('base64_migration_v1', 'done');
-    console.log('Base64→file migration complete; future startups will skip the scan.');
+  setMeta('base64_migration_v1', 'done');
+  console.log('Base64→file migration complete; future startups will skip the scan.');
+  vacuumAfterMigration();
+}
+
+// The migration UPDATEs old base64 blobs away, but SQLite keeps the freed
+// pages inside the .db file (freelist), so a 2 GB file stays 2 GB. A one-time
+// VACUUM rewrites the file with only live data and returns the space to the
+// OS. Needs free disk roughly the size of the live data and can take a minute
+// on a large file; guarded by a meta flag so it never runs twice.
+function vacuumAfterMigration() {
+  if (getMeta('post_migration_vacuum_v1') === 'done') return;
+  try {
+    const pageSize = database.pragma('page_size', { simple: true }) as number;
+    const freePages = database.pragma('freelist_count', { simple: true }) as number;
+    const freeMB = Math.round((pageSize * freePages) / 1024 / 1024);
+    if (freeMB > 20) {
+      console.log(`Reclaiming ${freeMB} MB freed by the base64→file migration (one-time VACUUM, may take a minute)...`);
+      try { database.pragma('wal_checkpoint(TRUNCATE)'); } catch { /* not in WAL mode */ }
+      database.exec('VACUUM');
+      const afterMB = Math.round(fs.statSync(dbPath).size / 1024 / 1024);
+      console.log(`  ✓ VACUUM complete — database file is now ${afterMB} MB`);
+    }
+    setMeta('post_migration_vacuum_v1', 'done');
+  } catch (err) {
+    // Most likely not enough free disk space; leave the flag unset so the
+    // next startup tries again.
+    console.error('VACUUM failed (will retry on next startup):', err);
   }
 }
 

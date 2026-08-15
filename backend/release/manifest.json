@@ -1,7 +1,7 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "downloadUrl": "https://github.com/Elbltagy2/Roashetta/releases/latest/download/RoashettaServer.exe",
-  "sha256": "e00080c44ee4b0a6be73311d25edd40cca481ef0972df3360efdcf1450b11863",
-  "releasedAt": "2026-07-05T12:06:43Z",
-  "notes": "USB backup rework: backup now mirrors the database plus all uploaded files (photos, PDFs, scans, drawings) to a folder you pick in Settings via a new in-app folder browser, with a Backup Now button. Backups run automatically on startup, daily, and on shutdown; stale files are pruned so the backup never outgrows your data, and a full drive is handled safely. Also hardens visit saving: large drawings are stored as files instead of base64 rows, real error causes are shown instead of generic errors, and one failed attachment upload no longer hides that the visit was saved."
+  "sha256": "bce0decdf735617a59a202988618a48709f22c82bb8cb9ef6e0c323d67341976",
+  "releasedAt": "2026-08-15T15:05:00Z",
+  "notes": "Database file shrink: the base64-to-file migration now completes in a single startup (previously 500 rows per restart), and a one-time VACUUM reclaims the space freed by migrated images, shrinking a bloated database file (e.g. 2 GB) down to its real data size. Also adds an optional request log (REQUEST_LOG=1) that records method, path, status, duration and client IP only, never request bodies."
 }
